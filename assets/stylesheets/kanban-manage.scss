@@ -1,0 +1,80 @@
+.discourse-kanban-manage {
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1em;
+  }
+
+  .kanban-boards-table {
+    width: 100%;
+
+    code {
+      font-size: var(--font-down-1);
+    }
+  }
+}
+
+.kanban-configure-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.kanban-board-form-container {
+  max-width: 800px;
+}
+
+.kanban-board-form {
+  .kanban-columns-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+
+    &__column {
+      border: 1px solid var(--primary-low);
+      border-radius: var(--d-border-radius);
+      padding: 1em;
+    }
+
+    &__column-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75em;
+    }
+
+    &__column-number {
+      font-weight: 700;
+    }
+
+    &__column-actions {
+      display: flex;
+      gap: 0.25em;
+    }
+
+    &__column-fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75em;
+
+      label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25em;
+        font-weight: 600;
+        font-size: var(--font-down-1);
+      }
+
+      input[type="text"],
+      .select-kit {
+        width: 100%;
+        margin: 0;
+      }
+    }
+
+    &__add-btn {
+      align-self: flex-start;
+    }
+  }
+}

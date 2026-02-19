@@ -1,0 +1,9 @@
+discourse_kanban:
+  discourse_kanban_enabled:
+    default: false
+    client: true
+  discourse_kanban_manage_board_allowed_groups:
+    type: group_list
+    list_type: compact
+    default: "3"
+    allow_any: false

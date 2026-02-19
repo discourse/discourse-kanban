@@ -1,0 +1,334 @@
+import Component from "@glimmer/component";
+import { tracked } from "@glimmer/tracking";
+import { on } from "@ember/modifier";
+import { action } from "@ember/object";
+import { htmlSafe } from "@ember/template";
+import DButton from "discourse/components/d-button";
+import DropdownMenu from "discourse/components/dropdown-menu";
+import TopicStatus from "discourse/components/topic-status";
+import DMenu from "discourse/float-kit/components/d-menu";
+import categoryBadge from "discourse/helpers/category-badge";
+import concatClass from "discourse/helpers/concat-class";
+import icon from "discourse/helpers/d-icon";
+import formatDate from "discourse/helpers/format-date";
+import { renderAvatar } from "discourse/helpers/user-avatar";
+import renderTags from "discourse/lib/render-tags";
+import Category from "discourse/models/category";
+
+export default class KanbanCard extends Component {
+  @tracked dragging = false;
+  @tracked editing = false;
+  @tracked editTitle = "";
+
+  get isTopicCard() {
+    return this.args.card.card_type === "topic" && this.args.card.topic;
+  }
+
+  get topic() {
+    return this.args.card.topic;
+  }
+
+  get cardTitle() {
+    return this.isTopicCard ? this.topic.title : this.args.card.title;
+  }
+
+  get topicUrl() {
+    if (!this.isTopicCard) {
+      return null;
+    }
+    const t = this.topic;
+    return `/t/${t.slug}/${t.id}`;
+  }
+
+  get tagsHtml() {
+    if (!this.args.board.show_tags || !this.topic?.tags) {
+      return null;
+    }
+
+    const columnTags = new Set(
+      (this.args.columnTags || []).map((t) => t.toLowerCase())
+    );
+
+    const filtered = this.topic.tags.filter(
+      (t) => !columnTags.has(t.toLowerCase())
+    );
+
+    if (!filtered.length) {
+      return null;
+    }
+
+    return renderTags(null, { tags: filtered });
+  }
+
+  get category() {
+    if (this.args.allSameCategory || !this.topic?.category_id) {
+      return null;
+    }
+    return Category.findById(this.topic.category_id);
+  }
+
+  get isDetailed() {
+    return this.args.board.card_style === "detailed";
+  }
+
+  get showImage() {
+    return this.args.board.show_topic_thumbnail && this.topic?.image_url;
+  }
+
+  get assignedUser() {
+    return this.topic?.assigned_to_user;
+  }
+
+  get assignedAvatarHtml() {
+    const user = this.assignedUser;
+    if (!user) {
+      return null;
+    }
+    return renderAvatar(user, {
+      avatarTemplatePath: "avatar_template",
+      usernamePath: "username",
+      imageSize: "tiny",
+    });
+  }
+
+  get lastPosterUsername() {
+    if (this.isTopicCard) {
+      return this.topic?.last_poster?.username;
+    }
+    return this.args.card.updated_by?.username;
+  }
+
+  get activityDate() {
+    if (this.isTopicCard) {
+      return this.topic?.bumped_at;
+    }
+    return this.args.card.updated_at;
+  }
+
+  get activityClass() {
+    if (!this.args.board.show_activity_indicators || !this.activityDate) {
+      return "";
+    }
+
+    const date = moment(this.activityDate);
+    if (date < moment().add(-20, "days")) {
+      return "card-stale";
+    }
+    if (date < moment().add(-7, "days")) {
+      return "card-no-recent-activity";
+    }
+    return "";
+  }
+
+  get topicStatusModel() {
+    if (!this.isTopicCard) {
+      return null;
+    }
+    return { closed: this.topic?.closed };
+  }
+
+  get canShowActions() {
+    return this.args.canWrite;
+  }
+
+  get canEditFloater() {
+    return !this.isTopicCard && this.args.canWrite;
+  }
+
+  @action
+  startEditing() {
+    if (!this.canEditFloater) {
+      return;
+    }
+    this.editing = true;
+    this.editTitle = this.args.card.title || "";
+  }
+
+  @action
+  onEditInput(event) {
+    this.editTitle = event.target.value;
+  }
+
+  @action
+  onEditKeydown(event) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      this.saveEdit();
+    } else if (event.key === "Escape") {
+      this.cancelEdit();
+    }
+  }
+
+  @action
+  saveEdit() {
+    const newTitle = this.editTitle.trim();
+    if (!newTitle || newTitle === this.args.card.title) {
+      this.editing = false;
+      return;
+    }
+    this.editing = false;
+    this.args.onUpdateCard(this.args.card.id, { title: newTitle });
+  }
+
+  @action
+  cancelEdit() {
+    this.editing = false;
+    this.editTitle = "";
+  }
+
+  @action
+  removeCard() {
+    this.args.onDeleteCard(this.args.card.id);
+  }
+
+  @action
+  dragStart(event) {
+    if (!this.args.canWrite) {
+      event.preventDefault();
+      return;
+    }
+    this.dragging = true;
+    this.args.onDragStart({
+      cardId: this.args.card.id,
+      topicId: this.args.card.topic_id,
+      fromColumnId: this.args.card.column_id,
+    });
+    event.dataTransfer.effectAllowed = "move";
+    event.stopPropagation();
+  }
+
+  @action
+  dragEnd() {
+    this.dragging = false;
+  }
+
+  <template>
+    <div
+      class={{concatClass
+        "kanban-card"
+        (if this.dragging "dragging")
+        (unless this.isTopicCard "kanban-card--floater")
+        (if this.editing "kanban-card--editing")
+        this.activityClass
+      }}
+      draggable={{if @canWrite "true" "false"}}
+      data-card-id={{@card.id}}
+      data-topic-id={{@card.topic_id}}
+      {{on "dragstart" this.dragStart}}
+      {{on "dragend" this.dragEnd}}
+    >
+      <div class="kanban-card__row kanban-card__title-row">
+        {{#if this.topicStatusModel}}
+          <TopicStatus @topic={{this.topicStatusModel}} />
+        {{/if}}
+        {{#if this.editing}}
+          <textarea
+            class="kanban-card__edit-input"
+            value={{this.editTitle}}
+            {{on "input" this.onEditInput}}
+            {{on "keydown" this.onEditKeydown}}
+            {{on "blur" this.saveEdit}}
+          />
+        {{else if this.topicUrl}}
+          <a href={{this.topicUrl}} class="kanban-card__title">
+            {{this.cardTitle}}
+          </a>
+        {{else if this.canEditFloater}}
+          <button
+            type="button"
+            class="kanban-card__title kanban-card__title--editable"
+            {{on "click" this.startEditing}}
+          >{{this.cardTitle}}</button>
+        {{else}}
+          <span class="kanban-card__title">{{this.cardTitle}}</span>
+        {{/if}}
+        {{#if this.canShowActions}}
+          <DMenu
+            @identifier="kanban-card-actions"
+            @icon="ellipsis"
+            @triggerClass="btn-flat btn-small kanban-card__actions-trigger"
+          >
+            <:content>
+              <DropdownMenu as |dropdown|>
+                {{#unless this.isTopicCard}}
+                  <dropdown.item>
+                    <DButton
+                      @action={{@onPromoteToTopic}}
+                      @icon="plus"
+                      @label="discourse_kanban.board.new_topic"
+                      class="btn-transparent"
+                    />
+                  </dropdown.item>
+                {{/unless}}
+                <dropdown.item>
+                  <DButton
+                    @action={{this.removeCard}}
+                    @icon="trash-can"
+                    @label="discourse_kanban.board.remove_card"
+                    class="btn-transparent btn-danger"
+                  />
+                </dropdown.item>
+              </DropdownMenu>
+            </:content>
+          </DMenu>
+        {{/if}}
+        {{#unless this.isDetailed}}
+          {{#if this.activityDate}}
+            <span class="kanban-card__date">
+              {{formatDate this.activityDate format="tiny" noTitle="true"}}
+            </span>
+          {{/if}}
+        {{/unless}}
+      </div>
+
+      {{#if this.tagsHtml}}
+        <div class="kanban-card__row kanban-card__tags">
+          {{htmlSafe this.tagsHtml}}
+        </div>
+      {{/if}}
+
+      <div class="kanban-card__row">
+        {{#if this.category}}
+          <div class="kanban-card__category">
+            {{categoryBadge this.category}}
+          </div>
+        {{/if}}
+
+        {{#unless this.isDetailed}}
+          {{#if this.assignedUser}}
+            <div class="kanban-card__assignments">
+              <div class="kanban-card__assigned-to">
+                {{icon "user-plus"}}{{this.assignedUser.username}}
+              </div>
+            </div>
+          {{/if}}
+        {{/unless}}
+      </div>
+
+      {{#if this.isDetailed}}
+        <div class="kanban-card__row kanban-card__detail-row">
+          <div class="kanban-card__last-post-by">
+            {{#if this.activityDate}}
+              {{formatDate this.activityDate format="tiny" noTitle="true"}}
+            {{/if}}
+            {{#if this.lastPosterUsername}}
+              ({{this.lastPosterUsername}})
+            {{/if}}
+          </div>
+
+          {{#if this.assignedAvatarHtml}}
+            <div class="kanban-card__assignments-avatars">
+              {{htmlSafe this.assignedAvatarHtml}}
+            </div>
+          {{/if}}
+        </div>
+      {{/if}}
+
+      {{#if this.showImage}}
+        <div class="kanban-card__row kanban-card__thumbnail-row">
+          <img class="kanban-card__thumbnail" src={{this.topic.image_url}} />
+        </div>
+      {{/if}}
+    </div>
+  </template>
+}

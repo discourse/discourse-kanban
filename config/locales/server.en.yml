@@ -1,0 +1,16 @@
+en:
+  site_settings:
+    discourse_kanban_enabled: "Enable Discourse Kanban plugin"
+    discourse_kanban_manage_board_allowed_groups: "Groups allowed to create and configure kanban boards."
+  discourse_kanban:
+    errors:
+      board_not_found: "Kanban board not found"
+      board_read_forbidden: "You do not have permission to view this board"
+      board_write_forbidden: "You do not have permission to modify this board"
+      board_manage_forbidden: "You do not have permission to manage this board"
+      column_not_found: "Kanban column not found"
+      card_not_found: "Kanban card not found"
+      invalid_card_type: "Invalid kanban card type"
+      unknown_group_ids: "Unknown group ids: %{group_ids}"
+      topic_covered_by_filter: "This topic cannot be removed because it is included by this board's filters."
+      category_definition_topic: "Category definition topics cannot be added to a kanban board."
