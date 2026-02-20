@@ -179,4 +179,46 @@ RSpec.describe DiscourseKanban::TopicSync do
       )
     end
   end
+
+  describe "PostCreator integration" do
+    it "does not interfere with topic creation" do
+      DiscourseKanban::Board
+        .create!(
+          name: "Board",
+          slug: "post-creator-board",
+          base_filter_query: "category:#{category.slug}",
+          created_by_id: admin.id,
+        )
+        .columns
+        .create!(title: "Backlog", position: 0)
+
+      post =
+        PostCreator.create!(
+          admin,
+          title: "A topic created while kanban is active",
+          raw: "This should succeed without any errors from the plugin.",
+          category: category.id,
+          archetype: Archetype.default,
+        )
+
+      expect(post).to be_persisted
+      expect(post.topic).to be_persisted
+    end
+
+    it "does not break topic creation when sync raises an error" do
+      DiscourseKanban::TopicSync.stubs(:sync_topic).raises(StandardError.new("sync boom"))
+
+      post =
+        PostCreator.create!(
+          admin,
+          title: "A topic created while sync is broken",
+          raw: "This should still succeed despite sync errors.",
+          category: category.id,
+          archetype: Archetype.default,
+        )
+
+      expect(post).to be_persisted
+      expect(post.topic).to be_persisted
+    end
+  end
 end
