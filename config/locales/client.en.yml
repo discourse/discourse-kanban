@@ -16,6 +16,15 @@ en:
         configure: "Configure board"
         remove_card: "Remove"
         new_topic: "New Topic..."
+        card_detail: "Card Details"
+        title: "Title"
+        notes: "Notes"
+        notes_placeholder: "Add notes..."
+        labels: "Labels"
+        labels_placeholder: "Add a label and press Enter..."
+        due_date: "Due Date"
+        remove_label: "Remove label"
+        overdue: "Overdue"
         card_count:
           one: "%{count} card"
           other: "%{count} cards"
@@ -39,6 +48,12 @@ en:
         allow_read_groups: "Read Access Groups"
         allow_write_groups: "Write Access Groups"
         get_started: "No boards yet. Create your first kanban board."
+        no_columns: "No columns configured"
+        empty_title: "No Kanban Boards Yet"
+        restricted_access: "This board has restricted access"
+        column_count:
+          one: "%{count} column"
+          other: "%{count} columns"
         all_boards: "All Boards"
         view_board: "View Board"
         columns:
@@ -59,11 +74,6 @@ en:
           move_to_status_none: "Don't change"
           move_to_status_open: "Open"
           move_to_status_closed: "Closed"
-        table:
-          name: "Name"
-          slug: "Slug"
-          columns: "Columns"
-          edit: "Edit"
   admin_js:
     admin:
       site_settings:

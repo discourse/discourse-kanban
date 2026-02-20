@@ -26,18 +26,6 @@ module DiscourseKanban
       end
     end
 
-    def ensure_board_write!
-      unless @board.can_write?(guardian)
-        raise Discourse::InvalidAccess.new(I18n.t("discourse_kanban.errors.board_write_forbidden"))
-      end
-    end
-
-    def ensure_board_manage!
-      unless guardian.can_manage_kanban_boards?
-        raise Discourse::InvalidAccess.new(I18n.t("discourse_kanban.errors.board_manage_forbidden"))
-      end
-    end
-
     def board_payload(board)
       {
         id: board.id,

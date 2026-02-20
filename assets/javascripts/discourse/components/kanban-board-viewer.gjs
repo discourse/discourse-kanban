@@ -300,15 +300,24 @@ export default class KanbanBoardViewer extends Component {
       );
 
       if (result.card) {
-        this.columns = this.columns.map((col) => ({
-          ...col,
-          cards: col.cards.map((c) =>
-            c.id === cardId ? { ...c, ...result.card } : c
-          ),
-        }));
+        if (result.adopted_floater_id) {
+          this.columns = this.columns.map((col) => ({
+            ...col,
+            cards: col.cards.filter((c) => c.id !== cardId),
+          }));
+          this.#handleCardMoved(result.card);
+        } else {
+          this.columns = this.columns.map((col) => ({
+            ...col,
+            cards: col.cards.map((c) =>
+              c.id === cardId ? { ...c, ...result.card } : c
+            ),
+          }));
+        }
       }
     } catch (error) {
       popupAjaxError(error);
+      throw error;
     }
   }
 
@@ -366,6 +375,9 @@ export default class KanbanBoardViewer extends Component {
     if (card.notes) {
       opts.body = card.notes;
     }
+    if (card.labels?.length) {
+      opts.tags = card.labels;
+    }
     const categoryId = column.move_to_category_id;
     if (categoryId) {
       opts.category = Category.findById(categoryId);
@@ -375,11 +387,9 @@ export default class KanbanBoardViewer extends Component {
 
   @bind
   _onTopicCreated(createdPost) {
-    this.appEvents.off("topic:created", this, this._onTopicCreated);
-    this.appEvents.off("composer:cancelled", this, this._cleanupPromotion);
-    this.onUpdateCard(this._promotingCardId, {
-      topic_id: createdPost.topic_id,
-    });
+    const cardId = this._promotingCardId;
+    this._cleanupPromotion();
+    this.onUpdateCard(cardId, { topic_id: createdPost.topic_id });
   }
 
   @bind

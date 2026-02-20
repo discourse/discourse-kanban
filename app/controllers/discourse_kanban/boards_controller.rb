@@ -3,9 +3,8 @@
 module DiscourseKanban
   class BoardsController < BaseController
     before_action :ensure_logged_in, only: %i[create update destroy]
-    before_action :find_board!, only: %i[show update destroy]
+    before_action :find_board!, only: %i[show]
     before_action :ensure_board_read!, only: %i[show]
-    before_action :ensure_board_manage!, only: %i[create update destroy]
 
     def respond
       render body: nil
@@ -38,91 +37,58 @@ module DiscourseKanban
     end
 
     def create
-      payload = board_mutation_params.to_h
-      columns_payload = payload.delete("columns") || []
+      raw = board_mutation_params.to_h
 
-      board = DiscourseKanban::Board.new(payload)
-      board.created_by_id = current_user.id
-      board.updated_by_id = current_user.id
-
-      DiscourseKanban::Board.transaction do
-        board.save!
-        replace_columns!(board, columns_payload)
+      DiscourseKanban::CreateBoard.call(guardian:, params: raw, raw_board_params: raw) do
+        on_success { |board:| render json: { board: board_payload(board) }, status: :created }
+        on_failed_policy(:can_manage) { raise Discourse::InvalidAccess }
+        on_failed_contract do |contract|
+          render json: failed_json.merge(errors: contract.errors.full_messages),
+                 status: :bad_request
+        end
+        on_failure { render json: failed_json, status: :unprocessable_entity }
       end
-
-      render json: { board: board_payload(board) }, status: :created
     end
 
     def update
-      payload = board_mutation_params.to_h
-      columns_payload = payload.delete("columns") || []
+      raw = board_mutation_params.to_h
 
-      DiscourseKanban::Board.transaction do
-        @board.assign_attributes(payload)
-        @board.updated_by_id = current_user.id
-        @board.save!
-        replace_columns!(@board, columns_payload)
+      DiscourseKanban::UpdateBoard.call(
+        guardian:,
+        params: raw.merge("id" => params[:id], "client_id" => params[:client_id]),
+        raw_board_params: raw,
+      ) do
+        on_success { |board:| render json: { board: board_payload(board) } }
+        on_model_not_found(:board) { raise Discourse::NotFound }
+        on_failed_policy(:can_manage) { raise Discourse::InvalidAccess }
+        on_failed_contract do |contract|
+          render json: failed_json.merge(errors: contract.errors.full_messages),
+                 status: :bad_request
+        end
+        on_failure { render json: failed_json, status: :unprocessable_entity }
       end
-
-      Publisher.publish_board_updated!(@board, client_id: message_bus_client_id)
-      render json: { board: board_payload(@board) }
     end
 
     def destroy
-      Publisher.publish_board_updated!(@board, client_id: message_bus_client_id)
-      @board.destroy!
-      head :no_content
+      DiscourseKanban::DestroyBoard.call(
+        guardian:,
+        params: {
+          id: params[:id],
+          client_id: params[:client_id],
+        },
+      ) do
+        on_success { head :no_content }
+        on_model_not_found(:board) { raise Discourse::NotFound }
+        on_failed_policy(:can_manage) { raise Discourse::InvalidAccess }
+        on_failed_contract do |contract|
+          render json: failed_json.merge(errors: contract.errors.full_messages),
+                 status: :bad_request
+        end
+        on_failure { render json: failed_json, status: :unprocessable_entity }
+      end
     end
 
     private
-
-    def replace_columns!(board, columns_payload)
-      current_columns = board.columns.index_by(&:id)
-      kept_column_ids = []
-
-      columns_payload.each_with_index do |column_payload, index|
-        id = column_payload["id"].presence&.to_i
-        column = id && current_columns[id] ? current_columns[id] : board.columns.build
-
-        column.assign_attributes(
-          title: column_payload["title"],
-          icon: column_payload["icon"],
-          filter_query: column_payload["filter_query"],
-          move_to_tag: column_payload["move_to_tag"],
-          move_to_category_id: column_payload["move_to_category_id"],
-          move_to_assigned: column_payload["move_to_assigned"],
-          move_to_status: column_payload["move_to_status"],
-          position: index,
-        )
-
-        column.save!
-        kept_column_ids << column.id
-      end
-
-      removed_columns = board.columns.where.not(id: kept_column_ids)
-      removed_column_ids = removed_columns.pluck(:id)
-
-      if removed_column_ids.present?
-        board
-          .cards
-          .where(
-            column_id: removed_column_ids,
-            card_type: DiscourseKanban::Card.card_types[:floater],
-          )
-          .delete_all
-        board
-          .cards
-          .where(column_id: removed_column_ids, card_type: DiscourseKanban::Card.card_types[:topic])
-          .update_all(
-            column_id: nil,
-            membership_mode: DiscourseKanban::Card.membership_modes[:manual_out],
-            updated_by_id: current_user.id,
-            updated_at: Time.zone.now,
-          )
-      end
-
-      removed_columns.delete_all
-    end
 
     def visible_topic_ids_for(cards)
       topic_ids = cards.select(&:topic?).map(&:topic_id).uniq

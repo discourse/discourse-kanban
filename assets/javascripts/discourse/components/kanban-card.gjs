@@ -2,6 +2,7 @@ import Component from "@glimmer/component";
 import { tracked } from "@glimmer/tracking";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
+import { service } from "@ember/service";
 import { htmlSafe } from "@ember/template";
 import DButton from "discourse/components/d-button";
 import DropdownMenu from "discourse/components/dropdown-menu";
@@ -14,8 +15,11 @@ import formatDate from "discourse/helpers/format-date";
 import { renderAvatar } from "discourse/helpers/user-avatar";
 import renderTags from "discourse/lib/render-tags";
 import Category from "discourse/models/category";
+import KanbanCardDetailModal from "./modal/kanban-card-detail";
 
 export default class KanbanCard extends Component {
+  @service modal;
+
   @tracked dragging = false;
   @tracked editing = false;
   @tracked editTitle = "";
@@ -135,6 +139,45 @@ export default class KanbanCard extends Component {
     return !this.isTopicCard && this.args.canWrite;
   }
 
+  get hasDetails() {
+    const card = this.args.card;
+    return !!(card.notes || card.labels?.length || card.due_at);
+  }
+
+  get isOverdue() {
+    return (
+      this.args.card.due_at &&
+      moment(this.args.card.due_at).isBefore(moment(), "day")
+    );
+  }
+
+  @action
+  openDetailModal() {
+    this.modal.show(KanbanCardDetailModal, {
+      model: {
+        card: this.args.card,
+        canWrite: this.args.canWrite,
+        onUpdateCard: this.args.onUpdateCard,
+      },
+    });
+  }
+
+  @action
+  onCardClick(event) {
+    if (this.isTopicCard || this.editing) {
+      return;
+    }
+    if (
+      event.target.closest(".kanban-card__actions-trigger") ||
+      event.target.closest("[data-content]") ||
+      event.target.closest(".kanban-card__title--editable") ||
+      event.target.closest(".kanban-card__edit-input")
+    ) {
+      return;
+    }
+    this.openDetailModal();
+  }
+
   @action
   startEditing() {
     if (!this.canEditFloater) {
@@ -203,6 +246,7 @@ export default class KanbanCard extends Component {
   }
 
   <template>
+    {{! template-lint-disable no-invalid-interactive }}
     <div
       class={{concatClass
         "kanban-card"
@@ -212,10 +256,12 @@ export default class KanbanCard extends Component {
         this.activityClass
       }}
       draggable={{if @canWrite "true" "false"}}
+      role={{unless this.isTopicCard "button"}}
       data-card-id={{@card.id}}
       data-topic-id={{@card.topic_id}}
       {{on "dragstart" this.dragStart}}
       {{on "dragend" this.dragEnd}}
+      {{on "click" this.onCardClick}}
     >
       <div class="kanban-card__row kanban-card__title-row">
         {{#if this.topicStatusModel}}
@@ -280,6 +326,32 @@ export default class KanbanCard extends Component {
           {{/if}}
         {{/unless}}
       </div>
+
+      {{#unless this.isTopicCard}}
+        {{#if this.hasDetails}}
+          <div class="kanban-card__row kanban-card__indicators">
+            {{#each @card.labels as |label|}}
+              <span class="kanban-card__label">{{label}}</span>
+            {{/each}}
+            {{#if @card.due_at}}
+              <span
+                class={{concatClass
+                  "kanban-card__due-date"
+                  (if this.isOverdue "kanban-card__due-date--overdue")
+                }}
+              >
+                {{icon "clock"}}
+                {{formatDate @card.due_at format="tiny" noTitle="true"}}
+              </span>
+            {{/if}}
+            {{#if @card.notes}}
+              <span class="kanban-card__notes-indicator" title={{@card.notes}}>
+                {{icon "file-lines"}}
+              </span>
+            {{/if}}
+          </div>
+        {{/if}}
+      {{/unless}}
 
       {{#if this.tagsHtml}}
         <div class="kanban-card__row kanban-card__tags">

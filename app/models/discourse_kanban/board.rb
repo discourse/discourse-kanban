@@ -105,3 +105,29 @@ module DiscourseKanban
     end
   end
 end
+
+# == Schema Information
+#
+# Table name: discourse_kanban_boards
+#
+#  id                       :bigint           not null, primary key
+#  allow_read_group_ids     :integer          default([]), not null, is an Array
+#  allow_write_group_ids    :integer          default([]), not null, is an Array
+#  base_filter_query        :text
+#  card_style               :integer          default("detailed"), not null
+#  name                     :string           not null
+#  require_confirmation     :boolean          default(TRUE), not null
+#  show_activity_indicators :boolean          default(FALSE), not null
+#  show_tags                :boolean          default(FALSE), not null
+#  show_topic_thumbnail     :boolean          default(FALSE), not null
+#  slug                     :string           not null
+#  created_at               :datetime         not null
+#  updated_at               :datetime         not null
+#  created_by_id            :bigint
+#  updated_by_id            :bigint
+#
+# Indexes
+#
+#  index_discourse_kanban_boards_on_created_by_id  (created_by_id)
+#  index_discourse_kanban_boards_on_slug           (slug) UNIQUE
+#

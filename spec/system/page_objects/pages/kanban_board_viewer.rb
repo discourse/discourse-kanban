@@ -4,7 +4,12 @@ module PageObjects
   module Pages
     class KanbanBoardViewer < PageObjects::Pages::Base
       def visit_board(board)
-        page.visit "/kanban/boards/#{board.id}"
+        page.visit "/kanban/boards/#{board.slug}/#{board.id}"
+        self
+      end
+
+      def visit_board_with_slug(slug, board)
+        page.visit "/kanban/boards/#{slug}/#{board.id}"
         self
       end
 
@@ -159,6 +164,29 @@ module PageObjects
           "[data-content][data-identifier='kanban-board-controls'] .btn-transparent .d-button-label",
           text: I18n.t("js.discourse_kanban.board.configure"),
         )
+      end
+
+      def click_floater_card(card_title)
+        find(".kanban-card--floater", text: card_title).click
+        self
+      end
+
+      def has_card_label?(card_title, label)
+        within(find(".kanban-card--floater", text: card_title)) do
+          has_css?(".kanban-card__label", text: label)
+        end
+      end
+
+      def has_card_due_date?(card_title)
+        within(find(".kanban-card--floater", text: card_title)) do
+          has_css?(".kanban-card__due-date")
+        end
+      end
+
+      def has_card_notes_indicator?(card_title)
+        within(find(".kanban-card--floater", text: card_title)) do
+          has_css?(".kanban-card__notes-indicator")
+        end
       end
     end
   end

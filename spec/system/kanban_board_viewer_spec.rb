@@ -71,6 +71,19 @@ describe "Kanban Board Viewer", type: :system do
     end
   end
 
+  context "when visiting a board with the wrong slug" do
+    it "redirects to the correct slug" do
+      board = create_board
+      board.columns.create!(title: "To Do", position: 0)
+
+      sign_in(user)
+      board_viewer.visit_board_with_slug("wrong-slug", board)
+
+      expect(board_viewer).to have_board_title("Sprint Board")
+      expect(page).to have_current_path("/kanban/boards/sprint-board/#{board.id}")
+    end
+  end
+
   context "when dragging cards with confirmation" do
     it "moves card after confirming" do
       board = create_board(allow_write_group_ids: [Group::AUTO_GROUPS[:everyone]])

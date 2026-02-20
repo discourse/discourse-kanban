@@ -48,3 +48,38 @@ module DiscourseKanban
     end
   end
 end
+
+# == Schema Information
+#
+# Table name: discourse_kanban_cards
+#
+#  id              :bigint           not null, primary key
+#  card_type       :integer          default("floater"), not null
+#  due_at          :datetime
+#  labels          :text             default([]), not null, is an Array
+#  membership_mode :integer          default("manual_in"), not null
+#  notes           :text
+#  position        :integer          default(0), not null
+#  title           :string
+#  created_at      :datetime         not null
+#  updated_at      :datetime         not null
+#  board_id        :bigint           not null
+#  column_id       :bigint
+#  created_by_id   :bigint
+#  topic_id        :bigint
+#  updated_by_id   :bigint
+#
+# Indexes
+#
+#  idx_kanban_cards_board_column_position   (board_id,column_id,position)
+#  idx_kanban_cards_board_id                (board_id)
+#  idx_kanban_cards_column_id               (column_id)
+#  idx_kanban_cards_topic_id                (topic_id)
+#  idx_kanban_cards_unique_topic_per_board  (board_id,topic_id) UNIQUE WHERE (topic_id IS NOT NULL)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (board_id => discourse_kanban_boards.id) ON DELETE => cascade
+#  fk_rails_...  (column_id => discourse_kanban_columns.id) ON DELETE => nullify
+#  fk_rails_...  (topic_id => topics.id) ON DELETE => cascade
+#

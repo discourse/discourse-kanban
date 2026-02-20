@@ -66,6 +66,45 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(card["topic"]["title"]).to eq(topic.title)
     end
 
+    it "adopts the existing topic card when topic card creation races with another insert" do
+      inserted_competitor = false
+      allow(DiscourseKanban::CardOrdering).to receive(
+        :append_to_column!,
+      ).and_wrap_original do |original, card, column|
+        unless inserted_competitor
+          board.cards.create!(
+            card_type: :topic,
+            membership_mode: :auto,
+            topic_id: topic.id,
+            column_id: col_done.id,
+            position: 0,
+            created_by_id: admin.id,
+          )
+          inserted_competitor = true
+        end
+
+        original.call(card, column)
+      end
+
+      sign_in(admin)
+
+      post "/kanban/boards/#{board.id}/cards.json",
+           params: {
+             card: {
+               column_id: col_todo.id,
+               topic_id: topic.id,
+             },
+           }
+
+      expect(response.status).to eq(201)
+
+      card = board.cards.find_by(topic_id: topic.id)
+      expect(card).to be_present
+      expect(board.cards.where(topic_id: topic.id).count).to eq(1)
+      expect(card.membership_mode).to eq("manual_in")
+      expect(card.column_id).to eq(col_todo.id)
+    end
+
     it "rejects requests from users without write access" do
       sign_in(reader)
 
@@ -141,6 +180,34 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(response.status).to eq(200)
       expect(card.reload.title).to eq("New title")
       expect(response.parsed_body["card"]["title"]).to eq("New title")
+    end
+
+    it "preserves notes and due date when omitted from floater updates" do
+      due_at = 2.days.from_now.change(usec: 0)
+      card =
+        board.cards.create!(
+          card_type: :floater,
+          membership_mode: :manual_in,
+          title: "Keep details",
+          notes: "Keep this note",
+          due_at: due_at,
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+
+      sign_in(writer)
+
+      put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+          params: {
+            card: {
+              title: "Updated title only",
+            },
+          }
+
+      expect(response.status).to eq(200)
+      expect(card.reload.notes).to eq("Keep this note")
+      expect(card.due_at.to_i).to eq(due_at.to_i)
     end
 
     it "applies topic mutations when moving a topic card to a new column" do
@@ -244,6 +311,51 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(card.labels).to eq([])
     end
 
+    it "adopts the existing topic card when promotion races with topic sync insertion" do
+      floater =
+        board.cards.create!(
+          card_type: :floater,
+          membership_mode: :manual_in,
+          title: "Promote me",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+
+      inserted_competitor = false
+      allow(DiscourseKanban::TopicMutator).to receive(
+        :apply!,
+      ).and_wrap_original do |original, **kwargs|
+        unless inserted_competitor
+          board.cards.create!(
+            card_type: :topic,
+            membership_mode: :auto,
+            topic_id: topic.id,
+            column_id: col_todo.id,
+            position: 1,
+            created_by_id: admin.id,
+          )
+          inserted_competitor = true
+        end
+
+        original.call(**kwargs)
+      end
+
+      sign_in(admin)
+
+      put "/kanban/boards/#{board.id}/cards/#{floater.id}.json",
+          params: {
+            card: {
+              topic_id: topic.id,
+            },
+          }
+
+      expect(response.status).to eq(200)
+      expect(board.cards.where(topic_id: topic.id).count).to eq(1)
+      expect(DiscourseKanban::Card.find_by(id: floater.id)).to be_nil
+      expect(response.parsed_body.dig("card", "topic_id")).to eq(topic.id)
+    end
+
     it "promotes a floater reactivating an existing manual_out topic card" do
       existing_topic_card =
         board.cards.create!(
@@ -285,6 +397,80 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(existing_topic_card.column_id).to eq(col_todo.id)
 
       expect(DiscourseKanban::Card.find_by(id: floater.id)).to be_nil
+    end
+
+    it "includes adopted_floater_id in response when adopting an existing topic card" do
+      existing_topic_card =
+        board.cards.create!(
+          card_type: :topic,
+          membership_mode: :manual_out,
+          topic_id: topic.id,
+          column_id: nil,
+          position: 0,
+          created_by_id: admin.id,
+        )
+
+      floater =
+        board.cards.create!(
+          card_type: :floater,
+          membership_mode: :manual_in,
+          title: "Promote me",
+          column_id: col_todo.id,
+          position: 1,
+          created_by_id: admin.id,
+        )
+
+      sign_in(admin)
+
+      put "/kanban/boards/#{board.id}/cards/#{floater.id}.json",
+          params: {
+            card: {
+              topic_id: topic.id,
+            },
+          }
+
+      expect(response.status).to eq(200)
+      body = response.parsed_body
+      expect(body["adopted_floater_id"]).to eq(floater.id)
+      expect(body["card"]["topic_id"]).to eq(topic.id)
+    end
+
+    it "publishes card_deleted + card_created events for adoption" do
+      existing_topic_card =
+        board.cards.create!(
+          card_type: :topic,
+          membership_mode: :manual_out,
+          topic_id: topic.id,
+          column_id: nil,
+          position: 0,
+          created_by_id: admin.id,
+        )
+
+      floater =
+        board.cards.create!(
+          card_type: :floater,
+          membership_mode: :manual_in,
+          title: "Promote me",
+          column_id: col_todo.id,
+          position: 1,
+          created_by_id: admin.id,
+        )
+
+      sign_in(admin)
+
+      messages =
+        MessageBus.track_publish("/kanban/boards/#{board.id}") do
+          put "/kanban/boards/#{board.id}/cards/#{floater.id}.json",
+              params: {
+                card: {
+                  topic_id: topic.id,
+                },
+              }
+        end
+
+      expect(response.status).to eq(200)
+      types = messages.map { |m| m.data[:type] }
+      expect(types).to contain_exactly("card_deleted", "card_created")
     end
 
     it "rejects promoting a floater to a topic the user cannot see" do

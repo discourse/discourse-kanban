@@ -351,4 +351,94 @@
     overflow: hidden;
     width: 100%;
   }
+
+  &__indicators {
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  &__label {
+    display: inline-block;
+    padding: 1px 6px;
+    background: var(--primary-very-low);
+    border-radius: var(--d-border-radius);
+    font-size: $font-down-2;
+    color: var(--primary-high);
+  }
+
+  &__due-date {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: $font-down-2;
+    color: var(--primary-medium);
+
+    .d-icon {
+      font-size: 0.85em;
+    }
+
+    &--overdue {
+      color: var(--danger);
+    }
+  }
+
+  &__notes-indicator {
+    margin-left: auto;
+    color: var(--primary-medium);
+    font-size: $font-down-2;
+  }
+}
+
+.kanban-card-detail-modal {
+  .kanban-card-detail__field {
+    margin-bottom: 1em;
+
+    label {
+      display: block;
+      font-weight: 600;
+      font-size: $font-down-1;
+      margin-bottom: 0.25em;
+    }
+
+    input[type="text"],
+    textarea {
+      width: 100%;
+      margin: 0;
+    }
+
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+  }
+
+  .kanban-card-detail__labels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 0.5em;
+  }
+
+  .kanban-card-detail__label-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: var(--primary-very-low);
+    border-radius: var(--d-border-radius);
+    font-size: $font-down-1;
+
+    .btn-remove-label {
+      padding: 0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--primary-medium);
+
+      &:hover {
+        color: var(--danger);
+      }
+    }
+  }
 }

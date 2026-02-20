@@ -6,11 +6,124 @@
     margin-bottom: 1em;
   }
 
-  .kanban-boards-table {
-    width: 100%;
+  .kanban-boards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1em;
+  }
 
-    code {
-      font-size: var(--font-down-1);
+  .kanban-boards-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3em 1em;
+    border: 1px solid var(--content-border-color);
+    border-radius: var(--d-border-radius);
+    text-align: center;
+
+    > .d-icon {
+      font-size: 2.5em;
+      color: var(--primary-medium);
+      margin-bottom: 0.4em;
+    }
+
+    h3 {
+      margin: 0 0 0.25em;
+    }
+
+    p {
+      color: var(--primary-medium);
+      margin: 0 0 1em;
+    }
+  }
+}
+
+.kanban-board-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--content-border-color);
+  border-radius: var(--d-border-radius);
+  background: var(--secondary);
+  padding: 1em;
+  transition: box-shadow 0.15s ease;
+
+  &:hover {
+    box-shadow: 0 2px 8px rgb(0, 0, 0, 0.08);
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75em;
+  }
+
+  &__name {
+    font-size: var(--font-up-1);
+    font-weight: 700;
+    color: var(--primary);
+
+    &:hover {
+      color: var(--tertiary);
+    }
+  }
+
+  &__configure {
+    flex-shrink: 0;
+  }
+
+  &__columns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35em;
+    margin-bottom: 0.75em;
+  }
+
+  &__column-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    padding: 0.15em 0.5em;
+    background: var(--primary-very-low);
+    border-radius: var(--d-border-radius);
+    font-size: var(--font-down-2);
+    color: var(--primary-high);
+
+    .d-icon {
+      font-size: 0.85em;
+      color: var(--primary-medium);
+    }
+  }
+
+  &__no-columns {
+    font-size: var(--font-down-2);
+    color: var(--primary-medium);
+    font-style: italic;
+  }
+
+  &__footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35em;
+    align-items: center;
+    margin-top: auto;
+    padding-top: 0.5em;
+    border-top: 1px solid var(--primary-very-low);
+  }
+
+  &__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
+    padding: 0.15em 0.5em;
+    background: var(--tertiary-very-low);
+    border-radius: var(--d-border-radius);
+    font-size: var(--font-down-2);
+    color: var(--primary-high);
+
+    &--restricted .d-icon {
+      color: var(--primary-medium);
     }
   }
 }
