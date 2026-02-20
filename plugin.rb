@@ -45,24 +45,52 @@ after_initialize do
     object.guardian.can_manage_kanban_boards?
   end
 
-  on(:topic_created) { |topic| DiscourseKanban::TopicSync.sync_topic(topic) }
-  on(:topic_tags_changed) { |topic, _| DiscourseKanban::TopicSync.sync_topic(topic) }
-  on(:topic_status_updated) { |topic, _, _| DiscourseKanban::TopicSync.sync_topic(topic) }
-  on(:topic_recovered) { |topic, _| DiscourseKanban::TopicSync.sync_topic(topic) }
-  on(:topic_destroyed) { |topic, _| DiscourseKanban::TopicSync.remove_topic(topic.id) }
+  on(:topic_created) do |topic|
+    DiscourseKanban::TopicSync.sync_topic(topic)
+  rescue StandardError => e
+    Rails.logger.warn("DiscourseKanban: failed to sync topic #{topic&.id}: #{e.message}")
+  end
+
+  on(:topic_tags_changed) do |topic, _|
+    DiscourseKanban::TopicSync.sync_topic(topic)
+  rescue StandardError => e
+    Rails.logger.warn("DiscourseKanban: failed to sync topic #{topic&.id}: #{e.message}")
+  end
+
+  on(:topic_status_updated) do |topic, _, _|
+    DiscourseKanban::TopicSync.sync_topic(topic)
+  rescue StandardError => e
+    Rails.logger.warn("DiscourseKanban: failed to sync topic #{topic&.id}: #{e.message}")
+  end
+
+  on(:topic_recovered) do |topic, _|
+    DiscourseKanban::TopicSync.sync_topic(topic)
+  rescue StandardError => e
+    Rails.logger.warn("DiscourseKanban: failed to sync topic #{topic&.id}: #{e.message}")
+  end
+
+  on(:topic_destroyed) do |topic, _|
+    DiscourseKanban::TopicSync.remove_topic(topic.id)
+  rescue StandardError => e
+    Rails.logger.warn("DiscourseKanban: failed to remove topic #{topic&.id}: #{e.message}")
+  end
 
   add_model_callback(Topic, :after_commit) do
     next unless SiteSetting.discourse_kanban_enabled?
     next unless saved_changes?
 
-    if saved_changes.key?("deleted_at") && deleted_at.present?
-      DiscourseKanban::TopicSync.remove_topic(id)
-      next
+    begin
+      if saved_changes.key?("deleted_at") && deleted_at.present?
+        DiscourseKanban::TopicSync.remove_topic(id)
+        next
+      end
+
+      tracked_changes = %w[category_id archetype visible]
+      next if (saved_changes.keys & tracked_changes).empty?
+
+      DiscourseKanban::TopicSync.sync_topic(self)
+    rescue StandardError => e
+      Rails.logger.warn("DiscourseKanban: after_commit sync failed for topic #{id}: #{e.message}")
     end
-
-    tracked_changes = %w[category_id archetype visible]
-    next if (saved_changes.keys & tracked_changes).empty?
-
-    DiscourseKanban::TopicSync.sync_topic(self)
   end
 end
