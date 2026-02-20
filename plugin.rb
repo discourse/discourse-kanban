@@ -21,13 +21,6 @@ end
 require_relative "lib/discourse_kanban/engine"
 
 after_initialize do
-  require_relative "app/models/discourse_kanban/board"
-  require_relative "app/models/discourse_kanban/column"
-  require_relative "app/models/discourse_kanban/card"
-  require_relative "app/services/discourse_kanban/card_ordering"
-  require_relative "app/services/discourse_kanban/topic_mutator"
-  require_relative "app/services/discourse_kanban/topic_sync"
-  require_relative "app/services/discourse_kanban/publisher"
 
   # Register any column icons already in the DB so they appear in the SVG sprite
   DiscourseKanban::Column
