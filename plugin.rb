@@ -21,7 +21,6 @@ end
 require_relative "lib/discourse_kanban/engine"
 
 after_initialize do
-
   # Register any column icons already in the DB so they appear in the SVG sprite
   DiscourseKanban::Column
     .where.not(icon: [nil, ""])
