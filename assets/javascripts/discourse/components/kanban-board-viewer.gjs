@@ -40,6 +40,7 @@ export default class KanbanBoardViewer extends Component {
 
   @tracked columns;
   @tracked dragData = null;
+  @tracked dropHighlightCardId = null;
   @tracked fullscreen = false;
 
   setupMessageBus = modifier(() => {
@@ -58,6 +59,7 @@ export default class KanbanBoardViewer extends Component {
 
   willDestroy() {
     super.willDestroy(...arguments);
+    this._clearDropHighlight();
     this._cleanupPromotion();
   }
 
@@ -247,6 +249,7 @@ export default class KanbanBoardViewer extends Component {
           },
         },
       });
+      this._highlightDroppedCard(card.id);
     } catch (error) {
       if (isSameColumn) {
         fromColumn.cards = originalCards;
@@ -408,6 +411,32 @@ export default class KanbanBoardViewer extends Component {
     this.router.off("routeWillChange", this._onRouteWillChange);
   }
 
+  _highlightDroppedCard(cardId) {
+    this._clearDropHighlight();
+    this.dropHighlightCardId = null;
+
+    schedule("afterRender", () => {
+      if (this.isDestroying || this.isDestroyed) {
+        return;
+      }
+
+      this.dropHighlightCardId = cardId;
+      this._dropHighlightTimeout = setTimeout(() => {
+        if (this.dropHighlightCardId === cardId) {
+          this.dropHighlightCardId = null;
+        }
+        this._dropHighlightTimeout = null;
+      }, 1000);
+    });
+  }
+
+  _clearDropHighlight() {
+    if (this._dropHighlightTimeout) {
+      clearTimeout(this._dropHighlightTimeout);
+      this._dropHighlightTimeout = null;
+    }
+  }
+
   <template>
     {{#if this.fullscreen}}
       {{bodyClass "kanban-fullscreen"}}
@@ -467,12 +496,13 @@ export default class KanbanBoardViewer extends Component {
 
       {{#if this.columns.length}}
         <div class="kanban-board-container">
-          {{#each this.columns as |column|}}
+          {{#each this.columns key="id" as |column|}}
             <KanbanColumn
               @column={{column}}
               @board={{this.board}}
               @canWrite={{this.canWrite}}
               @allSameCategory={{this.allSameCategory}}
+              @dropHighlightCardId={{this.dropHighlightCardId}}
               @dragData={{this.dragData}}
               @onDragStart={{this.onDragStart}}
               @onDrop={{this.onDrop}}

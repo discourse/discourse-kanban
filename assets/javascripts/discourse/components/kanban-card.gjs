@@ -21,8 +21,6 @@ export default class KanbanCard extends Component {
   @service modal;
 
   @tracked dragging = false;
-  @tracked editing = false;
-  @tracked editTitle = "";
 
   get isTopicCard() {
     return this.args.card.card_type === "topic" && this.args.card.topic;
@@ -135,10 +133,6 @@ export default class KanbanCard extends Component {
     return this.args.canWrite;
   }
 
-  get canEditFloater() {
-    return !this.isTopicCard && this.args.canWrite;
-  }
-
   get hasDetails() {
     const card = this.args.card;
     return !!(card.notes || card.labels?.length || card.due_at);
@@ -164,59 +158,16 @@ export default class KanbanCard extends Component {
 
   @action
   onCardClick(event) {
-    if (this.isTopicCard || this.editing) {
+    if (this.isTopicCard) {
       return;
     }
     if (
       event.target.closest(".kanban-card__actions-trigger") ||
-      event.target.closest("[data-content]") ||
-      event.target.closest(".kanban-card__title--editable") ||
-      event.target.closest(".kanban-card__edit-input")
+      event.target.closest("[data-content]")
     ) {
       return;
     }
     this.openDetailModal();
-  }
-
-  @action
-  startEditing() {
-    if (!this.canEditFloater) {
-      return;
-    }
-    this.editing = true;
-    this.editTitle = this.args.card.title || "";
-  }
-
-  @action
-  onEditInput(event) {
-    this.editTitle = event.target.value;
-  }
-
-  @action
-  onEditKeydown(event) {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      this.saveEdit();
-    } else if (event.key === "Escape") {
-      this.cancelEdit();
-    }
-  }
-
-  @action
-  saveEdit() {
-    const newTitle = this.editTitle.trim();
-    if (!newTitle || newTitle === this.args.card.title) {
-      this.editing = false;
-      return;
-    }
-    this.editing = false;
-    this.args.onUpdateCard(this.args.card.id, { title: newTitle });
-  }
-
-  @action
-  cancelEdit() {
-    this.editing = false;
-    this.editTitle = "";
   }
 
   @action
@@ -252,7 +203,7 @@ export default class KanbanCard extends Component {
         "kanban-card"
         (if this.dragging "dragging")
         (unless this.isTopicCard "kanban-card--floater")
-        (if this.editing "kanban-card--editing")
+        (if @isDropHighlighted "kanban-card--drop-highlighted")
         this.activityClass
       }}
       draggable={{if @canWrite "true" "false"}}
@@ -267,24 +218,10 @@ export default class KanbanCard extends Component {
         {{#if this.topicStatusModel}}
           <TopicStatus @topic={{this.topicStatusModel}} />
         {{/if}}
-        {{#if this.editing}}
-          <textarea
-            class="kanban-card__edit-input"
-            value={{this.editTitle}}
-            {{on "input" this.onEditInput}}
-            {{on "keydown" this.onEditKeydown}}
-            {{on "blur" this.saveEdit}}
-          />
-        {{else if this.topicUrl}}
+        {{#if this.topicUrl}}
           <a href={{this.topicUrl}} class="kanban-card__title">
             {{this.cardTitle}}
           </a>
-        {{else if this.canEditFloater}}
-          <button
-            type="button"
-            class="kanban-card__title kanban-card__title--editable"
-            {{on "click" this.startEditing}}
-          >{{this.cardTitle}}</button>
         {{else}}
           <span class="kanban-card__title">{{this.cardTitle}}</span>
         {{/if}}
@@ -297,6 +234,14 @@ export default class KanbanCard extends Component {
             <:content>
               <DropdownMenu as |dropdown|>
                 {{#unless this.isTopicCard}}
+                  <dropdown.item>
+                    <DButton
+                      @action={{this.openDetailModal}}
+                      @icon="pencil"
+                      @label="edit"
+                      class="btn-transparent"
+                    />
+                  </dropdown.item>
                   <dropdown.item>
                     <DButton
                       @action={{@onPromoteToTopic}}

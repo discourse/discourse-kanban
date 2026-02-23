@@ -218,12 +218,13 @@ export default class KanbanColumn extends Component {
       </div>
 
       <div class="kanban-column__cards">
-        {{#each @column.cards as |card|}}
+        {{#each @column.cards key="id" as |card|}}
           <KanbanCard
             @card={{card}}
             @board={{@board}}
             @canWrite={{@canWrite}}
             @allSameCategory={{@allSameCategory}}
+            @isDropHighlighted={{eq @dropHighlightCardId card.id}}
             @onDragStart={{@onDragStart}}
             @onUpdateCard={{@onUpdateCard}}
             @onDeleteCard={{@onDeleteCard}}

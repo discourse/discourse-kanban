@@ -202,6 +202,10 @@
     opacity: 0.4;
   }
 
+  &--drop-highlighted {
+    animation: kanban-card-drop-highlight 1s ease-out;
+  }
+
   &.card-no-recent-activity {
     box-shadow: inset 5px 0 0 0 var(--danger-low);
     border-left: 0;
@@ -251,37 +255,6 @@
     overflow-wrap: break-word;
     overflow: hidden;
     color: var(--primary);
-
-    &--editable {
-      cursor: pointer;
-      border-radius: 3px;
-      background: none;
-      border: none;
-      padding: 0;
-      margin: 0;
-      font: inherit;
-      color: inherit;
-      text-align: left;
-
-      &:hover {
-        background: var(--primary-very-low);
-      }
-    }
-  }
-
-  &__edit-input {
-    flex-grow: 1;
-    width: 100%;
-    min-height: 2em;
-    resize: vertical;
-    font-size: inherit;
-    padding: 2px 4px;
-    border: 1px solid var(--tertiary);
-    border-radius: 3px;
-  }
-
-  &--editing {
-    cursor: default;
   }
 
   &__date {
@@ -390,6 +363,27 @@
   }
 }
 
+@keyframes kanban-card-drop-highlight {
+  0% {
+    border-color: var(--tertiary);
+  }
+
+  65% {
+    border-color: var(--tertiary);
+  }
+
+  100% {
+    border-color: var(--primary-low);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kanban-card--drop-highlighted {
+    animation: none;
+    border-color: var(--tertiary);
+  }
+}
+
 .kanban-card-detail-modal {
   .kanban-card-detail__field {
     margin-bottom: 1em;
@@ -420,6 +414,28 @@
     margin-bottom: 0.5em;
   }
 
+  .kanban-card-detail__label-composer {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+
+    .kanban-card-detail__label-input {
+      flex: 1 1 auto;
+      margin: 0;
+    }
+
+    .kanban-card-detail__add-label {
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+  }
+
+  .kanban-card-detail__label-help {
+    margin-top: 0.35em;
+    color: var(--primary-medium);
+    font-size: $font-down-2;
+  }
+
   .kanban-card-detail__label-chip {
     display: inline-flex;
     align-items: center;
@@ -428,6 +444,7 @@
     background: var(--primary-very-low);
     border-radius: var(--d-border-radius);
     font-size: $font-down-1;
+    animation: kanban-label-chip-enter 0.18s ease-out;
 
     .btn-remove-label {
       padding: 0;
@@ -440,5 +457,17 @@
         color: var(--danger);
       }
     }
+  }
+}
+
+@keyframes kanban-label-chip-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(2px) scale(0.98);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }

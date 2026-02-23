@@ -103,22 +103,68 @@ module PageObjects
         end
       end
 
-      def click_floater_title(card_title)
-        find(".kanban-card--floater .kanban-card__title--editable", text: card_title).click
+      def open_card_actions(card_title)
+        within(find(".kanban-card", text: card_title)) do
+          find(".kanban-card__actions-trigger", visible: :all).click
+        end
         self
       end
 
-      def has_card_edit_input?
-        has_css?(".kanban-card__edit-input")
+      def has_edit_card_action?
+        has_css?(
+          "[data-content][data-identifier='kanban-card-actions'] .btn-transparent .d-button-label",
+          text: I18n.t("js.edit"),
+        )
       end
 
-      def fill_card_edit(new_title)
-        find(".kanban-card__edit-input").fill_in(with: new_title)
+      def click_edit_card
+        find(
+          "[data-content][data-identifier='kanban-card-actions'] .btn-transparent",
+          text: I18n.t("js.edit"),
+        ).click
         self
       end
 
-      def save_card_edit_with_enter
-        find(".kanban-card__edit-input").send_keys(:enter)
+      def has_card_detail_modal?
+        has_css?(".kanban-card-detail-modal")
+      end
+
+      def fill_card_detail_title(new_title)
+        within(".kanban-card-detail-modal") do
+          find(".kanban-card-detail__field input[type='text']", match: :first).set(new_title)
+        end
+        self
+      end
+
+      def fill_card_detail_label(new_label)
+        within(".kanban-card-detail-modal") do
+          find(".kanban-card-detail__label-input").fill_in(with: new_label)
+        end
+        self
+      end
+
+      def add_card_detail_label_with_enter
+        within(".kanban-card-detail-modal") do
+          find(".kanban-card-detail__label-input").send_keys(:enter)
+        end
+        self
+      end
+
+      def has_card_detail_label?(label)
+        within(".kanban-card-detail-modal") do
+          has_css?(".kanban-card-detail__label-chip", text: label)
+        end
+      end
+
+      def save_card_detail
+        within(".kanban-card-detail-modal") { find(".btn-primary", text: I18n.t("js.save")).click }
+        self
+      end
+
+      def cancel_card_detail
+        within(".kanban-card-detail-modal") do
+          find(".d-modal-cancel", text: I18n.t("js.cancel")).click
+        end
         self
       end
 

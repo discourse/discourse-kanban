@@ -30,6 +30,20 @@ export default class KanbanCardDetail extends Component {
     return this.args.model.canWrite;
   }
 
+  get canAddLabel() {
+    const labelsFromInput = this.parseLabelsInput(this.newLabelText);
+    if (!labelsFromInput.length) {
+      return false;
+    }
+
+    const existingLabels = new Set(
+      this.editLabels.map((label) => label.toLowerCase())
+    );
+    return labelsFromInput.some(
+      (label) => !existingLabels.has(label.toLowerCase())
+    );
+  }
+
   @action
   onTitleInput(event) {
     this.editTitle = event.target.value;
@@ -49,17 +63,37 @@ export default class KanbanCardDetail extends Component {
   onLabelKeydown(event) {
     if (event.key === "Enter") {
       event.preventDefault();
+      event.stopPropagation();
       this.addLabel();
     }
   }
 
   @action
   addLabel() {
-    const label = this.newLabelText.trim();
-    if (label && !this.editLabels.includes(label)) {
-      this.editLabels = [...this.editLabels, label];
+    const labelsFromInput = this.parseLabelsInput(this.newLabelText);
+    if (!labelsFromInput.length) {
+      return;
     }
-    this.newLabelText = "";
+
+    const existingLabels = new Set(
+      this.editLabels.map((label) => label.toLowerCase())
+    );
+    const nextLabels = [...this.editLabels];
+
+    for (const label of labelsFromInput) {
+      const normalizedLabel = label.toLowerCase();
+      if (existingLabels.has(normalizedLabel)) {
+        continue;
+      }
+
+      existingLabels.add(normalizedLabel);
+      nextLabels.push(label);
+    }
+
+    if (nextLabels.length !== this.editLabels.length) {
+      this.editLabels = nextLabels;
+      this.newLabelText = "";
+    }
   }
 
   @action
@@ -74,6 +108,8 @@ export default class KanbanCardDetail extends Component {
 
   @action
   async save() {
+    this.addLabel();
+
     const card = this.args.model.card;
     const updates = {
       title: this.editTitle.trim(),
@@ -89,9 +125,17 @@ export default class KanbanCardDetail extends Component {
     }
   }
 
+  parseLabelsInput(value) {
+    return value
+      .split(",")
+      .map((label) => label.trim())
+      .filter(Boolean);
+  }
+
   <template>
     <DModal
       @closeModal={{@closeModal}}
+      @submitOnEnter={{false}}
       @title={{i18n "discourse_kanban.board.card_detail"}}
       class="kanban-card-detail-modal"
     >
@@ -119,7 +163,7 @@ export default class KanbanCardDetail extends Component {
           <label>{{i18n "discourse_kanban.board.labels"}}</label>
           {{#if this.editLabels.length}}
             <div class="kanban-card-detail__labels">
-              {{#each this.editLabels as |label|}}
+              {{#each this.editLabels key="@identity" as |label|}}
                 <span class="kanban-card-detail__label-chip">
                   {{label}}
                   {{#if this.canWrite}}
@@ -135,13 +179,26 @@ export default class KanbanCardDetail extends Component {
             </div>
           {{/if}}
           {{#if this.canWrite}}
-            <input
-              type="text"
-              value={{this.newLabelText}}
-              placeholder={{i18n "discourse_kanban.board.labels_placeholder"}}
-              {{on "input" this.onLabelInput}}
-              {{on "keydown" this.onLabelKeydown}}
-            />
+            <div class="kanban-card-detail__label-composer">
+              <input
+                type="text"
+                class="kanban-card-detail__label-input"
+                value={{this.newLabelText}}
+                placeholder={{i18n "discourse_kanban.board.labels_placeholder"}}
+                {{on "input" this.onLabelInput}}
+                {{on "keydown" this.onLabelKeydown}}
+              />
+              <DButton
+                @action={{this.addLabel}}
+                @label="discourse_kanban.board.add_label"
+                @icon="plus"
+                @disabled={{not this.canAddLabel}}
+                class="btn-default kanban-card-detail__add-label"
+              />
+            </div>
+            <div class="kanban-card-detail__label-help">
+              {{i18n "discourse_kanban.board.labels_help"}}
+            </div>
           {{/if}}
         </div>
 

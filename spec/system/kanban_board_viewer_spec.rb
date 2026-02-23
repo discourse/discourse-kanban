@@ -5,6 +5,7 @@ describe "Kanban Board Viewer", type: :system do
   fab!(:admin)
   fab!(:manager, :user)
   fab!(:manage_group, :group)
+  fab!(:write_group, :group)
   fab!(:category)
   fab!(:tag1, :tag) { Fabricate(:tag, name: "priority") }
   fab!(:tag2, :tag) { Fabricate(:tag, name: "frontend") }
@@ -17,6 +18,7 @@ describe "Kanban Board Viewer", type: :system do
     SiteSetting.discourse_kanban_enabled = true
     SiteSetting.discourse_kanban_manage_board_allowed_groups = manage_group.id.to_s
     manage_group.add(manager)
+    write_group.add(user)
   end
 
   def create_board(attrs = {})
@@ -50,7 +52,7 @@ describe "Kanban Board Viewer", type: :system do
       col_done = board.columns.create!(title: "Done", position: 1, icon: "check")
 
       topic1 = Fabricate(:topic, title: "Implement login page", category: category)
-      topic2 = Fabricate(:topic, title: "Write unit tests", category: category)
+      topic2 = Fabricate(:topic, title: "Write integration test coverage", category: category)
       topic3 = Fabricate(:topic, title: "Deploy to staging", category: category)
 
       add_topic_card(board, col_todo, topic1)
@@ -64,7 +66,7 @@ describe "Kanban Board Viewer", type: :system do
       expect(board_viewer).to have_column("To Do")
       expect(board_viewer).to have_column("Done")
       expect(board_viewer).to have_card_in_column("To Do", "Implement login page")
-      expect(board_viewer).to have_card_in_column("To Do", "Write unit tests")
+      expect(board_viewer).to have_card_in_column("To Do", "Write integration test coverage")
       expect(board_viewer).to have_card_in_column("Done", "Deploy to staging")
       expect(board_viewer.card_count_in_column("To Do")).to eq(2)
       expect(board_viewer.card_count_in_column("Done")).to eq(1)
@@ -86,23 +88,23 @@ describe "Kanban Board Viewer", type: :system do
 
   context "when dragging cards with confirmation" do
     it "moves card after confirming" do
-      board = create_board(allow_write_group_ids: [Group::AUTO_GROUPS[:everyone]])
+      board = create_board(allow_write_group_ids: [write_group.id])
       col_todo = board.columns.create!(title: "To Do", position: 0)
       col_done = board.columns.create!(title: "Done", position: 1, move_to_status: "closed")
 
-      topic1 = Fabricate(:topic, title: "Fix the bug", category: category)
+      topic1 = Fabricate(:topic, title: "Fix critical checkout regression", category: category)
       add_topic_card(board, col_todo, topic1)
 
       sign_in(user)
       board_viewer.visit_board(board)
 
-      expect(board_viewer).to have_card_in_column("To Do", "Fix the bug")
+      expect(board_viewer).to have_card_in_column("To Do", "Fix critical checkout regression")
 
-      board_viewer.drag_card_to_column("Fix the bug", "Done")
+      board_viewer.drag_card_to_column("Fix critical checkout regression", "Done")
       dialog.click_yes
 
-      expect(board_viewer).to have_card_in_column("Done", "Fix the bug")
-      expect(board_viewer).to have_no_card_in_column("To Do", "Fix the bug")
+      expect(board_viewer).to have_card_in_column("Done", "Fix critical checkout regression")
+      expect(board_viewer).to have_no_card_in_column("To Do", "Fix critical checkout regression")
     end
   end
 
@@ -124,18 +126,24 @@ describe "Kanban Board Viewer", type: :system do
 
   context "when cards have tags" do
     it "shows tags but filters column tags" do
-      board = create_board(show_tags: true, allow_write_group_ids: [Group::AUTO_GROUPS[:everyone]])
+      board = create_board(show_tags: true, allow_write_group_ids: [write_group.id])
       col_todo = board.columns.create!(title: "To Do", position: 0, move_to_tag: "priority")
       col_done = board.columns.create!(title: "Done", position: 1)
 
-      topic1 = Fabricate(:topic, title: "Tagged topic", category: category, tags: [tag1, tag2])
+      topic1 =
+        Fabricate(
+          :topic,
+          title: "Refine frontend labeling workflow",
+          category: category,
+          tags: [tag1, tag2],
+        )
       add_topic_card(board, col_todo, topic1)
 
       sign_in(user)
       board_viewer.visit_board(board)
 
-      expect(board_viewer).to have_tag_on_card("Tagged topic", "frontend")
-      expect(board_viewer).to have_no_tag_on_card("Tagged topic", "priority")
+      expect(board_viewer).to have_tag_on_card("Refine frontend labeling workflow", "frontend")
+      expect(board_viewer).to have_no_tag_on_card("Refine frontend labeling workflow", "priority")
     end
   end
 
@@ -144,19 +152,28 @@ describe "Kanban Board Viewer", type: :system do
       board = create_board(show_activity_indicators: true)
       col_todo = board.columns.create!(title: "To Do", position: 0)
 
-      topic1 = Fabricate(:topic, title: "Stale topic", category: category, bumped_at: 25.days.ago)
+      topic1 =
+        Fabricate(
+          :topic,
+          title: "Audit inactive onboarding checklist",
+          category: category,
+          bumped_at: 25.days.ago,
+        )
       add_topic_card(board, col_todo, topic1)
 
       sign_in(user)
       board_viewer.visit_board(board)
 
-      expect(board_viewer).to have_activity_indicator("Stale topic", "card-stale")
+      expect(board_viewer).to have_activity_indicator(
+        "Audit inactive onboarding checklist",
+        "card-stale",
+      )
     end
   end
 
   context "with floater cards" do
     it "creates a floater card via the add card button" do
-      board = create_board(allow_write_group_ids: [Group::AUTO_GROUPS[:everyone]])
+      board = create_board(allow_write_group_ids: [write_group.id])
       board.columns.create!(title: "To Do", position: 0)
 
       sign_in(user)
@@ -171,8 +188,8 @@ describe "Kanban Board Viewer", type: :system do
       expect(DiscourseKanban::Card.find_by(title: "My new task")).to be_present
     end
 
-    it "allows inline editing of a floater card title" do
-      board = create_board(allow_write_group_ids: [Group::AUTO_GROUPS[:everyone]])
+    it "opens the card detail modal when clicking a floater card" do
+      board = create_board(allow_write_group_ids: [write_group.id])
       col_todo = board.columns.create!(title: "To Do", position: 0)
       board.cards.create!(
         card_type: :floater,
@@ -183,18 +200,70 @@ describe "Kanban Board Viewer", type: :system do
         created_by_id: admin.id,
       )
 
-      sign_in(user)
+      sign_in(admin)
       board_viewer.visit_board(board)
 
       expect(board_viewer).to have_floater_card_in_column("To Do", "Old task name")
 
-      board_viewer.click_floater_title("Old task name")
-      expect(board_viewer).to have_card_edit_input
-      board_viewer.fill_card_edit("Updated task name")
-      board_viewer.save_card_edit_with_enter
+      board_viewer.click_floater_card("Old task name")
+      expect(board_viewer).to have_card_detail_modal
+      board_viewer.fill_card_detail_title("Updated task name")
+      board_viewer.save_card_detail
 
       expect(board_viewer).to have_floater_card_in_column("To Do", "Updated task name")
       expect(DiscourseKanban::Card.find_by(title: "Updated task name")).to be_present
+    end
+
+    it "shows an edit action in the floater card menu" do
+      board = create_board(allow_write_group_ids: [write_group.id])
+      col_todo = board.columns.create!(title: "To Do", position: 0)
+      board.cards.create!(
+        card_type: :floater,
+        membership_mode: :manual_in,
+        title: "Old task name",
+        column_id: col_todo.id,
+        position: 0,
+        created_by_id: admin.id,
+      )
+
+      sign_in(admin)
+      board_viewer.visit_board(board)
+
+      board_viewer.open_card_actions("Old task name")
+      expect(board_viewer).to have_edit_card_action
+      board_viewer.click_edit_card
+      expect(board_viewer).to have_card_detail_modal
+      board_viewer.cancel_card_detail
+    end
+
+    it "adds labels with Enter without closing the card detail modal" do
+      board = create_board(allow_write_group_ids: [write_group.id])
+      col_todo = board.columns.create!(title: "To Do", position: 0)
+      board.cards.create!(
+        card_type: :floater,
+        membership_mode: :manual_in,
+        title: "Label me",
+        column_id: col_todo.id,
+        position: 0,
+        created_by_id: admin.id,
+      )
+
+      sign_in(admin)
+      board_viewer.visit_board(board)
+
+      board_viewer.click_floater_card("Label me")
+      expect(board_viewer).to have_card_detail_modal
+
+      board_viewer.fill_card_detail_label("urgent,frontend")
+      board_viewer.add_card_detail_label_with_enter
+
+      expect(board_viewer).to have_card_detail_modal
+      expect(board_viewer).to have_card_detail_label("urgent")
+      expect(board_viewer).to have_card_detail_label("frontend")
+
+      board_viewer.save_card_detail
+      expect(board_viewer).to have_card_label("Label me", "urgent")
+      expect(board_viewer).to have_card_label("Label me", "frontend")
     end
 
     it "does not show add card button for read-only users" do
