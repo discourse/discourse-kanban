@@ -53,24 +53,45 @@ module DiscourseKanban
     end
 
     def first_matching_column(topic)
-      return nil unless topic_matches?(topic)
+      if base_filter_query.present?
+        return nil unless topic_matches?(topic)
 
-      columns.find { |column| column.matches_topic?(topic) }
+        return columns.find { |column| column.matches_topic?(topic) }
+      end
+
+      columns.find do |column|
+        next false if column.filter_query.blank?
+
+        self.class.topic_matches_query?(topic, column.filter_query)
+      end
     end
 
-    def self.topic_matches_query?(topic, query)
-      return true if query.blank?
+    def self.topic_matches_query?(topic, query, matcher_context: nil)
+      return false if query.blank?
 
-      result =
-        TopicQuery.new(
-          Discourse.system_user,
-          q: query,
-          topic_ids: [topic.id],
-          per_page: 1,
-        ).list_filter
+      cache = matcher_context&.dig(:cache)
+      cache_key = [topic.id, query]
+      return cache[cache_key] if cache&.key?(cache_key)
 
-      result.topics.any? { |list_topic| list_topic.id == topic.id }
-    rescue StandardError
+      scope =
+        matcher_context&.dig(:scope) ||
+          TopicQuery.new(Discourse.system_user, limit: false, no_definitions: true).latest_results
+      guardian = matcher_context&.dig(:guardian) || Guardian.new(Discourse.system_user)
+
+      matches =
+        TopicsFilter
+          .new(guardian:, scope:, loaded_topic_users_reference: guardian.authenticated?)
+          .filter_from_query_string(query)
+          .where(id: topic.id)
+          .exists?
+      cache[cache_key] = matches if cache
+      matches
+    rescue StandardError => error
+      Rails.logger.warn(
+        "DiscourseKanban::Board.topic_matches_query? failed for topic #{topic&.id}, " \
+          "query=#{query.inspect}: #{error.class}: #{error.message}",
+      )
+      cache[cache_key] = false if cache
       false
     end
 
