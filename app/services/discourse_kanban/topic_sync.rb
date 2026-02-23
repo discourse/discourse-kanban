@@ -5,14 +5,54 @@ module DiscourseKanban
     def self.backfill_board(board)
       return unless SiteSetting.discourse_kanban_enabled?
 
-      existing_topic_ids = board.cards.where(card_type: :topic).pluck(:topic_id).to_set
-      candidate_topic_ids = find_candidate_topic_ids(board)
-      new_topic_ids = candidate_topic_ids - existing_topic_ids
-      return if new_topic_ids.empty?
-
       board = Board.includes(:columns).find(board.id) unless board.association(:columns).loaded?
+      columns = board.columns.to_a
 
-      Topic.where(id: new_topic_ids.to_a).find_each { |topic| sync_topic_for_board(topic:, board:) }
+      # 1. One TopicsFilter query per column → { column_id => Set<topic_id> }
+      column_topic_ids = build_column_topic_map(board, columns)
+
+      # 2. Assign each topic to its FIRST matching column (column priority by position)
+      topic_to_column = {}
+      columns.each do |col|
+        ids = column_topic_ids[col.id] || next
+        ids.each { |tid| topic_to_column[tid] ||= col.id }
+      end
+
+      # 3. Load all existing topic cards for this board in one query
+      existing_cards =
+        board
+          .cards
+          .where(card_type: :topic)
+          .where.not(topic_id: nil)
+          .pluck(:id, :topic_id, :column_id, :membership_mode)
+      existing_by_topic = {}
+      existing_cards.each do |card_id, topic_id, column_id, membership_mode|
+        existing_by_topic[topic_id] = { id: card_id, column_id:, membership_mode: }
+      end
+
+      # 4. Diff: compute creates, moves, deletes
+      to_create = []
+      to_move = []
+      to_delete = []
+
+      topic_to_column.each do |topic_id, target_column_id|
+        existing = existing_by_topic[topic_id]
+        if existing.nil?
+          to_create << { topic_id:, column_id: target_column_id }
+        elsif auto_membership?(existing[:membership_mode]) &&
+              existing[:column_id] != target_column_id
+          to_move << { card_id: existing[:id], column_id: target_column_id }
+        end
+      end
+
+      existing_by_topic.each do |topic_id, card_info|
+        next unless auto_membership?(card_info[:membership_mode])
+        next if topic_to_column.key?(topic_id)
+        to_delete << card_info[:id]
+      end
+
+      # 5. Apply changes in bulk
+      apply_bulk_changes(board, to_create:, to_move:, to_delete:)
     end
 
     def self.sync_topic(topic)
@@ -272,29 +312,108 @@ module DiscourseKanban
       error.result&.error_field(PG::Result::PG_DIAG_CONSTRAINT_NAME)
     end
 
-    def self.find_candidate_topic_ids(board)
-      if board.base_filter_query.present?
-        topic_ids_for_query(board.base_filter_query)
-      else
-        ids = Set.new
-        board.columns.each do |column|
-          next if column.filter_query.blank?
-          ids.merge(topic_ids_for_query(column.filter_query))
+    def self.build_column_topic_map(board, columns)
+      result = {}
+      scope_base =
+        TopicQuery.new(Discourse.system_user, limit: false, no_definitions: true).latest_results
+      guardian = Guardian.new(Discourse.system_user)
+      has_base = board.base_filter_query.present?
+
+      if has_base
+        base_ids =
+          TopicsFilter
+            .new(guardian:, scope: scope_base)
+            .filter_from_query_string(board.base_filter_query)
+            .pluck(:id)
+            .to_set
+      end
+
+      columns.each do |col|
+        query = col.filter_query
+
+        if has_base
+          if query.present?
+            combined = "#{board.base_filter_query} #{query}"
+            ids =
+              TopicsFilter
+                .new(guardian:, scope: scope_base)
+                .filter_from_query_string(combined)
+                .pluck(:id)
+                .to_set
+          else
+            ids = base_ids
+          end
+        else
+          next if query.blank?
+          ids =
+            TopicsFilter
+              .new(guardian:, scope: scope_base)
+              .filter_from_query_string(query)
+              .pluck(:id)
+              .to_set
         end
-        ids
+
+        result[col.id] = ids
+      rescue StandardError
+        next
+      end
+
+      result
+    end
+
+    def self.apply_bulk_changes(board, to_create:, to_move:, to_delete:)
+      return if to_create.empty? && to_move.empty? && to_delete.empty?
+
+      Card.transaction do
+        Card.where(id: to_delete, membership_mode: :auto).delete_all if to_delete.any?
+
+        if to_create.any?
+          max_positions =
+            board.cards.with_column.group(:column_id).maximum(:position).transform_values(&:to_i)
+
+          system_user_id = Discourse.system_user.id
+          now = Time.current
+
+          to_create.each do |entry|
+            col_id = entry[:column_id]
+            max_positions[col_id] = (max_positions[col_id] || -1) + 1
+            pos = max_positions[col_id]
+
+            Card.insert!(
+              {
+                board_id: board.id,
+                column_id: col_id,
+                topic_id: entry[:topic_id],
+                card_type: Card.card_types[:topic],
+                membership_mode: Card.membership_modes[:auto],
+                position: pos,
+                created_by_id: system_user_id,
+                updated_by_id: system_user_id,
+                created_at: now,
+                updated_at: now,
+              },
+            )
+          end
+        end
+
+        if to_move.any?
+          to_move
+            .group_by { |e| e[:column_id] }
+            .each do |col_id, entries|
+              max_pos = board.cards.with_column.where(column_id: col_id).maximum(:position).to_i
+              entries.each_with_index do |entry, i|
+                Card.where(id: entry[:card_id]).update_all(
+                  column_id: col_id,
+                  position: max_pos + i + 1,
+                )
+              end
+            end
+        end
       end
     end
 
-    def self.topic_ids_for_query(query)
-      scope =
-        TopicQuery.new(Discourse.system_user, limit: false, no_definitions: true).latest_results
-      TopicsFilter
-        .new(guardian: Guardian.new(Discourse.system_user), scope: scope)
-        .filter_from_query_string(query)
-        .pluck(:id)
-        .to_set
-    rescue StandardError
-      Set.new
+    def self.auto_membership?(mode)
+      mode == Card.membership_modes[:auto] || mode == "auto"
     end
   end
 end
