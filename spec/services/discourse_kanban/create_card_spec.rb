@@ -83,6 +83,25 @@ RSpec.describe DiscourseKanban::CreateCard do
       it { is_expected.to fail_a_policy(:can_write) }
     end
 
+    context "when topic does not exist" do
+      let(:params) { { board_id: board.id, column_id: column.id, topic_id: -1 } }
+      let(:dependencies) { { guardian: Guardian.new(admin) } }
+
+      it "raises NotFound" do
+        expect { result }.to raise_error(Discourse::NotFound)
+      end
+    end
+
+    context "when user cannot see the topic" do
+      fab!(:private_category) { Fabricate(:private_category, group: Fabricate(:group)) }
+      fab!(:private_topic) { Fabricate(:topic, category: private_category) }
+      let(:params) { { board_id: board.id, column_id: column.id, topic_id: private_topic.id } }
+
+      it "raises NotFound" do
+        expect { result }.to raise_error(Discourse::NotFound)
+      end
+    end
+
     context "when creating a card for a category definition topic" do
       fab!(:category_with_def, :category_with_definition)
       let(:params) do

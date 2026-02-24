@@ -329,27 +329,67 @@ export default class KanbanBoardViewer extends Component {
 
   @action
   async onAddCard({ topicId, title, columnId }) {
-    const cardData = { column_id: columnId };
     if (topicId) {
-      cardData.topic_id = topicId;
-    } else {
-      cardData.title = title;
+      try {
+        const result = await ajax(`/kanban/boards/${this.board.id}/cards`, {
+          type: "POST",
+          data: {
+            client_id: this.messageBus.clientId,
+            card: { column_id: columnId, topic_id: topicId },
+          },
+        });
+        this.#appendCardToColumn(result.card, columnId);
+        return;
+      } catch (error) {
+        if (this.#isTopicNotFoundError(error)) {
+          await this.#createFallbackFloater(title, columnId);
+          return;
+        }
+        popupAjaxError(error);
+        return;
+      }
     }
 
     try {
       const result = await ajax(`/kanban/boards/${this.board.id}/cards`, {
         type: "POST",
-        data: { client_id: this.messageBus.clientId, card: cardData },
+        data: {
+          client_id: this.messageBus.clientId,
+          card: { column_id: columnId, title },
+        },
       });
+      this.#appendCardToColumn(result.card, columnId);
+    } catch (error) {
+      popupAjaxError(error);
+    }
+  }
 
-      if (result.card) {
-        this.columns = this.columns.map((col) => {
-          if (col.id === columnId) {
-            return { ...col, cards: [...col.cards, result.card] };
-          }
-          return col;
-        });
+  #isTopicNotFoundError(error) {
+    return error?.jqXHR?.status === 404;
+  }
+
+  #appendCardToColumn(card, columnId) {
+    if (!card) {
+      return;
+    }
+    this.columns = this.columns.map((col) => {
+      if (col.id === columnId) {
+        return { ...col, cards: [...col.cards, card] };
       }
+      return col;
+    });
+  }
+
+  async #createFallbackFloater(title, columnId) {
+    try {
+      const result = await ajax(`/kanban/boards/${this.board.id}/cards`, {
+        type: "POST",
+        data: {
+          client_id: this.messageBus.clientId,
+          card: { column_id: columnId, title },
+        },
+      });
+      this.#appendCardToColumn(result.card, columnId);
     } catch (error) {
       popupAjaxError(error);
     }

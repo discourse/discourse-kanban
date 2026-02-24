@@ -105,6 +105,37 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(card.column_id).to eq(col_todo.id)
     end
 
+    it "returns 404 when topic does not exist" do
+      sign_in(writer)
+
+      post "/kanban/boards/#{board.id}/cards.json",
+           params: {
+             card: {
+               column_id: col_todo.id,
+               topic_id: -1,
+             },
+           }
+
+      expect(response.status).to eq(404)
+    end
+
+    it "returns 404 when user cannot see the topic" do
+      private_category = Fabricate(:private_category, group: Fabricate(:group))
+      private_topic = Fabricate(:topic, category: private_category)
+
+      sign_in(writer)
+
+      post "/kanban/boards/#{board.id}/cards.json",
+           params: {
+             card: {
+               column_id: col_todo.id,
+               topic_id: private_topic.id,
+             },
+           }
+
+      expect(response.status).to eq(404)
+    end
+
     it "rejects requests from users without write access" do
       sign_in(reader)
 

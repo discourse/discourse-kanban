@@ -51,7 +51,7 @@ module DiscourseKanban
     def build_topic_card(board, column, params, guardian)
       topic = Topic.find_by(id: params.topic_id)
       raise Discourse::NotFound if topic.nil?
-      raise Discourse::InvalidAccess.new unless guardian.can_see?(topic)
+      raise Discourse::NotFound unless guardian.can_see?(topic)
       if Category.exists?(topic_id: topic.id)
         raise Discourse::InvalidParameters.new(
                 I18n.t("discourse_kanban.errors.category_definition_topic"),

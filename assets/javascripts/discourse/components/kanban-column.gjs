@@ -4,11 +4,11 @@ import { fn } from "@ember/helper";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
 import { service } from "@ember/service";
-import ChooseTopic from "discourse/components/choose-topic";
 import DButton from "discourse/components/d-button";
 import DropdownMenu from "discourse/components/dropdown-menu";
 import DMenu from "discourse/float-kit/components/d-menu";
 import icon from "discourse/helpers/d-icon";
+import { TOPIC_URL_REGEXP } from "discourse/lib/url";
 import { eq } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
 import KanbanCard from "./kanban-card";
@@ -16,7 +16,7 @@ import KanbanCard from "./kanban-card";
 export default class KanbanColumn extends Component {
   @service dialog;
 
-  @tracked addMode = null;
+  @tracked isAdding = false;
   @tracked newCardTitle = "";
 
   get cardCount() {
@@ -39,18 +39,13 @@ export default class KanbanColumn extends Component {
 
   @action
   startAddCard() {
-    this.addMode = "card";
+    this.isAdding = true;
     this.newCardTitle = "";
   }
 
   @action
-  startAddTopic() {
-    this.addMode = "topic";
-  }
-
-  @action
   cancelAdd() {
-    this.addMode = null;
+    this.isAdding = false;
     this.newCardTitle = "";
   }
 
@@ -75,17 +70,29 @@ export default class KanbanColumn extends Component {
     if (!title) {
       return;
     }
-    this.args.onAddCard({ title, columnId: this.args.column.id });
+    const topicId = this.#extractTopicId(title);
+    this.args.onAddCard({ title, topicId, columnId: this.args.column.id });
     this.newCardTitle = "";
   }
 
-  @action
-  topicSelected(topic) {
-    if (!topic) {
-      return;
+  #extractTopicId(text) {
+    if (/^\d+$/.test(text)) {
+      return parseInt(text, 10);
     }
-    this.addMode = null;
-    this.args.onAddCard({ topicId: topic.id, columnId: this.args.column.id });
+
+    if (text.startsWith("http") || text.startsWith("/t/")) {
+      const slugMatch = TOPIC_URL_REGEXP.exec(text);
+      if (slugMatch) {
+        return parseInt(slugMatch[2], 10);
+      }
+
+      const shortMatch = /\/t\/(\d+)(?:\/\d+)?\/?$/.exec(text);
+      if (shortMatch) {
+        return parseInt(shortMatch[1], 10);
+      }
+    }
+
+    return null;
   }
 
   @action
@@ -324,57 +331,29 @@ export default class KanbanColumn extends Component {
 
       {{#if @canWrite}}
         <div class="kanban-column__footer">
-          {{#if this.addMode}}
+          {{#if this.isAdding}}
             <div class="kanban-column__add-card-form">
-              {{#if (eq this.addMode "card")}}
-                <textarea
-                  class="kanban-column__card-title-input"
-                  placeholder={{i18n
-                    "discourse_kanban.board.card_title_placeholder"
-                  }}
-                  value={{this.newCardTitle}}
-                  {{on "input" this.onTitleInput}}
-                  {{on "keydown" this.onTitleKeydown}}
+              <textarea
+                class="kanban-column__card-title-input"
+                placeholder={{i18n
+                  "discourse_kanban.board.card_title_placeholder"
+                }}
+                value={{this.newCardTitle}}
+                {{on "input" this.onTitleInput}}
+                {{on "keydown" this.onTitleKeydown}}
+              />
+              <div class="kanban-column__add-card-actions">
+                <DButton
+                  @action={{this.submitCard}}
+                  @label="discourse_kanban.board.add_card"
+                  class="btn-primary btn-small"
                 />
-                <div class="kanban-column__add-card-actions">
-                  <DButton
-                    @action={{this.submitCard}}
-                    @label="discourse_kanban.board.add_card"
-                    class="btn-primary btn-small"
-                  />
-                  <DButton
-                    @action={{this.startAddTopic}}
-                    @icon="link"
-                    @label="discourse_kanban.board.link_topic"
-                    class="btn-default btn-small"
-                  />
-                  <DButton
-                    @action={{this.cancelAdd}}
-                    @icon="xmark"
-                    class="btn-flat btn-small kanban-column__cancel-add"
-                  />
-                </div>
-              {{/if}}
-
-              {{#if (eq this.addMode "topic")}}
-                <ChooseTopic
-                  @topicChangedCallback={{this.topicSelected}}
-                  @label="discourse_kanban.board.search_topic"
+                <DButton
+                  @action={{this.cancelAdd}}
+                  @icon="xmark"
+                  class="btn-flat btn-small kanban-column__cancel-add"
                 />
-                <div class="kanban-column__add-card-actions">
-                  <DButton
-                    @action={{this.startAddCard}}
-                    @icon="plus"
-                    @label="discourse_kanban.board.new_card"
-                    class="btn-default btn-small"
-                  />
-                  <DButton
-                    @action={{this.cancelAdd}}
-                    @icon="xmark"
-                    class="btn-flat btn-small kanban-column__cancel-add"
-                  />
-                </div>
-              {{/if}}
+              </div>
             </div>
           {{else}}
             <DButton
