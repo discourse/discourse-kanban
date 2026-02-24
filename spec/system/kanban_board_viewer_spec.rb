@@ -294,7 +294,7 @@ describe "Kanban Board Viewer", type: :system do
       expect(board_viewer).to have_no_fullscreen
     end
 
-    it "shows configure option for users in the manage group" do
+    it "shows board settings option for users in the manage group" do
       board = create_board
       board.columns.create!(title: "To Do", position: 0)
 
@@ -302,10 +302,10 @@ describe "Kanban Board Viewer", type: :system do
       board_viewer.visit_board(board)
 
       board_viewer.open_controls_menu
-      expect(board_viewer).to have_configure_option
+      expect(board_viewer).to have_board_settings_option
     end
 
-    it "hides configure option for users not in the manage group" do
+    it "hides board settings option for users not in the manage group" do
       board = create_board
       board.columns.create!(title: "To Do", position: 0)
 
@@ -313,7 +313,7 @@ describe "Kanban Board Viewer", type: :system do
       board_viewer.visit_board(board)
 
       board_viewer.open_controls_menu
-      expect(board_viewer).to have_no_configure_option
+      expect(board_viewer).to have_no_board_settings_option
     end
   end
 end

@@ -6,6 +6,8 @@ import { action } from "@ember/object";
 import { service } from "@ember/service";
 import ChooseTopic from "discourse/components/choose-topic";
 import DButton from "discourse/components/d-button";
+import DropdownMenu from "discourse/components/dropdown-menu";
+import DMenu from "discourse/float-kit/components/d-menu";
 import icon from "discourse/helpers/d-icon";
 import { eq } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
@@ -24,6 +26,15 @@ export default class KanbanColumn extends Component {
   get columnTags() {
     const allColumns = this.args.allColumns || [];
     return allColumns.map((col) => col.move_to_tag).filter(Boolean);
+  }
+
+  get columnIndex() {
+    const allColumns = this.args.allColumns || [];
+    return allColumns.findIndex((col) => col.id === this.args.column.id);
+  }
+
+  get lastColumnIndex() {
+    return (this.args.allColumns?.length || 0) - 1;
   }
 
   @action
@@ -75,6 +86,30 @@ export default class KanbanColumn extends Component {
     }
     this.addMode = null;
     this.args.onAddCard({ topicId: topic.id, columnId: this.args.column.id });
+  }
+
+  @action
+  editColumn(closeMenu) {
+    closeMenu();
+    this.args.onEditColumn(this.args.column.id);
+  }
+
+  @action
+  moveLeft(closeMenu) {
+    closeMenu();
+    this.args.onMoveColumn(this.args.column.id, -1);
+  }
+
+  @action
+  moveRight(closeMenu) {
+    closeMenu();
+    this.args.onMoveColumn(this.args.column.id, 1);
+  }
+
+  @action
+  deleteColumn(closeMenu) {
+    closeMenu();
+    this.args.onDeleteColumn(this.args.column.id);
   }
 
   @action
@@ -212,9 +247,58 @@ export default class KanbanColumn extends Component {
           {{#if @column.icon}}{{icon @column.icon}}{{/if}}
           {{@column.title}}
         </span>
-        <span class="kanban-column__count">
-          {{i18n "discourse_kanban.board.card_count" count=this.cardCount}}
-        </span>
+        <div class="kanban-column__header-right">
+          <span class="kanban-column__count">
+            {{i18n "discourse_kanban.board.card_count" count=this.cardCount}}
+          </span>
+          {{#if @canManage}}
+            <DMenu
+              @identifier="kanban-column-controls"
+              @icon="ellipsis"
+              @title="discourse_kanban.board.column_controls"
+              @triggerClass="btn-flat btn-small kanban-column__menu-trigger"
+            >
+              <:content as |args|>
+                <DropdownMenu as |dropdown|>
+                  <dropdown.item>
+                    <DButton
+                      @action={{fn this.editColumn args.close}}
+                      @icon="pencil"
+                      @label="discourse_kanban.board.edit_column"
+                      class="btn-transparent"
+                    />
+                  </dropdown.item>
+                  <dropdown.item>
+                    <DButton
+                      @action={{fn this.moveLeft args.close}}
+                      @icon="arrow-left"
+                      @label="discourse_kanban.board.move_left"
+                      @disabled={{eq this.columnIndex 0}}
+                      class="btn-transparent"
+                    />
+                  </dropdown.item>
+                  <dropdown.item>
+                    <DButton
+                      @action={{fn this.moveRight args.close}}
+                      @icon="arrow-right"
+                      @label="discourse_kanban.board.move_right"
+                      @disabled={{eq this.columnIndex this.lastColumnIndex}}
+                      class="btn-transparent"
+                    />
+                  </dropdown.item>
+                  <dropdown.item>
+                    <DButton
+                      @action={{fn this.deleteColumn args.close}}
+                      @icon="trash-can"
+                      @label="discourse_kanban.board.delete_column"
+                      class="btn-transparent btn-danger"
+                    />
+                  </dropdown.item>
+                </DropdownMenu>
+              </:content>
+            </DMenu>
+          {{/if}}
+        </div>
       </div>
 
       <div class="kanban-column__cards">

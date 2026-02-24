@@ -1,6 +1,6 @@
 import Component from "@glimmer/component";
 import { tracked } from "@glimmer/tracking";
-import { array } from "@ember/helper";
+import { fn } from "@ember/helper";
 import { action } from "@ember/object";
 import didInsert from "@ember/render-modifiers/modifiers/did-insert";
 import { schedule } from "@ember/runloop";
@@ -16,6 +16,8 @@ import { bind } from "discourse/lib/decorators";
 import Category from "discourse/models/category";
 import { i18n } from "discourse-i18n";
 import KanbanColumn from "./kanban-column";
+import KanbanBoardSettings from "./modal/kanban-board-settings";
+import KanbanColumnSettings from "./modal/kanban-column-settings";
 
 const onWindowResize = modifier((element, [callback]) => {
   const wrappedCallback = () => callback(element);
@@ -35,9 +37,13 @@ function calcOffset(element) {
 export default class KanbanBoardViewer extends Component {
   @service appEvents;
   @service composer;
+  @service dialog;
   @service messageBus;
+  @service modal;
   @service router;
+  @service toasts;
 
+  @tracked board;
   @tracked columns;
   @tracked dragData = null;
   @tracked dropHighlightCardId = null;
@@ -51,6 +57,7 @@ export default class KanbanBoardViewer extends Component {
 
   constructor() {
     super(...arguments);
+    this.board = { ...this.args.model.board };
     this.columns = this.args.model.columns.map((col) => ({
       ...col,
       cards: [...(col.cards || [])],
@@ -61,10 +68,6 @@ export default class KanbanBoardViewer extends Component {
     super.willDestroy(...arguments);
     this._clearDropHighlight();
     this._cleanupPromotion();
-  }
-
-  get board() {
-    return this.args.model.board;
   }
 
   @bind
@@ -388,6 +391,219 @@ export default class KanbanBoardViewer extends Component {
     this.composer.openNewTopic(opts);
   }
 
+  // Column management actions
+
+  @action
+  openAddColumnModal(closeMenu) {
+    closeMenu();
+    this.modal.show(KanbanColumnSettings, {
+      model: {
+        column: null,
+        onSave: (columnData) => this.addColumn(columnData),
+      },
+    });
+  }
+
+  @action
+  openEditColumnModal(columnId) {
+    const column = this.columns.find((c) => c.id === columnId);
+    if (!column) {
+      return;
+    }
+    this.modal.show(KanbanColumnSettings, {
+      model: {
+        column,
+        onSave: (columnData) => this.editColumn(columnId, columnData),
+      },
+    });
+  }
+
+  _serializeColumn(col) {
+    return {
+      id: col.id,
+      title: col.title,
+      icon: col.icon,
+      filter_query: col.filter_query,
+      move_to_tag: col.move_to_tag,
+      move_to_category_id: col.move_to_category_id,
+      move_to_assigned:
+        col.move_to_assigned === "_user" ? "" : col.move_to_assigned,
+      move_to_status: col.move_to_status,
+    };
+  }
+
+  @action
+  async addColumn(columnData) {
+    const columnsPayload = this.columns.map((col) =>
+      this._serializeColumn(col)
+    );
+    columnsPayload.push(this._serializeColumn(columnData));
+    await this._saveColumnsUpdate(columnsPayload);
+  }
+
+  @action
+  async editColumn(columnId, columnData) {
+    const columnsPayload = this.columns.map((col) => {
+      if (col.id === columnId) {
+        return this._serializeColumn({ ...col, ...columnData });
+      }
+      return this._serializeColumn(col);
+    });
+    await this._saveColumnsUpdate(columnsPayload);
+  }
+
+  @action
+  async moveColumn(columnId, direction) {
+    const index = this.columns.findIndex((c) => c.id === columnId);
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= this.columns.length) {
+      return;
+    }
+
+    const snapshot = this.columns;
+    const reordered = [...this.columns];
+    [reordered[index], reordered[newIndex]] = [
+      reordered[newIndex],
+      reordered[index],
+    ];
+
+    this.columns = reordered;
+    try {
+      await this._saveColumnsUpdate(
+        reordered.map((col) => this._serializeColumn(col))
+      );
+    } catch (error) {
+      this.columns = snapshot;
+      popupAjaxError(error);
+    }
+  }
+
+  @action
+  deleteColumn(columnId) {
+    this.dialog.confirm({
+      message: i18n("discourse_kanban.board.confirm_delete_column"),
+      didConfirm: async () => {
+        const columnsPayload = this.columns
+          .filter((col) => col.id !== columnId)
+          .map((col) => this._serializeColumn(col));
+        try {
+          await this._saveColumnsUpdate(columnsPayload);
+        } catch (error) {
+          popupAjaxError(error);
+        }
+      },
+    });
+  }
+
+  // Board settings actions
+
+  @action
+  openBoardSettings(closeMenu) {
+    closeMenu();
+    this.modal.show(KanbanBoardSettings, {
+      model: {
+        board: this.board,
+        isNew: false,
+        onSave: (boardData) => this.saveBoardSettings(boardData),
+        onDelete: () => this.deleteBoard(),
+      },
+    });
+  }
+
+  @action
+  async saveBoardSettings(boardData) {
+    const columnsPayload = this.columns.map((col) =>
+      this._serializeColumn(col)
+    );
+
+    const payload = {
+      board: {
+        ...boardData,
+        columns: columnsPayload,
+      },
+    };
+
+    const originalSlug = this.board.slug;
+
+    const result = await ajax(`/kanban/boards/${this.board.id}`, {
+      type: "PUT",
+      contentType: "application/json",
+      data: JSON.stringify(payload),
+    });
+
+    if (result.board) {
+      this.board = { ...this.board, ...result.board };
+      if (result.board.columns) {
+        this.columns = this.columns.map((col) => {
+          const serverCol = result.board.columns.find((s) => s.id === col.id);
+          return serverCol ? { ...col, ...serverCol } : col;
+        });
+      }
+    }
+
+    this.toasts.success({
+      data: { message: i18n("saved") },
+      duration: "short",
+    });
+
+    if (this.board.slug && this.board.slug !== originalSlug) {
+      this.router.replaceWith("kanbanBoard", this.board.slug, this.board.id);
+    }
+  }
+
+  @action
+  deleteBoard(closeMenu) {
+    closeMenu?.();
+    this.dialog.confirm({
+      message: i18n("discourse_kanban.manage.confirm_delete"),
+      didConfirm: async () => {
+        try {
+          await ajax(`/kanban/boards/${this.board.id}`, {
+            type: "DELETE",
+          });
+          this.router.transitionTo("kanbanBoards");
+        } catch (error) {
+          popupAjaxError(error);
+        }
+      },
+    });
+  }
+
+  async _saveColumnsUpdate(columnsPayload) {
+    const payload = {
+      board: {
+        name: this.board.name,
+        slug: this.board.slug,
+        base_filter_query: this.board.base_filter_query,
+        card_style: this.board.card_style,
+        show_tags: this.board.show_tags,
+        show_topic_thumbnail: this.board.show_topic_thumbnail,
+        show_activity_indicators: this.board.show_activity_indicators,
+        require_confirmation: this.board.require_confirmation,
+        allow_read_group_ids: this.board.allow_read_group_ids || [],
+        allow_write_group_ids: this.board.allow_write_group_ids || [],
+        columns: columnsPayload,
+      },
+    };
+
+    const result = await ajax(`/kanban/boards/${this.board.id}`, {
+      type: "PUT",
+      contentType: "application/json",
+      data: JSON.stringify(payload),
+    });
+
+    this.toasts.success({
+      data: { message: i18n("saved") },
+      duration: "short",
+    });
+
+    await this.#handleBoardUpdated();
+
+    if (result.board) {
+      this.board = { ...this.board, ...result.board };
+    }
+  }
+
   @bind
   _onTopicCreated(createdPost) {
     const cardId = this._promotingCardId;
@@ -466,7 +682,7 @@ export default class KanbanBoardViewer extends Component {
               @title="discourse_kanban.board.controls"
               @triggerClass="btn-flat"
             >
-              <:content>
+              <:content as |args|>
                 <DropdownMenu as |dropdown|>
                   <dropdown.item>
                     <DButton
@@ -479,11 +695,26 @@ export default class KanbanBoardViewer extends Component {
                   {{#if this.canManage}}
                     <dropdown.item>
                       <DButton
-                        @route="kanbanBoardConfigure"
-                        @routeModels={{array this.board.slug this.board.id}}
-                        @icon="gear"
-                        @label="discourse_kanban.board.configure"
+                        @action={{fn this.openAddColumnModal args.close}}
+                        @icon="plus"
+                        @label="discourse_kanban.board.add_column"
                         class="btn-transparent"
+                      />
+                    </dropdown.item>
+                    <dropdown.item>
+                      <DButton
+                        @action={{fn this.openBoardSettings args.close}}
+                        @icon="gear"
+                        @label="discourse_kanban.board.board_settings"
+                        class="btn-transparent"
+                      />
+                    </dropdown.item>
+                    <dropdown.item>
+                      <DButton
+                        @action={{fn this.deleteBoard args.close}}
+                        @icon="trash-can"
+                        @label="discourse_kanban.board.delete_board"
+                        class="btn-transparent btn-danger"
                       />
                     </dropdown.item>
                   {{/if}}
@@ -501,6 +732,7 @@ export default class KanbanBoardViewer extends Component {
               @column={{column}}
               @board={{this.board}}
               @canWrite={{this.canWrite}}
+              @canManage={{this.canManage}}
               @allSameCategory={{this.allSameCategory}}
               @dropHighlightCardId={{this.dropHighlightCardId}}
               @dragData={{this.dragData}}
@@ -510,6 +742,9 @@ export default class KanbanBoardViewer extends Component {
               @onUpdateCard={{this.onUpdateCard}}
               @onDeleteCard={{this.onDeleteCard}}
               @onPromoteToTopic={{this.onPromoteToTopic}}
+              @onEditColumn={{this.openEditColumnModal}}
+              @onMoveColumn={{this.moveColumn}}
+              @onDeleteColumn={{this.deleteColumn}}
               @allColumns={{this.columns}}
             />
           {{/each}}

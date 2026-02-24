@@ -25,13 +25,6 @@
     gap: 4px;
   }
 
-  &__configure-link {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    justify-content: flex-start;
-  }
-
   &__empty {
     padding: 2em;
     text-align: center;
@@ -91,9 +84,26 @@
     }
   }
 
+  &__header-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
   &__count {
     font-size: $font-down-1;
     color: var(--primary-medium);
+  }
+
+  &__menu-trigger {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    padding: 2px 4px;
+  }
+
+  &:hover &__menu-trigger,
+  &__menu-trigger[aria-expanded="true"] {
+    opacity: 1;
   }
 
   &__cards {
@@ -470,5 +480,43 @@
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+.kanban-column-settings-modal,
+.kanban-board-settings-modal {
+  .kanban-column-settings__field,
+  .kanban-board-settings__field {
+    margin-bottom: 1em;
+
+    label {
+      display: block;
+      font-weight: 600;
+      font-size: $font-down-1;
+      margin-bottom: 0.25em;
+    }
+
+    input[type="text"],
+    select {
+      width: 100%;
+      margin: 0;
+    }
+
+    .select-kit {
+      width: 100%;
+    }
+
+    &--checkbox label {
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+      font-weight: normal;
+      cursor: pointer;
+
+      input[type="checkbox"] {
+        width: auto;
+        margin: 0;
+      }
+    }
   }
 }

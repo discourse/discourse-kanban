@@ -376,7 +376,8 @@ module DiscourseKanban
 
           to_create.each do |entry|
             col_id = entry[:column_id]
-            max_positions[col_id] = (max_positions[col_id] || -1) + 1
+            max_positions[col_id] = (max_positions[col_id] || -CardOrdering::GAP_SIZE) +
+              CardOrdering::GAP_SIZE
             pos = max_positions[col_id]
 
             Card.insert!(
@@ -404,7 +405,7 @@ module DiscourseKanban
               entries.each_with_index do |entry, i|
                 Card.where(id: entry[:card_id]).update_all(
                   column_id: col_id,
-                  position: max_pos + i + 1,
+                  position: max_pos + (i + 1) * CardOrdering::GAP_SIZE,
                 )
               end
             end

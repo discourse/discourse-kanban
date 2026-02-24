@@ -100,11 +100,19 @@ module DiscourseKanban
     end
 
     def place_and_save(card:, column:, params:, guardian:)
+      raw = context[:raw_card_params] || {}
+      position_first = raw.key?("after_card_id") && raw["after_card_id"].blank?
+
       Card.transaction do
         if !context[:promoted] && card.topic? && column.id != card.column_id && card.topic.present?
           TopicMutator.apply!(topic: card.topic, column:, guardian:)
         end
-        CardOrdering.place_card!(card, column:, after_card_id: params.after_card_id)
+        CardOrdering.place_card!(
+          card,
+          column:,
+          after_card_id: params.after_card_id,
+          position_first:,
+        )
         card.save!
       end
     rescue ActiveRecord::RecordNotUnique, ActiveRecord::StatementInvalid => error
@@ -123,6 +131,9 @@ module DiscourseKanban
       floater.reload if floater.changed?
       floater_id = floater.id
 
+      raw = context[:raw_card_params] || {}
+      position_first = raw.key?("after_card_id") && raw["after_card_id"].blank?
+
       Card.transaction do
         existing = existing.lock!
         context[:original_column_id] = existing.column_id
@@ -131,7 +142,12 @@ module DiscourseKanban
         topic = existing.topic || Topic.find_by(id: params.topic_id)
         raise Discourse::NotFound if topic.nil?
         TopicMutator.apply!(topic:, column:, guardian:)
-        CardOrdering.place_card!(existing, column:, after_card_id: params.after_card_id)
+        CardOrdering.place_card!(
+          existing,
+          column:,
+          after_card_id: params.after_card_id,
+          position_first:,
+        )
         existing.save!
         floater.destroy!
       end

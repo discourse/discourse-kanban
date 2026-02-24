@@ -189,6 +189,56 @@ RSpec.describe DiscourseKanban::UpdateCard do
       end
     end
 
+    context "when moving a card to position 0 in a column" do
+      fab!(:card_a) do
+        board.cards.create!(
+          card_type: :floater,
+          membership_mode: :manual_in,
+          title: "Card A",
+          column_id: col_done.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      end
+
+      fab!(:card_b) do
+        board.cards.create!(
+          card_type: :floater,
+          membership_mode: :manual_in,
+          title: "Card B",
+          column_id: col_done.id,
+          position: 1,
+          created_by_id: admin.id,
+        )
+      end
+
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :floater,
+          membership_mode: :manual_in,
+          title: "Move to first",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      end
+
+      let(:raw_card_params) { { "column_id" => col_done.id.to_s, "after_card_id" => "" } }
+      let(:params) { { board_id: board.id, id: card.id, column_id: col_done.id } }
+
+      it { is_expected.to run_successfully }
+
+      it "places the card first in the column" do
+        result
+        card.reload
+        card_a.reload
+        card_b.reload
+        expect(card.column_id).to eq(col_done.id)
+        expect(card.position).to be < card_a.position
+        expect(card_a.position).to be < card_b.position
+      end
+    end
+
     context "when card is not found" do
       let(:params) { { board_id: board.id, id: 0 } }
 

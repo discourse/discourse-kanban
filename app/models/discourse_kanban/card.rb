@@ -59,7 +59,7 @@ end
 #  labels          :text             default([]), not null, is an Array
 #  membership_mode :integer          default("manual_in"), not null
 #  notes           :text
-#  position        :integer          default(0), not null
+#  position        :bigint           default(0), not null
 #  title           :string
 #  created_at      :datetime         not null
 #  updated_at      :datetime         not null

@@ -198,17 +198,17 @@ module PageObjects
         self
       end
 
-      def has_configure_option?
+      def has_board_settings_option?
         has_css?(
           "[data-content][data-identifier='kanban-board-controls'] .btn-transparent .d-button-label",
-          text: I18n.t("js.discourse_kanban.board.configure"),
+          text: I18n.t("js.discourse_kanban.board.board_settings"),
         )
       end
 
-      def has_no_configure_option?
+      def has_no_board_settings_option?
         has_no_css?(
           "[data-content][data-identifier='kanban-board-controls'] .btn-transparent .d-button-label",
-          text: I18n.t("js.discourse_kanban.board.configure"),
+          text: I18n.t("js.discourse_kanban.board.board_settings"),
         )
       end
 
