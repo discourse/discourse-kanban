@@ -188,6 +188,7 @@
   padding: 10px;
   box-shadow: var(--primary-low) 0 3px 6px;
   border: 1px solid var(--primary-low);
+  border-left: 1px solid transparent;
   cursor: grab;
 
   &--floater {
