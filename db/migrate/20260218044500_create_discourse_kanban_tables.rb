@@ -33,7 +33,9 @@ class CreateDiscourseKanbanTables < ActiveRecord::Migration[7.2]
                      to_table: :discourse_kanban_boards,
                      on_delete: :cascade,
                    },
-                   index: { name: "idx_kanban_columns_board_id" }
+                   index: {
+                     name: "idx_kanban_columns_board_id",
+                   }
 
       t.string :title, null: false
       t.string :icon
@@ -48,7 +50,9 @@ class CreateDiscourseKanbanTables < ActiveRecord::Migration[7.2]
       t.timestamps
     end
 
-    add_index :discourse_kanban_columns, [:board_id, :position], name: "idx_kanban_columns_board_position"
+    add_index :discourse_kanban_columns,
+              %i[board_id position],
+              name: "idx_kanban_columns_board_position"
     add_foreign_key :discourse_kanban_columns,
                     :categories,
                     column: :move_to_category_id,
@@ -61,7 +65,9 @@ class CreateDiscourseKanbanTables < ActiveRecord::Migration[7.2]
                      to_table: :discourse_kanban_boards,
                      on_delete: :cascade,
                    },
-                   index: { name: "idx_kanban_cards_board_id" }
+                   index: {
+                     name: "idx_kanban_cards_board_id",
+                   }
 
       t.references :column,
                    null: true,
@@ -69,7 +75,9 @@ class CreateDiscourseKanbanTables < ActiveRecord::Migration[7.2]
                      to_table: :discourse_kanban_columns,
                      on_delete: :nullify,
                    },
-                   index: { name: "idx_kanban_cards_column_id" }
+                   index: {
+                     name: "idx_kanban_cards_column_id",
+                   }
 
       t.references :topic,
                    null: true,
@@ -77,7 +85,9 @@ class CreateDiscourseKanbanTables < ActiveRecord::Migration[7.2]
                      to_table: :topics,
                      on_delete: :cascade,
                    },
-                   index: { name: "idx_kanban_cards_topic_id" }
+                   index: {
+                     name: "idx_kanban_cards_topic_id",
+                   }
 
       t.integer :card_type, null: false, default: 0
       t.integer :membership_mode, null: false, default: 1
@@ -96,7 +106,7 @@ class CreateDiscourseKanbanTables < ActiveRecord::Migration[7.2]
     end
 
     add_index :discourse_kanban_cards,
-              [:board_id, :column_id, :position],
+              %i[board_id column_id position],
               name: "idx_kanban_cards_board_column_position"
 
     execute <<~SQL

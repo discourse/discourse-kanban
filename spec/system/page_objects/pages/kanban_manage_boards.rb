@@ -49,24 +49,20 @@ module PageObjects
 
       def toggle_modal_require_confirmation
         within(".kanban-board-settings-modal") do
-          find("label", text: I18n.t("js.discourse_kanban.manage.require_confirmation"))
-            .find("input[type='checkbox']")
-            .click
+          find("label", text: I18n.t("js.discourse_kanban.manage.require_confirmation")).find(
+            "input[type='checkbox']",
+          ).click
         end
         self
       end
 
       def save_board_modal
-        within(".kanban-board-settings-modal") do
-          find(".btn-primary").click
-        end
+        within(".kanban-board-settings-modal") { find(".btn-primary").click }
         self
       end
 
       def delete_from_board_modal
-        within(".kanban-board-settings-modal") do
-          find(".btn-danger").click
-        end
+        within(".kanban-board-settings-modal") { find(".btn-danger").click }
         self
       end
 
@@ -88,7 +84,10 @@ module PageObjects
       end
 
       def click_delete_board_menu_item
-        find(".btn-transparent.btn-danger", text: I18n.t("js.discourse_kanban.board.delete_board")).click
+        find(
+          ".btn-transparent.btn-danger",
+          text: I18n.t("js.discourse_kanban.board.delete_board"),
+        ).click
         self
       end
 
@@ -102,9 +101,7 @@ module PageObjects
       end
 
       def save_column_modal
-        within(".kanban-column-settings-modal") do
-          find(".btn-primary").click
-        end
+        within(".kanban-column-settings-modal") { find(".btn-primary").click }
         self
       end
 
