@@ -2,6 +2,8 @@
 
 module DiscourseKanban
   class TopicSync
+    MAX_TOPICS_PER_COLUMN = 400
+
     def self.backfill_board(board)
       return unless SiteSetting.discourse_kanban_enabled?
 
@@ -320,12 +322,7 @@ module DiscourseKanban
       has_base = board.base_filter_query.present?
 
       if has_base
-        base_ids =
-          TopicsFilter
-            .new(guardian:, scope: scope_base)
-            .filter_from_query_string(board.base_filter_query)
-            .pluck(:id)
-            .to_set
+        base_ids = filtered_topic_ids(guardian:, scope: scope_base, query: board.base_filter_query)
       end
 
       columns.each do |col|
@@ -334,23 +331,13 @@ module DiscourseKanban
         if has_base
           if query.present?
             combined = "#{board.base_filter_query} #{query}"
-            ids =
-              TopicsFilter
-                .new(guardian:, scope: scope_base)
-                .filter_from_query_string(combined)
-                .pluck(:id)
-                .to_set
+            ids = filtered_topic_ids(guardian:, scope: scope_base, query: combined)
           else
             ids = base_ids
           end
         else
           next if query.blank?
-          ids =
-            TopicsFilter
-              .new(guardian:, scope: scope_base)
-              .filter_from_query_string(query)
-              .pluck(:id)
-              .to_set
+          ids = filtered_topic_ids(guardian:, scope: scope_base, query:)
         end
 
         result[col.id] = ids
@@ -359,6 +346,15 @@ module DiscourseKanban
       end
 
       result
+    end
+
+    private_class_method def self.filtered_topic_ids(guardian:, scope:, query:)
+      TopicsFilter
+        .new(guardian:, scope:)
+        .filter_from_query_string(query)
+        .limit(MAX_TOPICS_PER_COLUMN)
+        .pluck(:id)
+        .to_set
     end
 
     def self.apply_bulk_changes(board, to_create:, to_move:, to_delete:)

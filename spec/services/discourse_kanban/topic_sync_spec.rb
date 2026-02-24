@@ -340,6 +340,25 @@ RSpec.describe DiscourseKanban::TopicSync do
       )
     end
 
+    it "limits the number of topics per column to MAX_TOPICS_PER_COLUMN" do
+      board =
+        DiscourseKanban::Board.create!(
+          name: "Limit Board",
+          slug: "limit-board",
+          base_filter_query: "category:#{category.slug}",
+          created_by_id: admin.id,
+        )
+      board.columns.create!(title: "Backlog", position: 0)
+
+      4.times { Fabricate(:topic, category: category) }
+
+      stub_const(DiscourseKanban::TopicSync, :MAX_TOPICS_PER_COLUMN, 3) do
+        described_class.backfill_board(board)
+      end
+
+      expect(board.cards.count).to be <= 3
+    end
+
     it "does not discover topics when base_filter_query is blank and columns are unfiltered" do
       board =
         DiscourseKanban::Board.create!(
