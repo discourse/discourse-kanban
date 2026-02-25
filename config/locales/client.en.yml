@@ -35,9 +35,6 @@ en:
         due_date: "Due Date"
         remove_label: "Remove label"
         overdue: "Overdue"
-        card_count:
-          one: "%{count} card"
-          other: "%{count} cards"
       manage:
         title: "Kanban Boards"
         description: "Create and manage kanban boards with columns."
