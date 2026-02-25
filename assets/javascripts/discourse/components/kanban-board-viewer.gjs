@@ -89,6 +89,9 @@ export default class KanbanBoardViewer extends Component {
       case "card_deleted":
         this.#handleCardDeleted(data.card_id);
         break;
+      case "columns_reordered":
+        this.#handleColumnsReordered(data.column_order);
+        break;
       case "board_updated":
         this.#handleBoardUpdated();
         break;
@@ -144,6 +147,14 @@ export default class KanbanBoardViewer extends Component {
       ...col,
       cards: col.cards.filter((c) => c.id !== cardId),
     }));
+  }
+
+  #handleColumnsReordered(columnOrder) {
+    const orderMap = new Map(columnOrder.map((id, idx) => [id, idx]));
+    this.columns = [...this.columns].sort(
+      (a, b) =>
+        (orderMap.get(a.id) ?? Infinity) - (orderMap.get(b.id) ?? Infinity)
+    );
   }
 
   async #handleBoardUpdated() {
@@ -495,6 +506,9 @@ export default class KanbanBoardViewer extends Component {
   @action
   async moveColumn(columnId, direction) {
     const index = this.columns.findIndex((c) => c.id === columnId);
+    if (index === -1) {
+      return;
+    }
     const newIndex = index + direction;
     if (newIndex < 0 || newIndex >= this.columns.length) {
       return;
@@ -509,9 +523,20 @@ export default class KanbanBoardViewer extends Component {
 
     this.columns = reordered;
     try {
-      await this._saveColumnsUpdate(
-        reordered.map((col) => this._serializeColumn(col))
+      const result = await ajax(
+        `/kanban/boards/${this.board.id}/move-column`,
+        {
+          type: "POST",
+          data: {
+            column_id: columnId,
+            direction,
+            client_id: this.messageBus.clientId,
+          },
+        }
       );
+      if (result?.column_order) {
+        this.#handleColumnsReordered(result.column_order);
+      }
     } catch (error) {
       this.columns = snapshot;
       popupAjaxError(error);

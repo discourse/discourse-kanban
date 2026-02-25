@@ -332,6 +332,97 @@ RSpec.describe DiscourseKanban::BoardsController do
     end
   end
 
+  describe "POST /kanban/boards/:id/move-column" do
+    fab!(:board_mc) do
+      DiscourseKanban::Board.create!(
+        name: "Move Col",
+        slug: "move-col",
+        base_filter_query: "tags:sales",
+        created_by_id: admin.id,
+      )
+    end
+    fab!(:col_a) { board_mc.columns.create!(title: "A", position: 0) }
+    fab!(:col_b) { board_mc.columns.create!(title: "B", position: 1) }
+    fab!(:col_c) { board_mc.columns.create!(title: "C", position: 2) }
+
+    it "swaps column positions and returns the new order" do
+      sign_in(admin)
+
+      post "/kanban/boards/#{board_mc.id}/move-column.json",
+           params: {
+             column_id: col_b.id,
+             direction: 1,
+           }
+
+      expect(response.status).to eq(200)
+      expect(response.parsed_body["column_order"]).to eq([col_a.id, col_c.id, col_b.id])
+      expect(col_b.reload.position).to eq(2)
+      expect(col_c.reload.position).to eq(1)
+    end
+
+    it "returns 403 for non-manager users" do
+      sign_in(outsider)
+
+      post "/kanban/boards/#{board_mc.id}/move-column.json",
+           params: {
+             column_id: col_b.id,
+             direction: 1,
+           }
+
+      expect(response.status).to eq(403)
+    end
+
+    it "returns 403 for anonymous users" do
+      post "/kanban/boards/#{board_mc.id}/move-column.json",
+           params: {
+             column_id: col_b.id,
+             direction: 1,
+           }
+
+      expect(response.status).to eq(403)
+    end
+
+    it "returns 404 for a nonexistent board" do
+      sign_in(admin)
+
+      post "/kanban/boards/0/move-column.json", params: { column_id: col_b.id, direction: 1 }
+
+      expect(response.status).to eq(404)
+    end
+
+    it "returns 404 for a nonexistent column" do
+      sign_in(admin)
+
+      post "/kanban/boards/#{board_mc.id}/move-column.json", params: { column_id: 0, direction: 1 }
+
+      expect(response.status).to eq(404)
+    end
+
+    it "returns 400 for an invalid direction" do
+      sign_in(admin)
+
+      post "/kanban/boards/#{board_mc.id}/move-column.json",
+           params: {
+             column_id: col_b.id,
+             direction: 5,
+           }
+
+      expect(response.status).to eq(400)
+    end
+
+    it "returns 422 when moving past the boundary" do
+      sign_in(admin)
+
+      post "/kanban/boards/#{board_mc.id}/move-column.json",
+           params: {
+             column_id: col_c.id,
+             direction: 1,
+           }
+
+      expect(response.status).to eq(422)
+    end
+  end
+
   describe "DELETE /kanban/boards/:id" do
     it "deletes a board for users in the manage group" do
       board =
