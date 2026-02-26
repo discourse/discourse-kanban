@@ -59,7 +59,7 @@ module DiscourseKanban
       }
     end
 
-    def card_payload(card)
+    def card_payload(card, assignments_by_topic: {})
       payload = {
         id: card.id,
         board_id: card.board_id,
@@ -75,7 +75,7 @@ module DiscourseKanban
 
       if card.topic?
         payload[:topic_id] = card.topic_id
-        payload[:topic] = topic_card_payload(card.topic) if card.topic
+        payload[:topic] = topic_card_payload(card.topic, assignments_by_topic:) if card.topic
       else
         payload[:updated_at] = card.updated_at
         payload[:updated_by] = { username: card.updated_by.username } if card.updated_by
@@ -84,7 +84,7 @@ module DiscourseKanban
       payload
     end
 
-    def topic_card_payload(topic)
+    def topic_card_payload(topic, assignments_by_topic: {})
       data = {
         id: topic.id,
         title: topic.title,
@@ -110,6 +110,24 @@ module DiscourseKanban
           username: assigned.username,
           avatar_template: assigned.avatar_template,
         }
+      end
+
+      all_assignments = assignments_by_topic[topic.id]
+      if all_assignments.blank? && defined?(Assignment)
+        all_assignments =
+          Assignment.where(topic_id: topic.id, active: true, assigned_to_type: "User").includes(
+            :assigned_to,
+          )
+        all_assignments = nil if all_assignments.none?
+      end
+
+      if all_assignments.present?
+        data[:all_assigned_users] = all_assignments
+          .filter_map do |a|
+            next unless a.assigned_to.is_a?(User)
+            { username: a.assigned_to.username, avatar_template: a.assigned_to.avatar_template }
+          end
+          .uniq { |u| u[:username] }
       end
 
       data

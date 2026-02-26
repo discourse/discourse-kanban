@@ -77,20 +77,34 @@ export default class KanbanCard extends Component {
     return this.args.board.show_topic_thumbnail && this.topic?.image_url;
   }
 
+  get allAssignedUsers() {
+    if (this.topic?.all_assigned_users?.length) {
+      return this.topic.all_assigned_users;
+    }
+    if (this.topic?.assigned_to_user) {
+      return [this.topic.assigned_to_user];
+    }
+    return [];
+  }
+
   get assignedUser() {
-    return this.topic?.assigned_to_user;
+    return this.allAssignedUsers[0] ?? null;
   }
 
   get assignedAvatarHtml() {
-    const user = this.assignedUser;
-    if (!user) {
+    const users = this.allAssignedUsers;
+    if (!users.length) {
       return null;
     }
-    return renderAvatar(user, {
-      avatarTemplatePath: "avatar_template",
-      usernamePath: "username",
-      imageSize: "tiny",
-    });
+    return users
+      .map((user) =>
+        renderAvatar(user, {
+          avatarTemplatePath: "avatar_template",
+          usernamePath: "username",
+          imageSize: "tiny",
+        })
+      )
+      .join("");
   }
 
   get lastPosterUsername() {
@@ -312,11 +326,13 @@ export default class KanbanCard extends Component {
         {{/if}}
 
         {{#unless this.isDetailed}}
-          {{#if this.assignedUser}}
+          {{#if this.allAssignedUsers.length}}
             <div class="kanban-card__assignments">
-              <div class="kanban-card__assigned-to">
-                {{icon "user-plus"}}{{this.assignedUser.username}}
-              </div>
+              {{#each this.allAssignedUsers as |user|}}
+                <div class="kanban-card__assigned-to">
+                  {{icon "user-plus"}}{{user.username}}
+                </div>
+              {{/each}}
             </div>
           {{/if}}
         {{/unless}}

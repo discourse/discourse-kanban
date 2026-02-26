@@ -24,6 +24,13 @@ module DiscourseKanban
       publish!(board, { type: "board_updated", client_id: client_id })
     end
 
+    def self.publish_columns_reordered!(board, column_order, client_id:)
+      publish!(
+        board,
+        { type: "columns_reordered", client_id: client_id, column_order: column_order },
+      )
+    end
+
     def self.publish_card_event!(board, type, card_payload, client_id:)
       publish!(board, { type: type, client_id: client_id, card: card_payload })
     end

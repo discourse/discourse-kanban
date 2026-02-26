@@ -9,6 +9,7 @@ en:
       board_write_forbidden: "You do not have permission to modify this board"
       board_manage_forbidden: "You do not have permission to manage this board"
       column_not_found: "Kanban column not found"
+      column_move_out_of_bounds: "Column cannot be moved further in that direction"
       card_not_found: "Kanban card not found"
       invalid_card_type: "Invalid kanban card type"
       unknown_group_ids: "Unknown group ids: %{group_ids}"

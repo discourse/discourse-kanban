@@ -89,6 +89,9 @@ export default class KanbanBoardViewer extends Component {
       case "card_deleted":
         this.#handleCardDeleted(data.card_id);
         break;
+      case "columns_reordered":
+        this.#handleColumnsReordered(data.column_order);
+        break;
       case "board_updated":
         this.#handleBoardUpdated();
         break;
@@ -144,6 +147,14 @@ export default class KanbanBoardViewer extends Component {
       ...col,
       cards: col.cards.filter((c) => c.id !== cardId),
     }));
+  }
+
+  #handleColumnsReordered(columnOrder) {
+    const orderMap = new Map(columnOrder.map((id, idx) => [id, idx]));
+    this.columns = [...this.columns].sort(
+      (a, b) =>
+        (orderMap.get(a.id) ?? Infinity) - (orderMap.get(b.id) ?? Infinity)
+    );
   }
 
   async #handleBoardUpdated() {
@@ -242,16 +253,27 @@ export default class KanbanBoardViewer extends Component {
     this.dragData = null;
 
     try {
-      await ajax(`/kanban/boards/${this.board.id}/cards/${card.id}`, {
-        type: "PUT",
-        data: {
-          client_id: this.messageBus.clientId,
-          card: {
-            column_id: toColumnId,
-            after_card_id: afterCardId,
+      const result = await ajax(
+        `/kanban/boards/${this.board.id}/cards/${card.id}`,
+        {
+          type: "PUT",
+          data: {
+            client_id: this.messageBus.clientId,
+            card: {
+              column_id: toColumnId,
+              after_card_id: afterCardId,
+            },
           },
-        },
-      });
+        }
+      );
+      if (result?.card) {
+        this.columns = this.columns.map((col) => ({
+          ...col,
+          cards: col.cards.map((c) =>
+            c.id === card.id ? { ...c, ...result.card } : c
+          ),
+        }));
+      }
       this._highlightDroppedCard(card.id);
     } catch (error) {
       if (isSameColumn) {
@@ -439,6 +461,7 @@ export default class KanbanBoardViewer extends Component {
     this.modal.show(KanbanColumnSettings, {
       model: {
         column: null,
+        board: this.board,
         onSave: (columnData) => this.addColumn(columnData),
       },
     });
@@ -453,6 +476,7 @@ export default class KanbanBoardViewer extends Component {
     this.modal.show(KanbanColumnSettings, {
       model: {
         column,
+        board: this.board,
         onSave: (columnData) => this.editColumn(columnId, columnData),
       },
     });
@@ -495,6 +519,9 @@ export default class KanbanBoardViewer extends Component {
   @action
   async moveColumn(columnId, direction) {
     const index = this.columns.findIndex((c) => c.id === columnId);
+    if (index === -1) {
+      return;
+    }
     const newIndex = index + direction;
     if (newIndex < 0 || newIndex >= this.columns.length) {
       return;
@@ -509,9 +536,17 @@ export default class KanbanBoardViewer extends Component {
 
     this.columns = reordered;
     try {
-      await this._saveColumnsUpdate(
-        reordered.map((col) => this._serializeColumn(col))
-      );
+      const result = await ajax(`/kanban/boards/${this.board.id}/move-column`, {
+        type: "POST",
+        data: {
+          column_id: columnId,
+          direction,
+          client_id: this.messageBus.clientId,
+        },
+      });
+      if (result?.column_order) {
+        this.#handleColumnsReordered(result.column_order);
+      }
     } catch (error) {
       this.columns = snapshot;
       popupAjaxError(error);
@@ -708,14 +743,7 @@ export default class KanbanBoardViewer extends Component {
         <h2 class="kanban-board-viewer__title">{{this.board.name}}</h2>
 
         <div class="kanban-board-viewer__controls">
-          {{#if this.fullscreen}}
-            <DButton
-              @action={{this.exitFullscreen}}
-              @icon="discourse-compress"
-              @title="discourse_kanban.board.exit_fullscreen"
-              class="btn-flat kanban-board-viewer__exit-fullscreen"
-            />
-          {{else}}
+          {{#if this.canManage}}
             <DMenu
               @identifier="kanban-board-controls"
               @icon="ellipsis"
@@ -726,41 +754,46 @@ export default class KanbanBoardViewer extends Component {
                 <DropdownMenu as |dropdown|>
                   <dropdown.item>
                     <DButton
-                      @action={{this.toggleFullscreen}}
-                      @icon="discourse-expand"
-                      @label="discourse_kanban.board.fullscreen"
+                      @action={{fn this.openAddColumnModal args.close}}
+                      @icon="plus"
+                      @label="discourse_kanban.board.add_column"
                       class="btn-transparent"
                     />
                   </dropdown.item>
-                  {{#if this.canManage}}
-                    <dropdown.item>
-                      <DButton
-                        @action={{fn this.openAddColumnModal args.close}}
-                        @icon="plus"
-                        @label="discourse_kanban.board.add_column"
-                        class="btn-transparent"
-                      />
-                    </dropdown.item>
-                    <dropdown.item>
-                      <DButton
-                        @action={{fn this.openBoardSettings args.close}}
-                        @icon="gear"
-                        @label="discourse_kanban.board.board_settings"
-                        class="btn-transparent"
-                      />
-                    </dropdown.item>
-                    <dropdown.item>
-                      <DButton
-                        @action={{fn this.deleteBoard args.close}}
-                        @icon="trash-can"
-                        @label="discourse_kanban.board.delete_board"
-                        class="btn-transparent btn-danger"
-                      />
-                    </dropdown.item>
-                  {{/if}}
+                  <dropdown.item>
+                    <DButton
+                      @action={{fn this.openBoardSettings args.close}}
+                      @icon="gear"
+                      @label="discourse_kanban.board.board_settings"
+                      class="btn-transparent"
+                    />
+                  </dropdown.item>
+                  <dropdown.item>
+                    <DButton
+                      @action={{fn this.deleteBoard args.close}}
+                      @icon="trash-can"
+                      @label="discourse_kanban.board.delete_board"
+                      class="btn-transparent btn-danger"
+                    />
+                  </dropdown.item>
                 </DropdownMenu>
               </:content>
             </DMenu>
+          {{/if}}
+          {{#if this.fullscreen}}
+            <DButton
+              @action={{this.exitFullscreen}}
+              @icon="discourse-compress"
+              @title="discourse_kanban.board.exit_fullscreen"
+              class="btn-flat kanban-board-viewer__exit-fullscreen"
+            />
+          {{else}}
+            <DButton
+              @action={{this.toggleFullscreen}}
+              @icon="discourse-expand"
+              @title="discourse_kanban.board.fullscreen"
+              class="btn-flat"
+            />
           {{/if}}
         </div>
       </div>

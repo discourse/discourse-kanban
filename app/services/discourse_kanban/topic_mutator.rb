@@ -53,6 +53,11 @@ module DiscourseKanban
         nil
       when "nobody"
         assigner.unassign
+        topic
+          .posts
+          .joins(:assignment)
+          .where(assignments: { active: true })
+          .find_each { |post| ::Assigner.new(post, user).unassign }
       else
         target = User.find_by(username_lower: column.move_to_assigned.downcase)
         target ||= Group.find_by(name: column.move_to_assigned)

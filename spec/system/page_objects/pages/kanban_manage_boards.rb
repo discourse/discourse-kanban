@@ -100,6 +100,59 @@ module PageObjects
         self
       end
 
+      def has_column_modal_mode?(mode)
+        selector =
+          ".kanban-column-settings-modal input[data-identifier='kanban-column-filter-query']"
+
+        case mode
+        when "advanced"
+          has_css?(selector, wait: 0)
+        else
+          has_no_css?(selector, wait: 0)
+        end
+      end
+
+      def switch_column_modal_mode(mode)
+        current_mode =
+          (
+            if has_css?(
+                 ".kanban-column-settings-modal input[data-identifier='kanban-column-filter-query']",
+                 wait: 0,
+               )
+              "advanced"
+            else
+              "simple"
+            end
+          )
+
+        return self if current_mode == mode
+
+        within(".kanban-column-settings-modal") { find(".show-advanced").click }
+        self
+      end
+
+      def select_modal_column_tag(tag_name)
+        within(".kanban-column-settings-modal") do
+          chooser = PageObjects::Components::SelectKit.new(".mini-tag-chooser")
+          chooser.expand
+          chooser.search(tag_name)
+          chooser.select_row_by_name(tag_name)
+        end
+        self
+      end
+
+      def open_column_menu(column_title)
+        within(find(".kanban-column", text: column_title)) do
+          find(".kanban-column__menu-trigger", visible: :all).click
+        end
+        self
+      end
+
+      def click_edit_column_menu_item
+        find(".btn-transparent", text: I18n.t("js.discourse_kanban.board.edit_column")).click
+        self
+      end
+
       def save_column_modal
         within(".kanban-column-settings-modal") { find(".btn-primary").click }
         self

@@ -68,7 +68,13 @@ module DiscourseKanban
               )
       end
 
-      existing = context[:board].cards.find_by(topic_id: topic.id)
+      existing =
+        context[:board].cards.find_by(topic_id: topic.id, column_id: column.id) ||
+          context[:board].cards.find_by(
+            topic_id: topic.id,
+            membership_mode: :manual_out,
+            column_id: nil,
+          )
       if existing
         context[:card] = adopt_existing_topic_card!(card, existing, column, params, guardian)
         context[:promoted] = true
@@ -119,11 +125,20 @@ module DiscourseKanban
       raise unless context[:promoted] && params.topic_id.present?
       board = context[:board]
       unless unique_topic_card_violation?(error) ||
-               board.cards.where(topic_id: params.topic_id).where.not(id: card.id).exists?
+               board
+                 .cards
+                 .where(topic_id: params.topic_id, column_id: column.id)
+                 .where.not(id: card.id)
+                 .exists?
         raise
       end
 
-      existing = board.cards.where(topic_id: params.topic_id).where.not(id: card.id).first!
+      existing =
+        board
+          .cards
+          .where(topic_id: params.topic_id, column_id: column.id)
+          .where.not(id: card.id)
+          .first!
       context[:card] = adopt_existing_topic_card!(card, existing, column, params, guardian)
     end
 
@@ -158,8 +173,8 @@ module DiscourseKanban
 
     def unique_topic_card_violation?(error)
       [error, error.cause, error.cause&.cause].compact.any? do |candidate|
-        candidate.message.include?("idx_kanban_cards_unique_topic_per_board") ||
-          topic_card_constraint_name(candidate) == "idx_kanban_cards_unique_topic_per_board"
+        candidate.message.include?("idx_kanban_cards_unique_topic_per_column") ||
+          topic_card_constraint_name(candidate) == "idx_kanban_cards_unique_topic_per_column"
       end
     end
 
