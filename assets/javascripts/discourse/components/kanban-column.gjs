@@ -250,62 +250,62 @@ export default class KanbanColumn extends Component {
       {{on "drop" this.drop}}
     >
       <div class="kanban-column__header">
-        <span class="kanban-column__title">
-          {{#if @column.icon}}{{icon @column.icon}}{{/if}}
-          {{@column.title}}
-        </span>
-        <div class="kanban-column__header-right">
-          <span class="kanban-column__count">
-            {{i18n "discourse_kanban.board.card_count" count=this.cardCount}}
+        <span class="kanban-column__header-content">
+          <span class="kanban-column__title">
+            {{#if @column.icon}}{{icon @column.icon}}{{/if}}
+            {{@column.title}}
           </span>
-          {{#if @canManage}}
-            <DMenu
-              @identifier="kanban-column-controls"
-              @icon="ellipsis"
-              @title="discourse_kanban.board.column_controls"
-              @triggerClass="btn-flat btn-small kanban-column__menu-trigger"
-            >
-              <:content as |args|>
-                <DropdownMenu as |dropdown|>
-                  <dropdown.item>
-                    <DButton
-                      @action={{fn this.editColumn args.close}}
-                      @icon="pencil"
-                      @label="discourse_kanban.board.edit_column"
-                      class="btn-transparent"
-                    />
-                  </dropdown.item>
-                  <dropdown.item>
-                    <DButton
-                      @action={{fn this.moveLeft args.close}}
-                      @icon="arrow-left"
-                      @label="discourse_kanban.board.move_left"
-                      @disabled={{eq this.columnIndex 0}}
-                      class="btn-transparent"
-                    />
-                  </dropdown.item>
-                  <dropdown.item>
-                    <DButton
-                      @action={{fn this.moveRight args.close}}
-                      @icon="arrow-right"
-                      @label="discourse_kanban.board.move_right"
-                      @disabled={{eq this.columnIndex this.lastColumnIndex}}
-                      class="btn-transparent"
-                    />
-                  </dropdown.item>
-                  <dropdown.item>
-                    <DButton
-                      @action={{fn this.deleteColumn args.close}}
-                      @icon="trash-can"
-                      @label="discourse_kanban.board.delete_column"
-                      class="btn-transparent btn-danger"
-                    />
-                  </dropdown.item>
-                </DropdownMenu>
-              </:content>
-            </DMenu>
-          {{/if}}
-        </div>
+          <span class="kanban-column__count">
+            {{this.cardCount}}
+          </span>
+        </span>
+        {{#if @canManage}}
+          <DMenu
+            @identifier="kanban-column-controls"
+            @icon="ellipsis"
+            @title="discourse_kanban.board.column_controls"
+            @triggerClass="btn-flat btn-small kanban-column__menu-trigger"
+          >
+            <:content as |args|>
+              <DropdownMenu as |dropdown|>
+                <dropdown.item>
+                  <DButton
+                    @action={{fn this.editColumn args.close}}
+                    @icon="pencil"
+                    @label="discourse_kanban.board.edit_column"
+                    class="btn-transparent"
+                  />
+                </dropdown.item>
+                <dropdown.item>
+                  <DButton
+                    @action={{fn this.moveLeft args.close}}
+                    @icon="arrow-left"
+                    @label="discourse_kanban.board.move_left"
+                    @disabled={{eq this.columnIndex 0}}
+                    class="btn-transparent"
+                  />
+                </dropdown.item>
+                <dropdown.item>
+                  <DButton
+                    @action={{fn this.moveRight args.close}}
+                    @icon="arrow-right"
+                    @label="discourse_kanban.board.move_right"
+                    @disabled={{eq this.columnIndex this.lastColumnIndex}}
+                    class="btn-transparent"
+                  />
+                </dropdown.item>
+                <dropdown.item>
+                  <DButton
+                    @action={{fn this.deleteColumn args.close}}
+                    @icon="trash-can"
+                    @label="discourse_kanban.board.delete_column"
+                    class="btn-transparent btn-danger"
+                  />
+                </dropdown.item>
+              </DropdownMenu>
+            </:content>
+          </DMenu>
+        {{/if}}
       </div>
 
       <div class="kanban-column__cards">
@@ -360,7 +360,7 @@ export default class KanbanColumn extends Component {
               @action={{this.startAddCard}}
               @icon="plus"
               @label="discourse_kanban.board.add_card"
-              class="btn-flat kanban-column__add-btn"
+              class="kanban-column__add-btn"
             />
           {{/if}}
         </div>
