@@ -66,7 +66,7 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(card["topic"]["title"]).to eq(topic.title)
     end
 
-    it "adopts the existing topic card when topic card creation races with another insert" do
+    it "allows topic cards in different columns when another insert races" do
       inserted_competitor = false
       allow(DiscourseKanban::CardOrdering).to receive(
         :append_to_column!,
@@ -97,12 +97,11 @@ RSpec.describe DiscourseKanban::CardsController do
            }
 
       expect(response.status).to eq(201)
+      expect(board.cards.where(topic_id: topic.id).count).to eq(2)
 
-      card = board.cards.find_by(topic_id: topic.id)
-      expect(card).to be_present
-      expect(board.cards.where(topic_id: topic.id).count).to eq(1)
-      expect(card.membership_mode).to eq("manual_in")
-      expect(card.column_id).to eq(col_todo.id)
+      created_card = board.cards.find_by(topic_id: topic.id, column_id: col_todo.id)
+      expect(created_card).to be_present
+      expect(created_card.membership_mode).to eq("manual_in")
     end
 
     it "returns 404 when topic does not exist" do
@@ -160,6 +159,44 @@ RSpec.describe DiscourseKanban::CardsController do
            }
 
       expect(response.status).to eq(403)
+    end
+
+    it "includes all_assigned_users in the response when assignments exist" do
+      skip("requires discourse-assign") unless defined?(Assignment)
+
+      assignee_1 = Fabricate(:user)
+      assignee_2 = Fabricate(:user)
+      post_in_topic = Fabricate(:post, topic: topic)
+      Assignment.create!(
+        target: topic,
+        topic_id: topic.id,
+        assigned_to: assignee_1,
+        assigned_by_user: admin,
+        active: true,
+      )
+      Assignment.create!(
+        target: post_in_topic,
+        topic_id: topic.id,
+        assigned_to: assignee_2,
+        assigned_by_user: admin,
+        active: true,
+      )
+
+      sign_in(admin)
+
+      post "/kanban/boards/#{board.id}/cards.json",
+           params: {
+             card: {
+               column_id: col_todo.id,
+               topic_id: topic.id,
+             },
+           }
+
+      expect(response.status).to eq(201)
+      all_assigned = response.parsed_body.dig("card", "topic", "all_assigned_users")
+      expect(all_assigned).to be_present
+      usernames = all_assigned.map { |u| u["username"] }
+      expect(usernames).to include(assignee_1.username, assignee_2.username)
     end
   end
 
@@ -529,6 +566,43 @@ RSpec.describe DiscourseKanban::CardsController do
 
       expect(response.status).to eq(403)
       expect(card.reload).to be_floater
+    end
+
+    it "includes all_assigned_users in the response after a topic card move" do
+      skip("requires discourse-assign") unless defined?(Assignment)
+
+      assignee = Fabricate(:user)
+      Assignment.create!(
+        target: topic,
+        topic_id: topic.id,
+        assigned_to: assignee,
+        assigned_by_user: admin,
+        active: true,
+      )
+
+      card =
+        board.cards.create!(
+          card_type: :topic,
+          membership_mode: :manual_in,
+          topic_id: topic.id,
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+
+      sign_in(admin)
+
+      put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+          params: {
+            card: {
+              column_id: col_done.id,
+            },
+          }
+
+      expect(response.status).to eq(200)
+      all_assigned = response.parsed_body.dig("card", "topic", "all_assigned_users")
+      expect(all_assigned).to be_present
+      expect(all_assigned.first["username"]).to eq(assignee.username)
     end
 
     it "rejects requests from users without write access" do

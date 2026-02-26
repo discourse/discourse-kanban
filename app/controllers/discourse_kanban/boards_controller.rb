@@ -24,13 +24,15 @@ module DiscourseKanban
       cards = @board.cards.with_column.ordered.includes(:updated_by, topic: topic_includes)
       visible_topic_ids = visible_topic_ids_for(cards)
 
+      assignments_by_topic = preload_all_assignments(cards, visible_topic_ids)
+
       columns = @board.columns.map { |column| column_payload(column).merge(cards: []) }
       columns_by_id = columns.index_by { |column| column[:id] }
 
       cards.each do |card|
         next if card.topic? && !visible_topic_ids.include?(card.topic_id)
 
-        columns_by_id[card.column_id]&.[](:cards)&.push(card_payload(card))
+        columns_by_id[card.column_id]&.[](:cards)&.push(card_payload(card, assignments_by_topic:))
       end
 
       render json: { board: board_payload(@board), columns: columns }
@@ -112,6 +114,18 @@ module DiscourseKanban
     end
 
     private
+
+    def preload_all_assignments(cards, visible_topic_ids)
+      return {} unless defined?(Assignment)
+
+      topic_ids = cards.select(&:topic?).map(&:topic_id).compact & visible_topic_ids
+      return {} if topic_ids.empty?
+
+      Assignment
+        .where(topic_id: topic_ids, active: true, assigned_to_type: "User")
+        .includes(:assigned_to)
+        .group_by(&:topic_id)
+    end
 
     def visible_topic_ids_for(cards)
       topic_ids = cards.select(&:topic?).map(&:topic_id).uniq

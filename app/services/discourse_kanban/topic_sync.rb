@@ -13,16 +13,16 @@ module DiscourseKanban
       # 1. One TopicsFilter query per column → { column_id => Set<topic_id> }
       column_topic_ids = build_column_topic_map(board, columns)
 
-      # 2. Assign each topic to its FIRST matching column (column priority by position)
+      # 2. Assign each topic to ALL matching columns
       has_base = board.base_filter_query.present?
       lowest_blank_column_id =
         columns.select { |col| col.filter_query.blank? }.map(&:id).min if has_base
 
-      topic_to_column = {}
+      topic_to_columns = Hash.new { |h, k| h[k] = Set.new }
       columns.each do |col|
         ids = column_topic_ids[col.id] || next
         target_id = (has_base && col.filter_query.blank?) ? lowest_blank_column_id : col.id
-        ids.each { |tid| topic_to_column[tid] ||= target_id }
+        ids.each { |tid| topic_to_columns[tid] << target_id }
       end
 
       # 3. Load all existing topic cards for this board in one query
@@ -32,34 +32,39 @@ module DiscourseKanban
           .where(card_type: :topic)
           .where.not(topic_id: nil)
           .pluck(:id, :topic_id, :column_id, :membership_mode)
-      existing_by_topic = {}
+      existing_by_topic_column = {}
+      manual_out_topic_ids = Set.new
+      manual_in_by_topic = Hash.new { |h, k| h[k] = Set.new }
       existing_cards.each do |card_id, topic_id, column_id, membership_mode|
-        existing_by_topic[topic_id] = { id: card_id, column_id:, membership_mode: }
-      end
-
-      # 4. Diff: compute creates, moves, deletes
-      to_create = []
-      to_move = []
-      to_delete = []
-
-      topic_to_column.each do |topic_id, target_column_id|
-        existing = existing_by_topic[topic_id]
-        if existing.nil?
-          to_create << { topic_id:, column_id: target_column_id }
-        elsif auto_membership?(existing[:membership_mode]) &&
-              existing[:column_id] != target_column_id
-          to_move << { card_id: existing[:id], column_id: target_column_id }
+        existing_by_topic_column[[topic_id, column_id]] = { id: card_id, membership_mode: }
+        if manual_out_mode?(membership_mode)
+          manual_out_topic_ids << topic_id
+        elsif manual_in_mode?(membership_mode)
+          manual_in_by_topic[topic_id] << column_id
         end
       end
 
-      existing_by_topic.each do |topic_id, card_info|
-        next unless auto_membership?(card_info[:membership_mode])
-        next if topic_to_column.key?(topic_id)
-        to_delete << card_info[:id]
+      # 4. Diff: compute creates and deletes (no moves — each column independently has or doesn't have a card)
+      to_create = []
+      to_delete = []
+
+      topic_to_columns.each do |topic_id, target_column_ids|
+        next if manual_out_topic_ids.include?(topic_id)
+        target_column_ids.each do |target_column_id|
+          next if manual_in_by_topic[topic_id].include?(target_column_id)
+          existing = existing_by_topic_column[[topic_id, target_column_id]]
+          to_create << { topic_id:, column_id: target_column_id } if existing.nil?
+        end
+      end
+
+      existing_cards.each do |card_id, topic_id, column_id, membership_mode|
+        next unless auto_membership?(membership_mode)
+        next if topic_to_columns[topic_id]&.include?(column_id)
+        to_delete << card_id
       end
 
       # 5. Apply changes in bulk
-      apply_bulk_changes(board, to_create:, to_move:, to_delete:)
+      apply_bulk_changes(board, to_create:, to_delete:)
     end
 
     def self.sync_topic(topic)
@@ -84,25 +89,29 @@ module DiscourseKanban
     end
 
     def self.sync_topic_for_board(topic:, board:)
-      existing = board.cards.find_by(topic_id: topic.id)
-      return if existing&.manual_in? || existing&.manual_out?
+      existing_cards = board.cards.where(topic_id: topic.id).to_a
+      return if existing_cards.any? { |c| c.manual_out? }
 
-      matching_column = board.first_matching_column(topic)
+      manual_in_column_ids = existing_cards.select(&:manual_in?).map(&:column_id).to_set
 
-      if matching_column
-        card = existing || build_auto_card(board:, topic:)
-        was_new = card.new_record?
-        old_column_id = card.column_id
-        card.membership_mode = :auto
+      matching_columns = board.all_matching_columns(topic)
+      matching_column_ids = matching_columns.map(&:id).to_set
+      existing_column_ids = existing_cards.map(&:column_id).to_set
+
+      matching_columns.each do |col|
+        next if existing_column_ids.include?(col.id)
+        next if manual_in_column_ids.include?(col.id)
+
+        card = build_auto_card(board:, topic:)
         card.updated_by_id = Discourse.system_user.id
-        CardOrdering.append_to_column!(card, matching_column) if was_new
+        CardOrdering.append_to_column!(card, col)
         card.save!
+      end
 
-        if !was_new && old_column_id != matching_column.id
-          CardOrdering.place_card!(card, column: matching_column)
-        end
-      else
-        existing&.destroy!
+      existing_cards.each do |card|
+        next unless card.auto?
+        next if matching_column_ids.include?(card.column_id)
+        card.destroy!
       end
     end
 
@@ -126,37 +135,40 @@ module DiscourseKanban
         Card
           .where(topic_id: topic.id)
           .pluck(:id, :board_id, :column_id, :membership_mode, :card_type)
-          .each_with_object(
-            {},
-          ) do |(card_id, board_id, column_id, membership_mode, card_type), memo|
-            memo[board_id] = {
-              id: card_id,
-              column_id: column_id,
-              membership_mode: membership_mode,
-              card_type: card_type,
-            }
+          .group_by { |(_, board_id, _, _, _)| board_id }
+          .transform_values do |rows|
+            rows.map do |card_id, _, column_id, membership_mode, card_type|
+              { id: card_id, column_id:, membership_mode:, card_type: }
+            end
           end
 
       matcher_context = build_query_matcher_context
 
       remove_card_ids = []
       create_targets = []
-      move_targets = []
 
       boards.each do |board_id, base_filter_query|
-        existing_card = existing_cards_by_board[board_id]
-        if existing_card.present? && !topic_card_type?(existing_card[:card_type])
+        existing_cards = existing_cards_by_board[board_id] || []
+
+        non_topic = existing_cards.find { |c| !topic_card_type?(c[:card_type]) }
+        if non_topic
           Rails.logger.warn(
             "DiscourseKanban::TopicSync skipping board #{board_id} for topic #{topic.id}: existing " \
-              "card #{existing_card[:id]} has unexpected card_type=#{existing_card[:card_type].inspect}",
+              "card #{non_topic[:id]} has unexpected card_type=#{non_topic[:card_type].inspect}",
           )
           next
         end
 
-        next if manual_membership_mode?(existing_card&.dig(:membership_mode))
+        next if existing_cards.any? { |c| manual_out_mode?(c[:membership_mode]) }
 
-        matching_column_id =
-          first_matching_column_id(
+        manual_in_column_ids =
+          existing_cards
+            .select { |c| manual_in_mode?(c[:membership_mode]) }
+            .map { |c| c[:column_id] }
+            .to_set
+
+        matching_column_ids =
+          all_matching_column_ids(
             topic:,
             board_id:,
             base_filter_query:,
@@ -164,18 +176,21 @@ module DiscourseKanban
             matcher_context:,
           )
 
-        if matching_column_id.present?
-          if existing_card.blank?
-            create_targets << { board_id:, column_id: matching_column_id }
-          elsif existing_card[:column_id] != matching_column_id
-            move_targets << { card_id: existing_card[:id], column_id: matching_column_id }
-          end
-        elsif existing_card.present?
-          remove_card_ids << existing_card[:id]
+        existing_column_ids = existing_cards.map { |c| c[:column_id] }.to_set
+        matching_set = matching_column_ids.to_set
+
+        matching_column_ids.each do |col_id|
+          next if manual_in_column_ids.include?(col_id)
+          create_targets << { board_id:, column_id: col_id } if existing_column_ids.exclude?(col_id)
+        end
+
+        existing_cards.each do |c|
+          next unless auto_membership?(c[:membership_mode])
+          remove_card_ids << c[:id] if matching_set.exclude?(c[:column_id])
         end
       end
 
-      { remove_card_ids:, create_targets:, move_targets: }
+      { remove_card_ids:, create_targets: }
     end
 
     def self.build_query_matcher_context
@@ -188,7 +203,7 @@ module DiscourseKanban
       }
     end
 
-    def self.first_matching_column_id(
+    def self.all_matching_column_ids(
       topic:,
       board_id:,
       base_filter_query:,
@@ -196,31 +211,37 @@ module DiscourseKanban
       matcher_context:
     )
       board_columns = columns_by_board[board_id]
-      return nil if board_columns.blank?
+      return [] if board_columns.blank?
 
       if base_filter_query.present?
-        return nil unless query_matches_topic?(topic:, query: base_filter_query, matcher_context:)
+        return [] unless query_matches_topic?(topic:, query: base_filter_query, matcher_context:)
 
         lowest_blank_column_id =
           board_columns.select { |_, _, fq| fq.blank? }.map { |col_id, _, _| col_id }.min
 
+        result = []
         board_columns.each do |column_id, _, filter_query|
-          return lowest_blank_column_id if filter_query.blank?
-
-          combined_query = [base_filter_query, filter_query].reject(&:blank?).join(" ")
-          return column_id if query_matches_topic?(topic:, query: combined_query, matcher_context:)
+          if filter_query.blank?
+            result << lowest_blank_column_id if result.exclude?(lowest_blank_column_id)
+          else
+            combined_query = [base_filter_query, filter_query].reject(&:blank?).join(" ")
+            if query_matches_topic?(topic:, query: combined_query, matcher_context:)
+              result << column_id
+            end
+          end
         end
 
-        return nil
+        return result
       end
 
+      result = []
       board_columns.each do |column_id, _, filter_query|
         next if filter_query.blank?
 
-        return column_id if query_matches_topic?(topic:, query: filter_query, matcher_context:)
+        result << column_id if query_matches_topic?(topic:, query: filter_query, matcher_context:)
       end
 
-      nil
+      result
     end
 
     def self.query_matches_topic?(topic:, query:, matcher_context:)
@@ -230,7 +251,6 @@ module DiscourseKanban
     def self.apply_sync_plan(topic:, plan:)
       remove_auto_cards(card_ids: plan[:remove_card_ids])
       create_auto_cards(topic:, targets: plan[:create_targets])
-      move_auto_cards(targets: plan[:move_targets])
     end
 
     def self.remove_auto_cards(card_ids:)
@@ -261,30 +281,17 @@ module DiscourseKanban
       end
     end
 
-    def self.move_auto_cards(targets:)
-      return if targets.blank?
-
-      card_ids = targets.map { |target| target[:card_id] }.uniq
-      column_ids = targets.map { |target| target[:column_id] }.uniq
-
-      cards_by_id = Card.where(id: card_ids, membership_mode: :auto).index_by(&:id)
-      columns_by_id = Column.where(id: column_ids).index_by(&:id)
-
-      targets.each do |target|
-        card = cards_by_id[target[:card_id]]
-        column = columns_by_id[target[:column_id]]
-        next if card.blank? || column.blank?
-        next if card.column_id == column.id
-        next if card.board_id != column.board_id
-
-        card.updated_by_id = Discourse.system_user.id
-        CardOrdering.place_card!(card, column:)
-      end
-    end
-
     def self.manual_membership_mode?(membership_mode)
       membership_mode == Card.membership_modes[:manual_in] ||
         membership_mode == Card.membership_modes[:manual_out]
+    end
+
+    def self.manual_out_mode?(membership_mode)
+      membership_mode == Card.membership_modes[:manual_out] || membership_mode.to_s == "manual_out"
+    end
+
+    def self.manual_in_mode?(membership_mode)
+      membership_mode == Card.membership_modes[:manual_in] || membership_mode.to_s == "manual_in"
     end
 
     def self.topic_card_type?(card_type)
@@ -310,8 +317,8 @@ module DiscourseKanban
 
     def self.unique_topic_card_violation?(error)
       [error, error.cause, error.cause&.cause].compact.any? do |candidate|
-        candidate.message.include?("idx_kanban_cards_unique_topic_per_board") ||
-          topic_card_constraint_name(candidate) == "idx_kanban_cards_unique_topic_per_board"
+        candidate.message.include?("idx_kanban_cards_unique_topic_per_column") ||
+          topic_card_constraint_name(candidate) == "idx_kanban_cards_unique_topic_per_column"
       end
     end
 
@@ -365,8 +372,8 @@ module DiscourseKanban
         .to_set
     end
 
-    def self.apply_bulk_changes(board, to_create:, to_move:, to_delete:)
-      return if to_create.empty? && to_move.empty? && to_delete.empty?
+    def self.apply_bulk_changes(board, to_create:, to_delete:)
+      return if to_create.empty? && to_delete.empty?
 
       Card.transaction do
         Card.where(id: to_delete, membership_mode: :auto).delete_all if to_delete.any?
@@ -399,20 +406,6 @@ module DiscourseKanban
               },
             )
           end
-        end
-
-        if to_move.any?
-          to_move
-            .group_by { |e| e[:column_id] }
-            .each do |col_id, entries|
-              max_pos = board.cards.with_column.where(column_id: col_id).maximum(:position).to_i
-              entries.each_with_index do |entry, i|
-                Card.where(id: entry[:card_id]).update_all(
-                  column_id: col_id,
-                  position: max_pos + (i + 1) * CardOrdering::GAP_SIZE,
-                )
-              end
-            end
         end
       end
     end

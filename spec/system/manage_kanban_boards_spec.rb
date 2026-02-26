@@ -5,6 +5,8 @@ describe "Manage Kanban Boards", type: :system do
   fab!(:manager, :user)
   fab!(:regular_user, :user)
   fab!(:manage_group, :group)
+  fab!(:category)
+  fab!(:todo_tag, :tag) { Fabricate(:tag, name: "todo") }
 
   let(:boards_page) { PageObjects::Pages::KanbanManageBoards.new }
   let(:dialog) { PageObjects::Components::Dialog.new }
@@ -88,6 +90,107 @@ describe "Manage Kanban Boards", type: :system do
 
       expect(boards_page).to have_column("To Do")
       expect(boards_page).to have_column("Done")
+    end
+
+    it "keeps simple columns as move-only lanes when board base filter query is blank" do
+      board =
+        DiscourseKanban::Board.create!(
+          name: "Simple Board",
+          slug: "simple-board",
+          created_by_id: admin.id,
+        )
+
+      boards_page.visit_page
+      boards_page.click_board("Simple Board")
+      boards_page.open_board_menu
+      boards_page.click_add_column_menu_item
+
+      expect(boards_page).to have_column_modal_mode("simple")
+
+      boards_page.fill_modal_column_title("Todo")
+      boards_page.select_modal_column_tag(todo_tag.name)
+      boards_page.save_column_modal
+
+      column = board.reload.columns.find_by(title: "Todo")
+      expect(column.move_to_tag).to eq(todo_tag.name)
+      expect(column.filter_query).to eq("")
+    end
+
+    it "auto-sets filter query from tag in simple mode when board base filter query exists" do
+      board =
+        DiscourseKanban::Board.create!(
+          name: "Base Filter Board",
+          slug: "base-filter-board",
+          base_filter_query: "category:#{category.slug}",
+          created_by_id: admin.id,
+        )
+
+      boards_page.visit_page
+      boards_page.click_board("Base Filter Board")
+      boards_page.open_board_menu
+      boards_page.click_add_column_menu_item
+
+      expect(boards_page).to have_column_modal_mode("simple")
+
+      boards_page.fill_modal_column_title("Todo")
+      boards_page.select_modal_column_tag(todo_tag.name)
+      boards_page.save_column_modal
+
+      column = board.reload.columns.find_by(title: "Todo")
+      expect(column.move_to_tag).to eq(todo_tag.name)
+      expect(column.filter_query).to eq("tags:#{todo_tag.name}")
+    end
+
+    it "opens advanced mode when editing a column with advanced settings" do
+      board =
+        DiscourseKanban::Board.create!(
+          name: "Advanced Board",
+          slug: "advanced-board",
+          base_filter_query: "category:#{category.slug}",
+          created_by_id: admin.id,
+        )
+      board.columns.create!(title: "Doing", position: 0, filter_query: "status:closed")
+
+      boards_page.visit_page
+      boards_page.click_board("Advanced Board")
+      boards_page.open_column_menu("Doing")
+      boards_page.click_edit_column_menu_item
+
+      expect(boards_page).to have_column_modal_mode("advanced")
+    end
+
+    it "resets advanced settings when switching back to simple mode" do
+      board =
+        DiscourseKanban::Board.create!(
+          name: "Switch Board",
+          slug: "switch-board",
+          base_filter_query: "category:#{category.slug}",
+          created_by_id: admin.id,
+        )
+      board.columns.create!(
+        title: "Doing",
+        position: 0,
+        move_to_tag: todo_tag.name,
+        filter_query: "status:closed",
+        move_to_status: "closed",
+      )
+
+      boards_page.visit_page
+      boards_page.click_board("Switch Board")
+      boards_page.open_column_menu("Doing")
+      boards_page.click_edit_column_menu_item
+
+      expect(boards_page).to have_column_modal_mode("advanced")
+
+      boards_page.switch_column_modal_mode("simple")
+      dialog.click_yes
+      boards_page.save_column_modal
+
+      column = board.reload.columns.find_by(title: "Doing")
+      expect(column.filter_query).to eq("tags:#{todo_tag.name}")
+      expect(column.move_to_status).to eq("")
+      expect(column.move_to_assigned).to eq("")
+      expect(column.move_to_category_id).to be_nil
     end
   end
 

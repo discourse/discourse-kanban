@@ -53,7 +53,7 @@ module DiscourseKanban
     end
 
     def upsert_card(board:, topic:, column:, params:, guardian:)
-      card = board.cards.find_or_initialize_by(topic_id: topic.id)
+      card = board.cards.find_or_initialize_by(topic_id: topic.id, column_id: column.id)
       is_new = card.new_record?
 
       card.assign_attributes(

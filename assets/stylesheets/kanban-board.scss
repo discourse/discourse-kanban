@@ -530,3 +530,21 @@
     }
   }
 }
+
+.kanban-column-settings-modal {
+  .show-advanced {
+    margin-left: auto;
+    margin-right: 0;
+  }
+
+  .kanban-column-settings__help {
+    margin-top: 0.35em;
+    margin-bottom: 0;
+    color: var(--primary-medium);
+    font-size: $font-down-2;
+  }
+
+  .kanban-column-settings__help--warning {
+    color: var(--danger);
+  }
+}

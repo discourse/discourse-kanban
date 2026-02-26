@@ -253,16 +253,27 @@ export default class KanbanBoardViewer extends Component {
     this.dragData = null;
 
     try {
-      await ajax(`/kanban/boards/${this.board.id}/cards/${card.id}`, {
-        type: "PUT",
-        data: {
-          client_id: this.messageBus.clientId,
-          card: {
-            column_id: toColumnId,
-            after_card_id: afterCardId,
+      const result = await ajax(
+        `/kanban/boards/${this.board.id}/cards/${card.id}`,
+        {
+          type: "PUT",
+          data: {
+            client_id: this.messageBus.clientId,
+            card: {
+              column_id: toColumnId,
+              after_card_id: afterCardId,
+            },
           },
-        },
-      });
+        }
+      );
+      if (result?.card) {
+        this.columns = this.columns.map((col) => ({
+          ...col,
+          cards: col.cards.map((c) =>
+            c.id === card.id ? { ...c, ...result.card } : c
+          ),
+        }));
+      }
       this._highlightDroppedCard(card.id);
     } catch (error) {
       if (isSameColumn) {
@@ -450,6 +461,7 @@ export default class KanbanBoardViewer extends Component {
     this.modal.show(KanbanColumnSettings, {
       model: {
         column: null,
+        board: this.board,
         onSave: (columnData) => this.addColumn(columnData),
       },
     });
@@ -464,6 +476,7 @@ export default class KanbanBoardViewer extends Component {
     this.modal.show(KanbanColumnSettings, {
       model: {
         column,
+        board: this.board,
         onSave: (columnData) => this.editColumn(columnId, columnData),
       },
     });

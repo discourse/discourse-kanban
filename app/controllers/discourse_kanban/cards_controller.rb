@@ -36,6 +36,7 @@ module DiscourseKanban
         raw_card_params: raw_params,
       ) do
         on_success do |card:, board:, original_column_id:, adopted_floater_id:|
+          card.topic&.reload
           response = card_payload(card)
 
           if adopted_floater_id

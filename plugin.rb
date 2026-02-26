@@ -80,6 +80,24 @@ after_initialize do
     Rails.logger.warn("DiscourseKanban: failed to remove topic #{topic&.id}: #{e.message}")
   end
 
+  if defined?(Assignment)
+    add_model_callback(Assignment, :after_commit) do
+      next unless SiteSetting.discourse_kanban_enabled?
+
+      begin
+        tid = self.topic_id
+        next if tid.blank?
+
+        Jobs.cancel_scheduled_job(:sync_topic_for_kanban, topic_id: tid)
+        Jobs.enqueue_in(5.seconds, :sync_topic_for_kanban, topic_id: tid)
+      rescue StandardError => e
+        Rails.logger.warn(
+          "DiscourseKanban: failed to enqueue sync after assignment change for topic #{tid}: #{e.message}",
+        )
+      end
+    end
+  end
+
   add_model_callback(Topic, :after_commit) do
     next unless SiteSetting.discourse_kanban_enabled?
     next unless saved_changes?

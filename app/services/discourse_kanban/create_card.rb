@@ -58,7 +58,7 @@ module DiscourseKanban
               )
       end
 
-      card = board.cards.find_or_initialize_by(topic_id: topic.id)
+      card = board.cards.find_or_initialize_by(topic_id: topic.id, column_id: column.id)
       card.card_type = :topic
       card.membership_mode = :manual_in
       card.updated_by_id = guardian.user.id
@@ -73,11 +73,12 @@ module DiscourseKanban
       card.save!
       card
     rescue ActiveRecord::RecordNotUnique, ActiveRecord::StatementInvalid => error
-      unless unique_topic_card_violation?(error) || board.cards.where(topic_id: topic.id).exists?
+      unless unique_topic_card_violation?(error) ||
+               board.cards.where(topic_id: topic.id, column_id: column.id).exists?
         raise
       end
 
-      card = board.cards.find_by!(topic_id: topic.id)
+      card = board.cards.find_by!(topic_id: topic.id, column_id: column.id)
       card.membership_mode = :manual_in
       card.updated_by_id = guardian.user.id
       card.created_by_id ||= guardian.user.id
@@ -106,8 +107,8 @@ module DiscourseKanban
 
     def unique_topic_card_violation?(error)
       [error, error.cause, error.cause&.cause].compact.any? do |candidate|
-        candidate.message.include?("idx_kanban_cards_unique_topic_per_board") ||
-          topic_card_constraint_name(candidate) == "idx_kanban_cards_unique_topic_per_board"
+        candidate.message.include?("idx_kanban_cards_unique_topic_per_column") ||
+          topic_card_constraint_name(candidate) == "idx_kanban_cards_unique_topic_per_column"
       end
     end
 
