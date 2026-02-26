@@ -33,6 +33,7 @@ export default class KanbanColumnSettings extends Component {
   @tracked editMoveToCategoryId;
   @tracked editMoveToAssigned;
   @tracked editMoveToStatus;
+  @tracked editWipLimit;
   @tracked startedInAdvanced = false;
   @tracked saving = false;
 
@@ -47,6 +48,7 @@ export default class KanbanColumnSettings extends Component {
       this.editMoveToCategoryId = column.move_to_category_id || null;
       this.editMoveToAssigned = column.move_to_assigned || "";
       this.editMoveToStatus = column.move_to_status || "";
+      this.editWipLimit = column.wip_limit ?? null;
       this.editMode = this.#persistedColumnUsesAdvancedMode(column)
         ? "advanced"
         : "simple";
@@ -60,6 +62,7 @@ export default class KanbanColumnSettings extends Component {
       this.editMoveToCategoryId = null;
       this.editMoveToAssigned = "";
       this.editMoveToStatus = "";
+      this.editWipLimit = null;
     }
   }
 
@@ -240,6 +243,17 @@ export default class KanbanColumnSettings extends Component {
   }
 
   @action
+  onWipLimitInput(event) {
+    const val = event.target.value.trim();
+    if (val === "") {
+      this.editWipLimit = null;
+      return;
+    }
+    const num = Number(val);
+    this.editWipLimit = Number.isInteger(num) && num >= 1 ? num : null;
+  }
+
+  @action
   async save() {
     if (this.saving) {
       return;
@@ -258,6 +272,7 @@ export default class KanbanColumnSettings extends Component {
       move_to_category_id: this.editMoveToCategoryId,
       move_to_assigned: this.editMoveToAssigned,
       move_to_status: this.editMoveToStatus,
+      wip_limit: this.editWipLimit,
     };
     try {
       await this.args.model.onSave(columnData);
@@ -405,7 +420,24 @@ export default class KanbanColumnSettings extends Component {
               }}
             />
           </div>
+
         {{/if}}
+
+        <div class="kanban-column-settings__field">
+          <label>{{i18n "discourse_kanban.manage.columns.wip_limit"}}</label>
+          <input
+            type="number"
+            min="1"
+            placeholder={{i18n
+              "discourse_kanban.manage.columns.wip_limit_placeholder"
+            }}
+            value={{this.editWipLimit}}
+            {{on "input" this.onWipLimitInput}}
+          />
+          <p class="kanban-column-settings__help">
+            {{i18n "discourse_kanban.manage.columns.wip_limit_help"}}
+          </p>
+        </div>
       </:body>
       <:footer>
         <DButton

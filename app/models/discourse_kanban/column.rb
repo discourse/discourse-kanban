@@ -9,6 +9,7 @@ module DiscourseKanban
 
     validates :title, presence: true
     validates :position, presence: true
+    validates :wip_limit, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
 
     def matches_topic?(topic)
       return true if filter_query.blank?
@@ -34,6 +35,7 @@ end
 #  move_to_tag         :string
 #  position            :integer          default(0), not null
 #  title               :string           not null
+#  wip_limit           :integer
 #  created_at          :datetime         not null
 #  updated_at          :datetime         not null
 #  board_id            :bigint           not null

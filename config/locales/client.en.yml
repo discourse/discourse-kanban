@@ -38,6 +38,7 @@ en:
         card_count:
           one: "%{count} card"
           other: "%{count} cards"
+        wip_count: "%{count}/%{limit}"
       keyboard_shortcuts:
         navigate_columns: "Navigate between columns"
         navigate_cards: "Navigate between cards"
@@ -98,6 +99,9 @@ en:
           move_to_status_none: "Don't change"
           move_to_status_open: "Open"
           move_to_status_closed: "Closed"
+          wip_limit: "WIP Limit"
+          wip_limit_placeholder: "No limit"
+          wip_limit_help: "Maximum number of cards recommended in this column. Exceeding the limit will show a visual warning."
   admin_js:
     admin:
       site_settings:

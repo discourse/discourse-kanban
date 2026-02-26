@@ -71,11 +71,11 @@ end
 #
 # Indexes
 #
-#  idx_kanban_cards_board_column_position   (board_id,column_id,position)
-#  idx_kanban_cards_board_id                (board_id)
-#  idx_kanban_cards_column_id               (column_id)
-#  idx_kanban_cards_topic_id                (topic_id)
-#  idx_kanban_cards_unique_topic_per_column  (board_id,column_id,topic_id) UNIQUE WHERE (topic_id IS NOT NULL AND column_id IS NOT NULL)
+#  idx_kanban_cards_board_column_position    (board_id,column_id,position)
+#  idx_kanban_cards_board_id                 (board_id)
+#  idx_kanban_cards_column_id                (column_id)
+#  idx_kanban_cards_topic_id                 (topic_id)
+#  idx_kanban_cards_unique_topic_per_column  (board_id,column_id,topic_id) UNIQUE WHERE ((topic_id IS NOT NULL) AND (column_id IS NOT NULL))
 #
 # Foreign Keys
 #

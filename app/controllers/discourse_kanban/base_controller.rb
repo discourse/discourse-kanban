@@ -56,6 +56,7 @@ module DiscourseKanban
         move_to_category_id: column.move_to_category_id,
         move_to_assigned: column.move_to_assigned,
         move_to_status: column.move_to_status,
+        wip_limit: column.wip_limit,
       }
     end
 
@@ -171,6 +172,7 @@ module DiscourseKanban
           move_to_category_id
           move_to_assigned
           move_to_status
+          wip_limit
         ],
       )
     end
