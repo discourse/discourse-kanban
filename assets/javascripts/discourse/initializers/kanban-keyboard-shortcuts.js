@@ -4,25 +4,6 @@ import { withPluginApi } from "discourse/lib/plugin-api";
 const SELECTED_CLASS = "kanban-card--kb-selected";
 const BOARD_SELECTED_CLASS = "kanban-board-card--kb-selected";
 
-function isOnKanbanRoute(container) {
-  const router = container.lookup("service:router");
-  return router.currentRouteName?.startsWith("kanbanBoard");
-}
-
-function isInputFocused() {
-  const el = document.activeElement;
-  if (!el) {
-    return false;
-  }
-  const tag = el.tagName;
-  return (
-    tag === "INPUT" ||
-    tag === "TEXTAREA" ||
-    tag === "SELECT" ||
-    el.isContentEditable
-  );
-}
-
 function getColumns() {
   return [...document.querySelectorAll(".kanban-column")];
 }
@@ -33,10 +14,6 @@ function getCards(columnEl) {
 
 function getBoardCards() {
   return [...document.querySelectorAll(".kanban-board-card")];
-}
-
-function isOnBoardsList() {
-  return document.querySelector(".kanban-boards-grid") !== null;
 }
 
 function clearSelection() {
@@ -89,6 +66,9 @@ function moveCard(container, cardId, toColumnId, afterCardId) {
   });
 }
 
+const BOARD_CONTEXT = ".kanban-board-viewer";
+const BOARDS_LIST_CONTEXT = ".kanban-boards-grid";
+
 export default {
   name: "kanban-keyboard-shortcuts",
 
@@ -105,10 +85,6 @@ export default {
       clearSelection();
     }
 
-    function guard() {
-      return !isOnKanbanRoute(container) || isInputFocused();
-    }
-
     function ensureCursor() {
       if (colIndex === -1) {
         colIndex = 0;
@@ -122,62 +98,33 @@ export default {
     router.on("routeDidChange", resetCursor);
 
     withPluginApi((api) => {
-      // Navigation: h/l move between columns, j/k move within column
+      // Board list: h/l navigate between board cards
 
       api.addKeyboardShortcut(
         "h",
         () => {
-          if (guard()) {
+          const boards = getBoardCards();
+          if (!boards.length) {
             return;
           }
-          if (isOnBoardsList()) {
-            const boards = getBoardCards();
-            if (!boards.length) {
-              return;
-            }
-            if (boardIndex === -1) {
-              boardIndex = 0;
-            } else if (boardIndex > 0) {
-              boardIndex--;
-            }
-            clearSelection();
-            boards[boardIndex].classList.add(BOARD_SELECTED_CLASS);
-            boards[boardIndex].scrollIntoView({
-              block: "nearest",
-              behavior: "smooth",
-            });
-            return;
+          if (boardIndex === -1) {
+            boardIndex = 0;
+          } else if (boardIndex > 0) {
+            boardIndex--;
           }
-          const columns = getColumns();
-          if (!columns.length) {
-            return;
-          }
-          if (!ensureCursor() && colIndex > 0) {
-            colIndex--;
-            const cards = getCards(columns[colIndex]);
-            cardIndex = Math.min(cardIndex, Math.max(0, cards.length - 1));
-          }
-          selectCard(columns[colIndex], cardIndex);
+          clearSelection();
+          boards[boardIndex].classList.add(BOARD_SELECTED_CLASS);
+          boards[boardIndex].scrollIntoView({
+            block: "nearest",
+            behavior: "smooth",
+          });
         },
-        {
-          help: {
-            category: "kanban",
-            name: "discourse_kanban.keyboard_shortcuts.navigate_columns",
-            definition: {
-              keys1: ["h"],
-              keys2: ["l"],
-              keysDelimiter: "space",
-              shortcutsDelimiter: "slash",
-            },
-          },
-        }
+        { context: BOARDS_LIST_CONTEXT }
       );
 
-      api.addKeyboardShortcut("l", () => {
-        if (guard()) {
-          return;
-        }
-        if (isOnBoardsList()) {
+      api.addKeyboardShortcut(
+        "l",
+        () => {
           const boards = getBoardCards();
           if (!boards.length) {
             return;
@@ -193,26 +140,75 @@ export default {
             block: "nearest",
             behavior: "smooth",
           });
-          return;
+        },
+        { context: BOARDS_LIST_CONTEXT }
+      );
+
+      api.addKeyboardShortcut(
+        "enter",
+        () => {
+          const selected = document.querySelector(`.${BOARD_SELECTED_CLASS}`);
+          if (selected) {
+            const link = selected.querySelector("a.kanban-board-card__name");
+            if (link) {
+              link.click();
+            }
+          }
+        },
+        { context: BOARDS_LIST_CONTEXT }
+      );
+
+      // Board viewer: h/l move between columns, j/k move within column
+
+      api.addKeyboardShortcut(
+        "h",
+        () => {
+          const columns = getColumns();
+          if (!columns.length) {
+            return;
+          }
+          if (!ensureCursor() && colIndex > 0) {
+            colIndex--;
+            const cards = getCards(columns[colIndex]);
+            cardIndex = Math.min(cardIndex, Math.max(0, cards.length - 1));
+          }
+          selectCard(columns[colIndex], cardIndex);
+        },
+        {
+          context: BOARD_CONTEXT,
+          help: {
+            category: "kanban",
+            name: "discourse_kanban.keyboard_shortcuts.navigate_columns",
+            definition: {
+              keys1: ["h"],
+              keys2: ["l"],
+              keysDelimiter: "space",
+              shortcutsDelimiter: "slash",
+            },
+          },
         }
-        const columns = getColumns();
-        if (!columns.length) {
-          return;
-        }
-        if (!ensureCursor() && colIndex < columns.length - 1) {
-          colIndex++;
-          const cards = getCards(columns[colIndex]);
-          cardIndex = Math.min(cardIndex, Math.max(0, cards.length - 1));
-        }
-        selectCard(columns[colIndex], cardIndex);
-      });
+      );
+
+      api.addKeyboardShortcut(
+        "l",
+        () => {
+          const columns = getColumns();
+          if (!columns.length) {
+            return;
+          }
+          if (!ensureCursor() && colIndex < columns.length - 1) {
+            colIndex++;
+            const cards = getCards(columns[colIndex]);
+            cardIndex = Math.min(cardIndex, Math.max(0, cards.length - 1));
+          }
+          selectCard(columns[colIndex], cardIndex);
+        },
+        { context: BOARD_CONTEXT }
+      );
 
       api.addKeyboardShortcut(
         "j",
         () => {
-          if (guard()) {
-            return;
-          }
           const columns = getColumns();
           if (!columns.length) {
             return;
@@ -226,6 +222,7 @@ export default {
           selectCard(columns[colIndex], cardIndex);
         },
         {
+          context: BOARD_CONTEXT,
           help: {
             category: "kanban",
             name: "discourse_kanban.keyboard_shortcuts.navigate_cards",
@@ -239,37 +236,24 @@ export default {
         }
       );
 
-      api.addKeyboardShortcut("k", () => {
-        if (guard()) {
-          return;
-        }
-        const columns = getColumns();
-        if (!columns.length) {
-          return;
-        }
-        if (!ensureCursor() && cardIndex > 0) {
-          cardIndex--;
-        }
-        selectCard(columns[colIndex], cardIndex);
-      });
+      api.addKeyboardShortcut(
+        "k",
+        () => {
+          const columns = getColumns();
+          if (!columns.length) {
+            return;
+          }
+          if (!ensureCursor() && cardIndex > 0) {
+            cardIndex--;
+          }
+          selectCard(columns[colIndex], cardIndex);
+        },
+        { context: BOARD_CONTEXT }
+      );
 
-      // Enter: open selected card (topic link or floater detail modal)
       api.addKeyboardShortcut(
         "enter",
         () => {
-          if (guard()) {
-            return;
-          }
-          if (isOnBoardsList()) {
-            const selected = document.querySelector(`.${BOARD_SELECTED_CLASS}`);
-            if (selected) {
-              const link = selected.querySelector("a.kanban-board-card__name");
-              if (link) {
-                link.click();
-              }
-            }
-            return;
-          }
           const selected = document.querySelector(`.${SELECTED_CLASS}`);
           if (!selected) {
             return;
@@ -282,6 +266,7 @@ export default {
           selected.click();
         },
         {
+          context: BOARD_CONTEXT,
           help: {
             category: "kanban",
             name: "discourse_kanban.keyboard_shortcuts.open_card",
@@ -293,17 +278,28 @@ export default {
       );
 
       // Escape: clear selection
-      api.addKeyboardShortcut("escape", () => {
-        if (guard()) {
-          return;
-        }
-        if (
-          document.querySelector(`.${SELECTED_CLASS}`) ||
-          document.querySelector(`.${BOARD_SELECTED_CLASS}`)
-        ) {
-          resetCursor();
-        }
-      });
+      api.addKeyboardShortcut(
+        "escape",
+        () => {
+          if (
+            document.querySelector(`.${SELECTED_CLASS}`) ||
+            document.querySelector(`.${BOARD_SELECTED_CLASS}`)
+          ) {
+            resetCursor();
+          }
+        },
+        { context: BOARD_CONTEXT }
+      );
+
+      api.addKeyboardShortcut(
+        "escape",
+        () => {
+          if (document.querySelector(`.${BOARD_SELECTED_CLASS}`)) {
+            resetCursor();
+          }
+        },
+        { context: BOARDS_LIST_CONTEXT }
+      );
 
       // Shift+h/l: move card between columns
       // Shift+j/k: reorder card within column
@@ -329,7 +325,7 @@ export default {
       api.addKeyboardShortcut(
         "shift+l",
         () => {
-          if (guard() || moving) {
+          if (moving) {
             return;
           }
           const columns = getColumns();
@@ -363,6 +359,7 @@ export default {
           );
         },
         {
+          context: BOARD_CONTEXT,
           help: {
             category: "kanban",
             name: "discourse_kanban.keyboard_shortcuts.move_card_column",
@@ -376,45 +373,49 @@ export default {
         }
       );
 
-      api.addKeyboardShortcut("shift+h", () => {
-        if (guard() || moving) {
-          return;
-        }
-        const columns = getColumns();
-        if (colIndex <= 0) {
-          return;
-        }
-        const cards = getCards(columns[colIndex]);
-        if (!cards.length || cardIndex >= cards.length) {
-          return;
-        }
-
-        const cardId = getCardDataId(cards[cardIndex]);
-        const toColumnId = getColumnDataId(columns[colIndex - 1]);
-        if (!toColumnId) {
-          return;
-        }
-
-        const targetCards = getCards(columns[colIndex - 1]);
-        let afterCardId = null;
-        const targetIdx = Math.min(cardIndex, targetCards.length) - 1;
-        if (targetIdx >= 0) {
-          afterCardId = getCardDataId(targetCards[targetIdx]);
-        }
-
-        moving = true;
-        moveCard(container, cardId, toColumnId, afterCardId).then(
-          () => afterMove(colIndex - 1, cardIndex),
-          () => {
-            moving = false;
+      api.addKeyboardShortcut(
+        "shift+h",
+        () => {
+          if (moving) {
+            return;
           }
-        );
-      });
+          const columns = getColumns();
+          if (colIndex <= 0) {
+            return;
+          }
+          const cards = getCards(columns[colIndex]);
+          if (!cards.length || cardIndex >= cards.length) {
+            return;
+          }
+
+          const cardId = getCardDataId(cards[cardIndex]);
+          const toColumnId = getColumnDataId(columns[colIndex - 1]);
+          if (!toColumnId) {
+            return;
+          }
+
+          const targetCards = getCards(columns[colIndex - 1]);
+          let afterCardId = null;
+          const targetIdx = Math.min(cardIndex, targetCards.length) - 1;
+          if (targetIdx >= 0) {
+            afterCardId = getCardDataId(targetCards[targetIdx]);
+          }
+
+          moving = true;
+          moveCard(container, cardId, toColumnId, afterCardId).then(
+            () => afterMove(colIndex - 1, cardIndex),
+            () => {
+              moving = false;
+            }
+          );
+        },
+        { context: BOARD_CONTEXT }
+      );
 
       api.addKeyboardShortcut(
         "shift+j",
         () => {
-          if (guard() || moving) {
+          if (moving) {
             return;
           }
           const columns = getColumns();
@@ -443,6 +444,7 @@ export default {
           );
         },
         {
+          context: BOARD_CONTEXT,
           help: {
             category: "kanban",
             name: "discourse_kanban.keyboard_shortcuts.move_card_position",
@@ -456,34 +458,38 @@ export default {
         }
       );
 
-      api.addKeyboardShortcut("shift+k", () => {
-        if (guard() || moving) {
-          return;
-        }
-        const columns = getColumns();
-        if (colIndex === -1 || cardIndex <= 0) {
-          return;
-        }
-        const cards = getCards(columns[colIndex]);
-        const cardId = getCardDataId(cards[cardIndex]);
-        const columnId = getColumnDataId(columns[colIndex]);
-        if (!columnId) {
-          return;
-        }
-
-        let afterCardId = null;
-        if (cardIndex >= 2) {
-          afterCardId = getCardDataId(cards[cardIndex - 2]);
-        }
-
-        moving = true;
-        moveCard(container, cardId, columnId, afterCardId).then(
-          () => afterMove(colIndex, cardIndex - 1),
-          () => {
-            moving = false;
+      api.addKeyboardShortcut(
+        "shift+k",
+        () => {
+          if (moving) {
+            return;
           }
-        );
-      });
+          const columns = getColumns();
+          if (colIndex === -1 || cardIndex <= 0) {
+            return;
+          }
+          const cards = getCards(columns[colIndex]);
+          const cardId = getCardDataId(cards[cardIndex]);
+          const columnId = getColumnDataId(columns[colIndex]);
+          if (!columnId) {
+            return;
+          }
+
+          let afterCardId = null;
+          if (cardIndex >= 2) {
+            afterCardId = getCardDataId(cards[cardIndex - 2]);
+          }
+
+          moving = true;
+          moveCard(container, cardId, columnId, afterCardId).then(
+            () => afterMove(colIndex, cardIndex - 1),
+            () => {
+              moving = false;
+            }
+          );
+        },
+        { context: BOARD_CONTEXT }
+      );
     });
   },
 };
