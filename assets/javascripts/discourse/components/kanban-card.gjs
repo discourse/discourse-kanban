@@ -196,10 +196,12 @@ export default class KanbanCard extends Component {
       return;
     }
     this.dragging = true;
+    const cardHeight = event.currentTarget.getBoundingClientRect().height;
     this.args.onDragStart({
       cardId: this.args.card.id,
       topicId: this.args.card.topic_id,
       fromColumnId: this.args.card.column_id,
+      cardHeight,
     });
     event.dataTransfer.effectAllowed = "move";
     event.stopPropagation();

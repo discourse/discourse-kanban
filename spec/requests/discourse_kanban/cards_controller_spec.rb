@@ -645,7 +645,7 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(response.status).to eq(204)
     end
 
-    it "rejects removing a topic card when topic matches board filter" do
+    it "soft-deletes a topic card by marking it manual_out" do
       board.update!(base_filter_query: "category:#{category.slug}")
 
       card =
@@ -664,13 +664,11 @@ RSpec.describe DiscourseKanban::CardsController do
         DiscourseKanban::Card.count
       }
 
-      expect(response.status).to eq(422)
-      expect(response.parsed_body["errors"]).to include(
-        I18n.t("discourse_kanban.errors.topic_covered_by_filter"),
-      )
+      expect(response.status).to eq(204)
+      expect(card.reload.membership_mode).to eq("manual_out")
     end
 
-    it "destroys a topic card that does not match any filter" do
+    it "excludes soft-deleted topic cards from board display" do
       card =
         board.cards.create!(
           card_type: :topic,
@@ -682,12 +680,9 @@ RSpec.describe DiscourseKanban::CardsController do
         )
 
       sign_in(writer)
+      delete "/kanban/boards/#{board.id}/cards/#{card.id}.json"
 
-      expect { delete "/kanban/boards/#{board.id}/cards/#{card.id}.json" }.to change {
-        DiscourseKanban::Card.count
-      }.by(-1)
-
-      expect(response.status).to eq(204)
+      expect(board.cards.with_column.where(id: card.id)).to be_empty
     end
   end
 end

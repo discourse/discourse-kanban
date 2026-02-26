@@ -124,10 +124,10 @@
   }
 
   &__drop-indicator {
-    height: 2px;
-    background: var(--tertiary);
+    border: 2px dashed var(--primary-low-mid);
     border-radius: var(--d-border-radius);
-    margin: var(--space-1) 0;
+    background: var(--primary-very-low);
+    box-sizing: border-box;
   }
 
   &__empty {
@@ -139,9 +139,15 @@
   }
 
   &__add-btn {
+    --d-button-default-bg-color: transparent;
+    --d-button-default-bg-color--hover: var(--primary-low);
+    --d-button-default-text-color--hover: var(--primary);
+    --d-button-default-icon-color--hover: var(--primary-high);
+    --d-button-default-border--hover: 1px solid transparent;
     width: 100%;
     justify-content: flex-start;
     border-radius: var(--d-border-radius);
+    font-size: var(--font-down-1);
   }
 
   &__add-card-form {

@@ -91,7 +91,12 @@ RSpec.describe DiscourseKanban::DestroyCard do
 
       let(:params) { { board_id: board.id, id: card.id } }
 
-      it { is_expected.to fail_a_policy(:card_is_deletable) }
+      it { is_expected.to run_successfully }
+
+      it "soft-deletes the card by setting manual_out" do
+        result
+        expect(card.reload.membership_mode).to eq("manual_out")
+      end
     end
 
     context "when card is not found" do

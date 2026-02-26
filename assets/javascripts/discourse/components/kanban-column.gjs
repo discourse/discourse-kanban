@@ -142,6 +142,7 @@ export default class KanbanColumn extends Component {
     if (!indicator) {
       indicator = document.createElement("div");
       indicator.className = "kanban-column__drop-indicator";
+      indicator.style.height = `${dragData.cardHeight}px`;
     }
 
     const cardElements = [...cardsContainer.querySelectorAll(".kanban-card")];
@@ -157,6 +158,11 @@ export default class KanbanColumn extends Component {
         insertBefore = cardEl;
         break;
       }
+    }
+
+    const emptyMsg = cardsContainer.querySelector(".kanban-column__empty");
+    if (emptyMsg) {
+      emptyMsg.hidden = true;
     }
 
     if (insertBefore) {
@@ -229,6 +235,10 @@ export default class KanbanColumn extends Component {
 
   removeDropIndicator(columnEl) {
     columnEl.querySelector(".kanban-column__drop-indicator")?.remove();
+    const emptyMsg = columnEl.querySelector(".kanban-column__empty");
+    if (emptyMsg) {
+      emptyMsg.hidden = false;
+    }
   }
 
   findCardTitle(dragData) {

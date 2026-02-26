@@ -13,5 +13,6 @@ en:
       card_not_found: "Kanban card not found"
       invalid_card_type: "Invalid kanban card type"
       unknown_group_ids: "Unknown group ids: %{group_ids}"
-      topic_covered_by_filter: "This topic cannot be removed because it is included by this board's filters."
+      topic_covered_by_filter: "This is the only card for this topic on the board and it matches the board's filters, so it cannot be removed."
       category_definition_topic: "Category definition topics cannot be added to a kanban board."
+      topic_already_in_column: "This topic already has a card in that column."

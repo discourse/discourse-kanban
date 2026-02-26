@@ -110,36 +110,46 @@ module DiscourseKanban
       position_first = raw.key?("after_card_id") && raw["after_card_id"].blank?
 
       Card.transaction do
-        if !context[:promoted] && card.topic? && column.id != card.column_id && card.topic.present?
-          TopicMutator.apply!(topic: card.topic, column:, guardian:)
+        column_changed =
+          !context[:promoted] && card.topic? && column.id != card.column_id && card.topic.present?
+
+        if card.topic_id.present?
+          card
+            .board
+            .cards
+            .where(topic_id: card.topic_id, column_id: column.id, membership_mode: :manual_out)
+            .where.not(id: card.id)
+            .delete_all
         end
+
         CardOrdering.place_card!(
           card,
           column:,
           after_card_id: params.after_card_id,
           position_first:,
         )
+
+        TopicMutator.apply!(topic: card.topic, column:, guardian:) if column_changed
+
         card.save!
       end
     rescue ActiveRecord::RecordNotUnique, ActiveRecord::StatementInvalid => error
-      raise unless context[:promoted] && params.topic_id.present?
-      board = context[:board]
-      unless unique_topic_card_violation?(error) ||
-               board
-                 .cards
-                 .where(topic_id: params.topic_id, column_id: column.id)
-                 .where.not(id: card.id)
-                 .exists?
-        raise
-      end
+      raise unless unique_topic_card_violation?(error)
 
-      existing =
-        board
-          .cards
-          .where(topic_id: params.topic_id, column_id: column.id)
-          .where.not(id: card.id)
-          .first!
-      context[:card] = adopt_existing_topic_card!(card, existing, column, params, guardian)
+      if context[:promoted] && params.topic_id.present?
+        board = context[:board]
+        existing =
+          board
+            .cards
+            .where(topic_id: params.topic_id, column_id: column.id)
+            .where.not(id: card.id)
+            .first!
+        context[:card] = adopt_existing_topic_card!(card, existing, column, params, guardian)
+      else
+        raise Discourse::InvalidParameters.new(
+                I18n.t("discourse_kanban.errors.topic_already_in_column"),
+              )
+      end
     end
 
     def adopt_existing_topic_card!(floater, existing, column, params, guardian)

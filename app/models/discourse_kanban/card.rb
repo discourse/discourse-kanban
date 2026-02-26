@@ -20,7 +20,7 @@ module DiscourseKanban
 
     before_validation :normalize_card_type
 
-    scope :with_column, -> { where.not(column_id: nil) }
+    scope :with_column, -> { where.not(column_id: nil).where.not(membership_mode: :manual_out) }
     scope :ordered, -> { order(:position, :id) }
 
     private

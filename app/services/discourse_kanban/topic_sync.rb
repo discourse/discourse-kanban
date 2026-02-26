@@ -37,7 +37,7 @@ module DiscourseKanban
       manual_in_by_topic = Hash.new { |h, k| h[k] = Set.new }
       existing_cards.each do |card_id, topic_id, column_id, membership_mode|
         existing_by_topic_column[[topic_id, column_id]] = { id: card_id, membership_mode: }
-        if manual_out_mode?(membership_mode)
+        if manual_out_mode?(membership_mode) && column_id.nil?
           manual_out_topic_ids << topic_id
         elsif manual_in_mode?(membership_mode)
           manual_in_by_topic[topic_id] << column_id
@@ -90,7 +90,7 @@ module DiscourseKanban
 
     def self.sync_topic_for_board(topic:, board:)
       existing_cards = board.cards.where(topic_id: topic.id).to_a
-      return if existing_cards.any? { |c| c.manual_out? }
+      return if existing_cards.any? { |c| c.manual_out? && c.column_id.nil? }
 
       manual_in_column_ids = existing_cards.select(&:manual_in?).map(&:column_id).to_set
 
@@ -159,7 +159,9 @@ module DiscourseKanban
           next
         end
 
-        next if existing_cards.any? { |c| manual_out_mode?(c[:membership_mode]) }
+        if existing_cards.any? { |c| manual_out_mode?(c[:membership_mode]) && c[:column_id].nil? }
+          next
+        end
 
         manual_in_column_ids =
           existing_cards

@@ -239,6 +239,43 @@ RSpec.describe DiscourseKanban::UpdateCard do
       end
     end
 
+    context "when moving a topic card into a column with a manual_out marker for the same topic" do
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :topic,
+          membership_mode: :auto,
+          topic_id: topic.id,
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      end
+
+      fab!(:manual_out_card) do
+        board.cards.create!(
+          card_type: :topic,
+          membership_mode: :manual_out,
+          topic_id: topic.id,
+          column_id: col_done.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      end
+
+      let(:params) { { board_id: board.id, id: card.id, column_id: col_done.id } }
+      let(:raw_card_params) { { "column_id" => col_done.id.to_s } }
+      let(:dependencies) { { guardian: Guardian.new(admin) } }
+
+      it { is_expected.to run_successfully }
+
+      it "clears the manual_out marker and moves the card" do
+        marker_id = manual_out_card.id
+        result
+        expect(DiscourseKanban::Card.find_by(id: marker_id)).to be_nil
+        expect(card.reload.column_id).to eq(col_done.id)
+      end
+    end
+
     context "when card is not found" do
       let(:params) { { board_id: board.id, id: 0 } }
 

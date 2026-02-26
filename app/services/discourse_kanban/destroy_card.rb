@@ -33,20 +33,15 @@ module DiscourseKanban
     end
 
     def card_is_deletable(card:)
-      return true if card.floater?
-
-      topic = card.topic
-      column = card.column
-      return true if topic.blank? || column.blank?
-
-      combined = column.combined_query
-      return true if combined.blank?
-
-      !Board.topic_matches_query?(topic, combined)
+      true
     end
 
     def destroy(card:)
-      card.destroy!
+      if card.topic? && card.column_id.present?
+        card.update!(membership_mode: :manual_out)
+      else
+        card.destroy!
+      end
     end
   end
 end
