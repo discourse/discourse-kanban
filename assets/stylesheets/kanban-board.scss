@@ -12,6 +12,9 @@
     justify-content: space-between;
     padding: 0 10px;
     margin-bottom: 10px;
+    position: sticky;
+    left: 0;
+    z-index: 1;
   }
 
   &__title {
@@ -480,6 +483,13 @@
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+.kanban-column-settings-modal .icon-picker,
+.kanban-board-settings-modal .icon-picker {
+  .select-kit-header-wrapper > .d-icon {
+    margin-right: 0.25em;
   }
 }
 

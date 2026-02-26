@@ -36,7 +36,7 @@ export default class KanbanColumnSettings extends Component {
     const column = this.args.model.column;
     if (column) {
       this.editTitle = column.title || "";
-      this.editIcon = column.icon || "";
+      this.editIcon = column.icon || null;
       this.editFilterQuery = column.filter_query || "";
       this.editMoveToTag = column.move_to_tag || "";
       this.editMoveToCategoryId = column.move_to_category_id || null;
@@ -44,7 +44,7 @@ export default class KanbanColumnSettings extends Component {
       this.editMoveToStatus = column.move_to_status || "";
     } else {
       this.editTitle = "";
-      this.editIcon = "";
+      this.editIcon = null;
       this.editFilterQuery = "";
       this.editMoveToTag = "";
       this.editMoveToCategoryId = null;
@@ -170,7 +170,7 @@ export default class KanbanColumnSettings extends Component {
           <IconPicker
             @value={{this.editIcon}}
             @onChange={{this.onIconChange}}
-            @options={{hash maximum=1}}
+            @options={{hash maximum=1 icons=this.editIcon}}
           />
         </div>
 
