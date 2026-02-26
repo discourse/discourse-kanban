@@ -239,6 +239,55 @@ RSpec.describe DiscourseKanban::TopicSync do
     )
   end
 
+  describe "stable blank-filter column assignment" do
+    it "assigns to the lowest-ID blank-filter column regardless of position order" do
+      board =
+        DiscourseKanban::Board.create!(
+          name: "Stable Blank Board",
+          slug: "stable-blank-board",
+          base_filter_query: "category:#{category.slug}",
+          created_by_id: admin.id,
+        )
+
+      col_a = board.columns.create!(title: "Column A", position: 0)
+      col_b = board.columns.create!(title: "Column B", position: 1)
+
+      # col_b has higher ID; give it lower position so it comes first in ordering
+      col_b.update_column(:position, 0)
+      col_a.update_column(:position, 1)
+
+      described_class.sync_topic(topic)
+
+      card = board.cards.find_by(topic_id: topic.id)
+      expect(card.column_id).to eq(col_a.id)
+    end
+
+    it "remains stable after reordering blank-filter columns" do
+      board =
+        DiscourseKanban::Board.create!(
+          name: "Reorder Stable Board",
+          slug: "reorder-stable-board",
+          base_filter_query: "category:#{category.slug}",
+          created_by_id: admin.id,
+        )
+
+      col_a = board.columns.create!(title: "Column A", position: 0)
+      col_b = board.columns.create!(title: "Column B", position: 1)
+
+      described_class.sync_topic(topic)
+      card = board.cards.find_by(topic_id: topic.id)
+      expect(card.column_id).to eq(col_a.id)
+
+      # swap positions
+      col_a.update_column(:position, 1)
+      col_b.update_column(:position, 0)
+
+      described_class.sync_topic(topic)
+      card.reload
+      expect(card.column_id).to eq(col_a.id)
+    end
+  end
+
   describe ".backfill_board" do
     it "creates cards for matching topics that have no card record" do
       topic_2 = Fabricate(:topic, category: category)
@@ -357,6 +406,28 @@ RSpec.describe DiscourseKanban::TopicSync do
       end
 
       expect(board.cards.count).to be <= 3
+    end
+
+    it "assigns to the lowest-ID blank-filter column regardless of position order" do
+      board =
+        DiscourseKanban::Board.create!(
+          name: "Backfill Stable Board",
+          slug: "backfill-stable-board",
+          base_filter_query: "category:#{category.slug}",
+          created_by_id: admin.id,
+        )
+
+      col_a = board.columns.create!(title: "Column A", position: 0)
+      col_b = board.columns.create!(title: "Column B", position: 1)
+
+      # col_b has higher ID; give it lower position so it comes first
+      col_b.update_column(:position, 0)
+      col_a.update_column(:position, 1)
+
+      described_class.backfill_board(board)
+
+      card = board.cards.find_by(topic_id: topic.id)
+      expect(card.column_id).to eq(col_a.id)
     end
 
     it "does not discover topics when base_filter_query is blank and columns are unfiltered" do

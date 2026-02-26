@@ -56,7 +56,12 @@ module DiscourseKanban
       if base_filter_query.present?
         return nil unless topic_matches?(topic)
 
-        return columns.find { |column| column.matches_topic?(topic) }
+        matched = columns.find { |column| column.matches_topic?(topic) }
+        if matched&.filter_query.blank?
+          blank_columns = columns.select { |c| c.filter_query.blank? }
+          return blank_columns.min_by(&:id) if blank_columns.size > 1
+        end
+        return matched
       end
 
       columns.find do |column|

@@ -14,10 +14,15 @@ module DiscourseKanban
       column_topic_ids = build_column_topic_map(board, columns)
 
       # 2. Assign each topic to its FIRST matching column (column priority by position)
+      has_base = board.base_filter_query.present?
+      lowest_blank_column_id =
+        columns.select { |col| col.filter_query.blank? }.map(&:id).min if has_base
+
       topic_to_column = {}
       columns.each do |col|
         ids = column_topic_ids[col.id] || next
-        ids.each { |tid| topic_to_column[tid] ||= col.id }
+        target_id = (has_base && col.filter_query.blank?) ? lowest_blank_column_id : col.id
+        ids.each { |tid| topic_to_column[tid] ||= target_id }
       end
 
       # 3. Load all existing topic cards for this board in one query
@@ -196,8 +201,11 @@ module DiscourseKanban
       if base_filter_query.present?
         return nil unless query_matches_topic?(topic:, query: base_filter_query, matcher_context:)
 
+        lowest_blank_column_id =
+          board_columns.select { |_, _, fq| fq.blank? }.map { |col_id, _, _| col_id }.min
+
         board_columns.each do |column_id, _, filter_query|
-          return column_id if filter_query.blank?
+          return lowest_blank_column_id if filter_query.blank?
 
           combined_query = [base_filter_query, filter_query].reject(&:blank?).join(" ")
           return column_id if query_matches_topic?(topic:, query: combined_query, matcher_context:)
