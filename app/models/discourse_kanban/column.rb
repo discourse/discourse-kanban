@@ -33,7 +33,7 @@ end
 #  move_to_assigned    :string
 #  move_to_status      :string
 #  move_to_tag         :string
-#  position            :integer          default(0), not null
+#  position            :bigint           default(0), not null
 #  title               :string           not null
 #  wip_limit           :integer
 #  created_at          :datetime         not null

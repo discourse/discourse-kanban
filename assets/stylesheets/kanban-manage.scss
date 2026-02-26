@@ -69,7 +69,8 @@
     font-size: var(--font-up-1);
     font-weight: 700;
 
-    &, &:visited {
+    &,
+    &:visited {
       color: var(--primary);
     }
 
