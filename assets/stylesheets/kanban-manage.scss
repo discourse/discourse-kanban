@@ -62,7 +62,10 @@
   &__name {
     font-size: var(--font-up-1);
     font-weight: 700;
-    color: var(--primary);
+
+    &, &:visited {
+      color: var(--primary);
+    }
 
     &:hover {
       color: var(--tertiary);
