@@ -52,12 +52,6 @@
     box-shadow: 0 2px 8px rgb(0, 0, 0, 0.08);
   }
 
-  &--kb-selected {
-    outline: 2px solid var(--tertiary);
-    outline-offset: -2px;
-    background: var(--tertiary-very-low);
-  }
-
   &__header {
     display: flex;
     justify-content: space-between;

@@ -35,16 +35,6 @@ en:
         due_date: "Due Date"
         remove_label: "Remove label"
         overdue: "Overdue"
-        card_count:
-          one: "%{count} card"
-          other: "%{count} cards"
-        wip_count: "%{count}/%{limit}"
-      keyboard_shortcuts:
-        navigate_columns: "Navigate between columns"
-        navigate_cards: "Navigate between cards"
-        open_card: "Open selected card"
-        move_card_column: "Move card to adjacent column"
-        move_card_position: "Reorder card within column"
       manage:
         title: "Kanban Boards"
         description: "Create and manage kanban boards with columns."

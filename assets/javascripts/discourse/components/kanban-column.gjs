@@ -267,7 +267,6 @@ export default class KanbanColumn extends Component {
   <template>
     <div
       class="kanban-column"
-      data-column-id={{@column.id}}
       {{on "dragover" this.dragOver}}
       {{on "dragleave" this.dragLeave}}
       {{on "drop" this.drop}}

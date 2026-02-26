@@ -235,12 +235,6 @@
     animation: kanban-card-drop-highlight 1s ease-out;
   }
 
-  &--kb-selected {
-    outline: 2px solid var(--tertiary);
-    outline-offset: -2px;
-    background: var(--tertiary-very-low);
-  }
-
   &.card-no-recent-activity {
     box-shadow: inset 5px 0 0 0 var(--danger-low);
     border-left: 0;
