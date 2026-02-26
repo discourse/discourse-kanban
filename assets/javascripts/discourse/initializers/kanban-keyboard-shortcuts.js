@@ -147,13 +147,9 @@ export default {
       api.addKeyboardShortcut(
         "enter",
         () => {
-          const selected = document.querySelector(`.${BOARD_SELECTED_CLASS}`);
-          if (selected) {
-            const link = selected.querySelector("a.kanban-board-card__name");
-            if (link) {
-              link.click();
-            }
-          }
+          document
+            .querySelector(`.${BOARD_SELECTED_CLASS} a.kanban-board-card__name`)
+            ?.click();
         },
         { context: BOARDS_LIST_CONTEXT }
       );
