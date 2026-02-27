@@ -286,7 +286,6 @@ describe "Kanban Board Viewer", type: :system do
       board_viewer.visit_board(board)
 
       expect(board_viewer).to have_no_fullscreen
-      board_viewer.open_controls_menu
       board_viewer.click_fullscreen
 
       expect(board_viewer).to have_fullscreen
@@ -312,8 +311,7 @@ describe "Kanban Board Viewer", type: :system do
       sign_in(user)
       board_viewer.visit_board(board)
 
-      board_viewer.open_controls_menu
-      expect(board_viewer).to have_no_board_settings_option
+      expect(board_viewer).to have_no_controls_menu
     end
   end
 end

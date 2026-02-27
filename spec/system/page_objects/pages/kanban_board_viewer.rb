@@ -14,32 +14,34 @@ module PageObjects
       end
 
       def has_column?(title)
-        has_css?(".kanban-column__title", text: title)
+        has_css?(".kanban-column__title", text: /#{Regexp.escape(title)}/i)
       end
 
       def has_no_column?(title)
-        has_no_css?(".kanban-column__title", text: title)
+        has_no_css?(".kanban-column__title", text: /#{Regexp.escape(title)}/i)
       end
 
       def has_card_in_column?(column_title, card_title)
-        within(find(".kanban-column", text: column_title)) do
+        within(find(".kanban-column", text: /#{Regexp.escape(column_title)}/i)) do
           has_css?(".kanban-card__title", text: card_title)
         end
       end
 
       def has_no_card_in_column?(column_title, card_title)
-        within(find(".kanban-column", text: column_title)) do
+        within(find(".kanban-column", text: /#{Regexp.escape(column_title)}/i)) do
           has_no_css?(".kanban-card__title", text: card_title)
         end
       end
 
       def card_count_in_column(column_title)
-        within(find(".kanban-column", text: column_title)) { all(".kanban-card").count }
+        within(find(".kanban-column", text: /#{Regexp.escape(column_title)}/i)) do
+          all(".kanban-card").count
+        end
       end
 
       def drag_card_to_column(card_title, target_column_title)
         find(".kanban-card", text: card_title).drag_to(
-          find(".kanban-column", text: target_column_title),
+          find(".kanban-column", text: /#{Regexp.escape(target_column_title)}/i),
         )
         self
       end
@@ -73,17 +75,21 @@ module PageObjects
       end
 
       def has_add_card_button_in_column?(column_title)
-        within(find(".kanban-column", text: column_title)) { has_css?(".kanban-column__add-btn") }
+        within(find(".kanban-column", text: /#{Regexp.escape(column_title)}/i)) do
+          has_css?(".kanban-column__add-btn")
+        end
       end
 
       def has_no_add_card_button_in_column?(column_title)
-        within(find(".kanban-column", text: column_title)) do
+        within(find(".kanban-column", text: /#{Regexp.escape(column_title)}/i)) do
           has_no_css?(".kanban-column__add-btn")
         end
       end
 
       def click_add_card(column_title)
-        within(find(".kanban-column", text: column_title)) { find(".kanban-column__add-btn").click }
+        within(find(".kanban-column", text: /#{Regexp.escape(column_title)}/i)) do
+          find(".kanban-column__add-btn").click
+        end
         self
       end
 
@@ -98,7 +104,7 @@ module PageObjects
       end
 
       def has_floater_card_in_column?(column_title, card_title)
-        within(find(".kanban-column", text: column_title)) do
+        within(find(".kanban-column", text: /#{Regexp.escape(column_title)}/i)) do
           has_css?(".kanban-card--floater", text: card_title)
         end
       end
@@ -181,14 +187,13 @@ module PageObjects
         self
       end
 
-      def has_fullscreen_option?
-        has_css?("[data-content][data-identifier='kanban-board-controls']")
+      def has_no_controls_menu?
+        has_no_css?(".kanban-board-viewer__controls [data-identifier='kanban-board-controls']")
       end
 
       def click_fullscreen
         find(
-          "[data-content][data-identifier='kanban-board-controls'] .btn-transparent",
-          text: I18n.t("js.discourse_kanban.board.fullscreen"),
+          ".kanban-board-viewer__controls .btn-flat[title='#{I18n.t("js.discourse_kanban.board.fullscreen")}']",
         ).click
         self
       end

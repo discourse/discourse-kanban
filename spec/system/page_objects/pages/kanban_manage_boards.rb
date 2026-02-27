@@ -142,7 +142,7 @@ module PageObjects
       end
 
       def open_column_menu(column_title)
-        within(find(".kanban-column", text: column_title)) do
+        within(find(".kanban-column", text: /#{Regexp.escape(column_title)}/i)) do
           find(".kanban-column__menu-trigger", visible: :all).click
         end
         self
@@ -159,7 +159,7 @@ module PageObjects
       end
 
       def has_column?(title)
-        has_css?(".kanban-column__title", text: title)
+        has_css?(".kanban-column__title", text: /#{Regexp.escape(title)}/i)
       end
     end
   end
