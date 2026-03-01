@@ -9,6 +9,7 @@ module DiscourseKanban
       attribute :topic_id, :integer
       attribute :to_column_id, :integer
       attribute :after_card_id, :integer
+      attribute :client_id, :string
 
       validates :board_id, presence: true
       validates :topic_id, presence: true
@@ -23,8 +24,11 @@ module DiscourseKanban
 
     transaction do
       step :apply_topic_mutations
-      step :upsert_card
+      model :card, :place_topic_on_column
     end
+
+    only_if(:card_newly_created) { step :publish_card_created }
+    only_if(:card_repositioned) { step :publish_card_moved }
 
     private
 
@@ -52,9 +56,8 @@ module DiscourseKanban
       TopicMutator.apply!(topic:, column:, guardian:)
     end
 
-    def upsert_card(board:, topic:, column:, params:, guardian:)
-      card = board.cards.find_or_initialize_by(topic_id: topic.id, column_id: column.id)
-      is_new = card.new_record?
+    def place_topic_on_column(board:, topic:, column:, params:, guardian:)
+      card = board.cards.find_or_initialize_by(topic:, column:)
 
       card.assign_attributes(
         card_type: :topic,
@@ -63,15 +66,32 @@ module DiscourseKanban
       )
       card.created_by_id ||= guardian.user.id
 
-      if is_new
+      if card.new_record?
         CardOrdering.append_to_column!(card, column)
+        card.save
       else
         CardOrdering.place_card!(card, column:, after_card_id: params.after_card_id)
       end
 
-      card.save!
-      context[:card] = card
-      context[:is_new_card] = is_new
+      card
+    end
+
+    def card_newly_created(card:)
+      card.previously_new_record?
+    end
+
+    def card_repositioned(card:)
+      !card.previously_new_record?
+    end
+
+    def publish_card_created(board:, card:, params:)
+      payload = CardPayloadSerializer.serialize(card)
+      Publisher.publish_card_created!(board, payload, client_id: params.client_id)
+    end
+
+    def publish_card_moved(board:, card:, params:)
+      payload = CardPayloadSerializer.serialize(card)
+      Publisher.publish_card_moved!(board, payload, client_id: params.client_id)
     end
   end
 end

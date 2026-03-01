@@ -11,19 +11,9 @@ module DiscourseKanban
           params
             .permit(:topic_id, :to_column_id, :after_card_id)
             .to_h
-            .merge("board_id" => params[:board_id]),
+            .merge("board_id" => params[:board_id], "client_id" => message_bus_client_id),
       ) do
-        on_success do |card:, board:, is_new_card:|
-          payload = card_payload(card)
-
-          if is_new_card
-            Publisher.publish_card_created!(board, payload, client_id: message_bus_client_id)
-          else
-            Publisher.publish_card_moved!(board, payload, client_id: message_bus_client_id)
-          end
-
-          render json: { card: payload }, status: :created
-        end
+        on_success { |card:| render json: { card: card_payload(card) }, status: :created }
         on_model_not_found(:board) { raise Discourse::NotFound }
         on_model_not_found(:topic) { raise Discourse::NotFound }
         on_model_not_found(:column) do
