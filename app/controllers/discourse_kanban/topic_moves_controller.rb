@@ -13,7 +13,12 @@ module DiscourseKanban
           },
         ),
       ) do
-        on_success { |card:| render json: { card: card_payload(card) }, status: :created }
+        on_success do |card:|
+          render json: {
+                   card: CardPayloadSerializer.new(card, root: false).as_json,
+                 },
+                 status: :created
+        end
         on_model_not_found(:board) { raise Discourse::NotFound }
         on_model_not_found(:topic) { raise Discourse::NotFound }
         on_model_not_found(:column) do

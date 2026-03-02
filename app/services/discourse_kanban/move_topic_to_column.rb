@@ -90,12 +90,12 @@ module DiscourseKanban
     end
 
     def publish_card_created(board:, card:, params:)
-      payload = CardPayloadSerializer.serialize(card)
+      payload = CardPayloadSerializer.new(card, root: false).as_json
       Publisher.publish_card_created!(board, payload, client_id: params.client_id)
     end
 
     def publish_card_moved(board:, card:, params:)
-      payload = CardPayloadSerializer.serialize(card)
+      payload = CardPayloadSerializer.new(card, root: false).as_json
       Publisher.publish_card_moved!(board, payload, client_id: params.client_id)
     end
   end

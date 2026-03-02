@@ -60,10 +60,6 @@ module DiscourseKanban
       }
     end
 
-    def card_payload(card, assignments_by_topic: {})
-      CardPayloadSerializer.serialize(card, assignments_by_topic:)
-    end
-
     def card_mutation_params
       params.require(:card).permit(
         :topic_id,
