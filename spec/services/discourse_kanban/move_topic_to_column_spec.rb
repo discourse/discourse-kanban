@@ -76,6 +76,16 @@ RSpec.describe DiscourseKanban::MoveTopicToColumn do
       it { is_expected.to fail_a_policy(:can_see_topic) }
     end
 
+    context "when user cannot edit topic" do
+      fab!(:other_user, :user)
+
+      let(:dependencies) { { guardian: Guardian.new(other_user) } }
+
+      before { write_group.add(other_user) }
+
+      it { is_expected.to fail_a_policy(:can_edit_topic) }
+    end
+
     context "when column is not found" do
       let(:params) { { board_id: board.id, topic_id: topic.id, to_column_id: 0 } }
 

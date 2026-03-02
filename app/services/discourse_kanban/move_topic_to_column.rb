@@ -20,11 +20,12 @@ module DiscourseKanban
     policy :can_write
     model :topic
     policy :can_see_topic
+    policy :can_edit_topic
     model :column
 
     transaction do
       step :apply_topic_mutations
-      model :card, :place_topic_on_column
+      model :card, :place_topic_card
     end
 
     only_if(:card_newly_created) { step :publish_card_created }
@@ -48,6 +49,10 @@ module DiscourseKanban
       guardian.can_see?(topic)
     end
 
+    def can_edit_topic(topic:, guardian:)
+      guardian.can_edit?(topic)
+    end
+
     def fetch_column(board:, params:)
       board.columns.find_by(id: params.to_column_id)
     end
@@ -56,7 +61,7 @@ module DiscourseKanban
       TopicMutator.apply!(topic:, column:, guardian:)
     end
 
-    def place_topic_on_column(board:, topic:, column:, params:, guardian:)
+    def place_topic_card(board:, topic:, column:, params:, guardian:)
       card = board.cards.find_or_initialize_by(topic:, column:)
 
       card.assign_attributes(
@@ -68,7 +73,7 @@ module DiscourseKanban
 
       if card.new_record?
         CardOrdering.append_to_column!(card, column)
-        card.save
+        card.save!
       else
         CardOrdering.place_card!(card, column:, after_card_id: params.after_card_id)
       end

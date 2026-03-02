@@ -6,12 +6,12 @@ module DiscourseKanban
 
     def create
       DiscourseKanban::MoveTopicToColumn.call(
-        guardian:,
-        params:
-          params
-            .permit(:topic_id, :to_column_id, :after_card_id)
-            .to_h
-            .merge("board_id" => params[:board_id], "client_id" => message_bus_client_id),
+        **service_params.deep_merge(
+          params: {
+            board_id: params[:board_id],
+            client_id: message_bus_client_id,
+          },
+        ),
       ) do
         on_success { |card:| render json: { card: card_payload(card) }, status: :created }
         on_model_not_found(:board) { raise Discourse::NotFound }
@@ -21,6 +21,7 @@ module DiscourseKanban
         end
         on_failed_policy(:can_write) { raise Discourse::InvalidAccess }
         on_failed_policy(:can_see_topic) { raise Discourse::InvalidAccess }
+        on_failed_policy(:can_edit_topic) { raise Discourse::InvalidAccess }
         on_failed_contract do |contract|
           render json: failed_json.merge(errors: contract.errors.full_messages),
                  status: :bad_request
