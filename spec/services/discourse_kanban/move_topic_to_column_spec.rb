@@ -68,8 +68,9 @@ RSpec.describe DiscourseKanban::MoveTopicToColumn do
     end
 
     context "when user cannot see topic" do
-      let(:private_category) { Fabricate(:private_category, group: Fabricate(:group)) }
-      let(:private_topic) { Fabricate(:topic, category: private_category) }
+      fab!(:private_category) { Fabricate(:private_category, group: Fabricate(:group)) }
+      fab!(:private_topic) { Fabricate(:topic, category: private_category) }
+
       let(:params) { { board_id: board.id, topic_id: private_topic.id, to_column_id: column.id } }
       let(:dependencies) { { guardian: Guardian.new(writer) } }
 
