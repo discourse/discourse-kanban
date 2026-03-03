@@ -14,7 +14,9 @@ import icon from "discourse/helpers/d-icon";
 import formatDate from "discourse/helpers/format-date";
 import { renderAvatar } from "discourse/helpers/user-avatar";
 import renderTags from "discourse/lib/render-tags";
+import DiscourseURL from "discourse/lib/url";
 import Category from "discourse/models/category";
+import { kanbanBoardUrl, kanbanCardUrl } from "../lib/kanban-urls";
 import KanbanCardDetailModal from "./modal/kanban-card-detail";
 
 export default class KanbanCard extends Component {
@@ -166,13 +168,25 @@ export default class KanbanCard extends Component {
 
   @action
   openDetailModal() {
-    this.modal.show(KanbanCardDetailModal, {
-      model: {
-        card: this.args.card,
-        canWrite: this.args.canWrite,
-        onUpdateCard: this.args.onUpdateCard,
-      },
-    });
+    const board = this.args.board;
+    const boardUrl = kanbanBoardUrl(board);
+    const cardUrlPath = kanbanCardUrl(board, this.args.card.id);
+
+    DiscourseURL.replaceState(cardUrlPath);
+
+    this.modal
+      .show(KanbanCardDetailModal, {
+        model: {
+          card: this.args.card,
+          canWrite: this.args.canWrite,
+          onUpdateCard: this.args.onUpdateCard,
+        },
+      })
+      .finally(() => {
+        if (!this.isDestroying && !this.isDestroyed) {
+          DiscourseURL.replaceState(boardUrl);
+        }
+      });
   }
 
   @action

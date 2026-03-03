@@ -7,6 +7,7 @@ DiscourseKanban::Engine.routes.draw do
   get "/boards/:slug/:id/configure" => "boards#respond"
   get "/boards/:id/configure" => "boards#respond"
 
+  get "/boards/:slug/:id/card/:card_id" => "boards#respond"
   get "/boards/:slug/:id" => "boards#respond"
 
   # API routes

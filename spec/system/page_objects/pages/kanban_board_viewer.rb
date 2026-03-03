@@ -217,6 +217,15 @@ module PageObjects
         )
       end
 
+      def visit_card(board, card)
+        page.visit "/kanban/boards/#{board.slug}/#{board.id}/card/#{card.id}"
+        self
+      end
+
+      def has_no_card_detail_modal?
+        has_no_css?(".kanban-card-detail-modal")
+      end
+
       def click_floater_card(card_title)
         find(".kanban-card--floater", text: card_title).click
         self
