@@ -33,7 +33,9 @@ module DiscourseKanban
       cards.each do |card|
         next if card.topic? && !visible_topic_ids.include?(card.topic_id)
 
-        columns_by_id[card.column_id]&.[](:cards)&.push(card_payload(card, assignments_by_topic:))
+        columns_by_id[card.column_id]&.[](:cards)&.push(
+          CardPayloadSerializer.new(card, root: false, assignments_by_topic:).as_json,
+        )
       end
 
       render json: { board: board_payload(@board), columns: columns }

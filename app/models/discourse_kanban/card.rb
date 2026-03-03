@@ -6,7 +6,7 @@ module DiscourseKanban
 
     belongs_to :board, class_name: "DiscourseKanban::Board", inverse_of: :cards
     belongs_to :column, class_name: "DiscourseKanban::Column", inverse_of: :cards, optional: true
-    belongs_to :topic, optional: true
+    belongs_to :topic, -> { with_deleted }, optional: true
     belongs_to :created_by, class_name: "User", optional: true
     belongs_to :updated_by, class_name: "User", optional: true
     belongs_to :assigned_to, polymorphic: true, optional: true

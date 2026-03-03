@@ -60,80 +60,6 @@ module DiscourseKanban
       }
     end
 
-    def card_payload(card, assignments_by_topic: {})
-      payload = {
-        id: card.id,
-        board_id: card.board_id,
-        column_id: card.column_id,
-        card_type: card.card_type,
-        membership_mode: card.membership_mode,
-        position: card.position,
-        title: card.title,
-        notes: card.notes,
-        labels: card.labels,
-      }
-
-      if card.topic?
-        payload[:topic_id] = card.topic_id
-        payload[:topic] = topic_card_payload(card.topic, assignments_by_topic:) if card.topic
-      else
-        payload[:created_at] = card.created_at
-        payload[:created_by] = { username: card.created_by.username } if card.created_by
-        payload[:assigned_to] = serialize_assigned_to(card.assigned_to) if card.assigned_to
-      end
-
-      payload
-    end
-
-    def topic_card_payload(topic, assignments_by_topic: {})
-      data = {
-        id: topic.id,
-        title: topic.title,
-        slug: topic.slug,
-        category_id: topic.category_id,
-        tags: topic.tags.map(&:name),
-        bumped_at: topic.bumped_at,
-        closed: topic.closed,
-        image_url: topic.image_url,
-      }
-
-      last_poster = topic.last_poster
-      if last_poster
-        data[:last_poster] = {
-          username: last_poster.username,
-          avatar_template: last_poster.avatar_template,
-        }
-      end
-
-      if topic.respond_to?(:assignment) && topic.assignment&.assigned_to.is_a?(User)
-        assigned = topic.assignment.assigned_to
-        data[:assigned_to_user] = {
-          username: assigned.username,
-          avatar_template: assigned.avatar_template,
-        }
-      end
-
-      all_assignments = assignments_by_topic[topic.id]
-      if all_assignments.blank? && defined?(Assignment)
-        all_assignments =
-          Assignment.where(topic_id: topic.id, active: true, assigned_to_type: "User").includes(
-            :assigned_to,
-          )
-        all_assignments = nil if all_assignments.none?
-      end
-
-      if all_assignments.present?
-        data[:all_assigned_users] = all_assignments
-          .filter_map do |a|
-            next unless a.assigned_to.is_a?(User)
-            { username: a.assigned_to.username, avatar_template: a.assigned_to.avatar_template }
-          end
-          .uniq { |u| u[:username] }
-      end
-
-      data
-    end
-
     def card_mutation_params
       params.require(:card).permit(
         :topic_id,
@@ -144,15 +70,6 @@ module DiscourseKanban
         :assigned_to_name,
         labels: [],
       )
-    end
-
-    def serialize_assigned_to(assignee)
-      case assignee
-      when User
-        { type: "User", username: assignee.username, avatar_template: assignee.avatar_template }
-      when Group
-        { type: "Group", name: assignee.name }
-      end
     end
 
     def message_bus_client_id

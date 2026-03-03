@@ -10,7 +10,7 @@ module DiscourseKanban
         params: card_mutation_params.to_h.merge("board_id" => params[:board_id]),
       ) do
         on_success do |card:, board:|
-          payload = card_payload(card)
+          payload = CardPayloadSerializer.new(card, root: false).as_json
           Publisher.publish_card_created!(board, payload, client_id: message_bus_client_id)
           render json: { card: payload }, status: :created
         end
@@ -37,7 +37,7 @@ module DiscourseKanban
       ) do
         on_success do |card:, board:, original_column_id:, adopted_floater_id:|
           card.topic&.reload
-          response = card_payload(card)
+          response = CardPayloadSerializer.new(card, root: false).as_json
 
           if adopted_floater_id
             Publisher.publish_card_deleted!(
