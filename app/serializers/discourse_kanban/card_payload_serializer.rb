@@ -11,12 +11,12 @@ module DiscourseKanban
                :title,
                :notes,
                :labels,
-               :due_at,
                :topic_id,
-               :updated_at,
-               :updated_by
+               :created_at,
+               :created_by,
+               :assigned_to
 
-    has_one :topic, serializer: CardTopicSerializer
+    has_one :topic, serializer: CardTopicSerializer, embed: :objects
 
     def include_topic_id?
       object.topic?
@@ -26,16 +26,33 @@ module DiscourseKanban
       object.topic? && object.topic.present?
     end
 
-    def include_updated_at?
+    def include_created_at?
       !object.topic?
     end
 
-    def updated_by
-      { username: object.updated_by.username }
+    def created_by
+      { username: object.created_by.username }
     end
 
-    def include_updated_by?
-      !object.topic? && object.updated_by.present?
+    def include_created_by?
+      !object.topic? && object.created_by.present?
+    end
+
+    def assigned_to
+      case object.assigned_to
+      when User
+        {
+          type: "User",
+          username: object.assigned_to.username,
+          avatar_template: object.assigned_to.avatar_template,
+        }
+      when Group
+        { type: "Group", name: object.assigned_to.name }
+      end
+    end
+
+    def include_assigned_to?
+      !object.topic? && object.assigned_to.present?
     end
   end
 end

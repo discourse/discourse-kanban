@@ -1,8 +1,26 @@
+html.kanban-board {
+  #main-outlet-wrapper #main-outlet {
+    padding: 0;
+    max-width: 100%;
+  }
+
+  body.has-sidebar-page #main-outlet-wrapper {
+    grid-template-columns: auto 1fr;
+    gap: 0;
+    padding-right: 0;
+  }
+
+  .powered-by-discourse {
+    display: none;
+  }
+}
+
 .kanban-board-viewer {
   --desired-height: calc(100vh - var(--kanban-offset-top));
   height: max(var(--desired-height), 500px);
   overflow-x: auto;
-  padding-bottom: 10px;
+  overflow-y: hidden;
+  padding-block: 10px;
   box-sizing: border-box;
   position: relative;
 
@@ -65,9 +83,9 @@
   display: flex;
   flex-direction: column;
   padding: var(--space-2);
+  padding-right: var(--space-1);
   transition: border-color 0.15s ease;
   border-radius: var(--d-border-radius);
-  height: fit-content;
 
   &.drag-target {
     border-color: var(--tertiary);
@@ -129,6 +147,10 @@
     overflow-y: auto;
     height: 100%;
     gap: var(--space-2);
+    padding-right: var(--space-1);
+    -webkit-overflow-scrolling: touch;
+    transform: translate3d(0, 0, 0);
+    scrollbar-width: thin;
   }
 
   &__drop-indicator {
@@ -367,22 +389,6 @@
     border-radius: var(--d-border-radius);
     font-size: $font-down-2;
     color: var(--primary-high);
-  }
-
-  &__due-date {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    font-size: $font-down-2;
-    color: var(--primary-medium);
-
-    .d-icon {
-      font-size: 0.85em;
-    }
-
-    &--overdue {
-      color: var(--danger);
-    }
   }
 
   &__notes-indicator {

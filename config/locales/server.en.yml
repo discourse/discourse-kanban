@@ -16,3 +16,4 @@ en:
       topic_covered_by_filter: "This is the only card for this topic on the board and it matches the board's filters, so it cannot be removed."
       category_definition_topic: "Category definition topics cannot be added to a kanban board."
       topic_already_in_column: "This topic already has a card in that column."
+      invalid_assignee: "Could not find user or group named '%{name}'."

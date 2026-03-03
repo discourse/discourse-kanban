@@ -1,12 +1,12 @@
 import Component from "@glimmer/component";
 import { tracked } from "@glimmer/tracking";
-import { fn } from "@ember/helper";
+import { fn, hash } from "@ember/helper";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
 import DButton from "discourse/components/d-button";
 import DModal from "discourse/components/d-modal";
-import DateInput from "discourse/components/date-input";
 import icon from "discourse/helpers/d-icon";
+import EmailGroupUserChooser from "discourse/select-kit/components/email-group-user-chooser";
 import { not } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
 
@@ -14,7 +14,7 @@ export default class KanbanCardDetail extends Component {
   @tracked editTitle;
   @tracked editNotes;
   @tracked editLabels;
-  @tracked editDueAt;
+  @tracked editAssignedTo;
   @tracked newLabelText = "";
 
   constructor() {
@@ -23,7 +23,12 @@ export default class KanbanCardDetail extends Component {
     this.editTitle = card.title || "";
     this.editNotes = card.notes || "";
     this.editLabels = [...(card.labels || [])];
-    this.editDueAt = card.due_at ? moment(card.due_at) : null;
+    const assignedTo = card.assigned_to;
+    if (assignedTo) {
+      this.editAssignedTo = [assignedTo.username || assignedTo.name];
+    } else {
+      this.editAssignedTo = [];
+    }
   }
 
   get canWrite() {
@@ -102,8 +107,8 @@ export default class KanbanCardDetail extends Component {
   }
 
   @action
-  onDueDateChanged(date) {
-    this.editDueAt = date || null;
+  onAssignedChanged(value) {
+    this.editAssignedTo = value || [];
   }
 
   @action
@@ -115,7 +120,7 @@ export default class KanbanCardDetail extends Component {
       title: this.editTitle.trim(),
       notes: this.editNotes,
       labels: this.editLabels,
-      due_at: this.editDueAt ? this.editDueAt.toISOString() : null,
+      assigned_to_name: this.editAssignedTo[0] || null,
     };
     try {
       await this.args.model.onUpdateCard(card.id, updates);
@@ -203,13 +208,15 @@ export default class KanbanCardDetail extends Component {
         </div>
 
         <div class="kanban-card-detail__field">
-          <label>{{i18n "discourse_kanban.board.due_date"}}</label>
-          <DateInput
-            @date={{this.editDueAt}}
-            @onChange={{this.onDueDateChanged}}
-            disabled={{not this.canWrite}}
+          <label>{{i18n "discourse_kanban.board.assigned_to"}}</label>
+          <EmailGroupUserChooser
+            @value={{this.editAssignedTo}}
+            @onChange={{this.onAssignedChanged}}
+            @options={{hash maximum=1 excludeCurrentUser=false}}
+            @disabled={{not this.canWrite}}
           />
         </div>
+
       </:body>
       <:footer>
         {{#if this.canWrite}}

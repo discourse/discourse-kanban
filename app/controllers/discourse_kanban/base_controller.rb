@@ -66,10 +66,19 @@ module DiscourseKanban
         :column_id,
         :title,
         :notes,
-        :due_at,
         :after_card_id,
+        :assigned_to_name,
         labels: [],
       )
+    end
+
+    def serialize_assigned_to(assignee)
+      case assignee
+      when User
+        { type: "User", username: assignee.username, avatar_template: assignee.avatar_template }
+      when Group
+        { type: "Group", name: assignee.name }
+      end
     end
 
     def message_bus_client_id

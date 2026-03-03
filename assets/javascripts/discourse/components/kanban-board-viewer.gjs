@@ -13,10 +13,13 @@ import bodyClass from "discourse/helpers/body-class";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
 import { bind } from "discourse/lib/decorators";
+import DiscourseURL from "discourse/lib/url";
 import Category from "discourse/models/category";
 import { i18n } from "discourse-i18n";
+import { kanbanBoardUrl, kanbanCardUrl } from "../lib/kanban-urls";
 import KanbanColumn from "./kanban-column";
 import KanbanBoardSettings from "./modal/kanban-board-settings";
+import KanbanCardDetailModal from "./modal/kanban-card-detail";
 import KanbanColumnSettings from "./modal/kanban-column-settings";
 
 const onWindowResize = modifier((element, [callback]) => {
@@ -62,6 +65,20 @@ export default class KanbanBoardViewer extends Component {
       ...col,
       cards: [...(col.cards || [])],
     }));
+
+    if (this.args.initialCardId) {
+      schedule("afterRender", () => {
+        if (this.isDestroying || this.isDestroyed) {
+          return;
+        }
+        const card = this.#findCard(this.args.initialCardId);
+        if (card) {
+          this.#openCardModalWithUrl(card);
+        } else {
+          DiscourseURL.replaceState(kanbanBoardUrl(this.board));
+        }
+      });
+    }
   }
 
   willDestroy() {
@@ -701,6 +718,36 @@ export default class KanbanBoardViewer extends Component {
     this.appEvents.off("topic:created", this, this._onTopicCreated);
     this.appEvents.off("composer:cancelled", this, this._cleanupPromotion);
     this.router.off("routeWillChange", this._onRouteWillChange);
+  }
+
+  #findCard(cardId) {
+    for (const col of this.columns) {
+      const card = col.cards.find((c) => c.id === cardId);
+      if (card) {
+        return card;
+      }
+    }
+    return null;
+  }
+
+  #openCardModalWithUrl(card) {
+    const boardUrl = kanbanBoardUrl(this.board);
+    const cardUrlPath = kanbanCardUrl(this.board, card.id);
+
+    DiscourseURL.replaceState(cardUrlPath);
+    this.modal
+      .show(KanbanCardDetailModal, {
+        model: {
+          card,
+          canWrite: this.canWrite,
+          onUpdateCard: this.onUpdateCard,
+        },
+      })
+      .finally(() => {
+        if (!this.isDestroying && !this.isDestroyed) {
+          DiscourseURL.replaceState(boardUrl);
+        }
+      });
   }
 
   _highlightDroppedCard(cardId) {
