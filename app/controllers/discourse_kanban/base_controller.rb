@@ -72,15 +72,6 @@ module DiscourseKanban
       )
     end
 
-    def serialize_assigned_to(assignee)
-      case assignee
-      when User
-        { type: "User", username: assignee.username, avatar_template: assignee.avatar_template }
-      when Group
-        { type: "Group", name: assignee.name }
-      end
-    end
-
     def message_bus_client_id
       params[:client_id]
     end
