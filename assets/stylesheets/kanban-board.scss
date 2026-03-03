@@ -1,6 +1,7 @@
 html.kanban-board {
-  #main-outlet {
+  #main-outlet-wrapper #main-outlet {
     padding: 0;
+    max-width: 100%;
   }
 
   body.has-sidebar-page #main-outlet-wrapper {
