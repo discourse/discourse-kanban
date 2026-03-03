@@ -31,30 +31,30 @@ module DiscourseKanban
     end
 
     def all_assigned_users
-      return @all_assigned_users if defined?(@all_assigned_users)
-
-      assignments = @options[:assignments_by_topic]&.[](object.id)
-      if assignments.blank? && defined?(Assignment)
-        assignments =
-          Assignment.where(topic_id: object.id, active: true, assigned_to_type: "User").includes(
-            :assigned_to,
-          )
-        assignments = nil if assignments.none?
-      end
-
-      @all_assigned_users =
-        if assignments.present?
-          assignments
-            .filter_map do |a|
-              next unless a.assigned_to.is_a?(User)
-              { username: a.assigned_to.username, avatar_template: a.assigned_to.avatar_template }
-            end
-            .uniq { |u| u[:username] }
-        end
+      @all_assigned_users ||=
+        topic_assignments.filter_map { |a| serialize_user(a.assigned_to) }.uniq { |u| u[:username] }
     end
 
     def include_all_assigned_users?
       all_assigned_users.present?
+    end
+
+    private
+
+    def topic_assignments
+      @options.fetch(:assignments_by_topic, {}).fetch(object.id, nil) || fallback_assignments
+    end
+
+    def fallback_assignments
+      return [] unless defined?(Assignment)
+      Assignment.where(topic_id: object.id, active: true, assigned_to_type: "User").includes(
+        :assigned_to,
+      )
+    end
+
+    def serialize_user(user)
+      return unless user.is_a?(User)
+      { username: user.username, avatar_template: user.avatar_template }
     end
   end
 end
