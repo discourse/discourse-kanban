@@ -89,14 +89,13 @@ RSpec.describe DiscourseKanban::UpdateCard do
       end
     end
 
-    context "when preserving notes and due_at when not provided" do
+    context "when preserving notes when not provided" do
       fab!(:card) do
         board.cards.create!(
           card_type: :floater,
           membership_mode: :manual_in,
           title: "Keep details",
           notes: "Important note",
-          due_at: 2.days.from_now.change(usec: 0),
           column_id: col_todo.id,
           position: 0,
           created_by_id: admin.id,
@@ -106,13 +105,11 @@ RSpec.describe DiscourseKanban::UpdateCard do
       let(:raw_card_params) { { "title" => "Updated" } }
       let(:params) { { board_id: board.id, id: card.id, title: "Updated" } }
 
-      it "preserves notes and due_at" do
+      it "preserves notes" do
         original_notes = card.notes
-        original_due = card.due_at
         result
         card.reload
         expect(card.notes).to eq(original_notes)
-        expect(card.due_at.to_i).to eq(original_due.to_i)
       end
     end
 
@@ -273,6 +270,150 @@ RSpec.describe DiscourseKanban::UpdateCard do
         result
         expect(DiscourseKanban::Card.find_by(id: marker_id)).to be_nil
         expect(card.reload.column_id).to eq(col_done.id)
+      end
+    end
+
+    context "when assigning a user to a floater card" do
+      fab!(:assignee, :user)
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :floater,
+          membership_mode: :manual_in,
+          title: "Assign me",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      end
+
+      let(:raw_card_params) { { "assigned_to_name" => assignee.username } }
+      let(:params) { { board_id: board.id, id: card.id, assigned_to_name: assignee.username } }
+
+      it { is_expected.to run_successfully }
+
+      it "assigns the user" do
+        result
+        expect(card.reload.assigned_to).to eq(assignee)
+      end
+    end
+
+    context "when assigning a group to a floater card" do
+      fab!(:assignee_group, :group)
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :floater,
+          membership_mode: :manual_in,
+          title: "Assign group",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      end
+
+      let(:raw_card_params) { { "assigned_to_name" => assignee_group.name } }
+      let(:params) { { board_id: board.id, id: card.id, assigned_to_name: assignee_group.name } }
+
+      it { is_expected.to run_successfully }
+
+      it "assigns the group" do
+        result
+        expect(card.reload.assigned_to).to eq(assignee_group)
+      end
+    end
+
+    context "when unassigning a floater card" do
+      fab!(:assignee, :user)
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :floater,
+          membership_mode: :manual_in,
+          title: "Unassign me",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+          assigned_to: assignee,
+        )
+      end
+
+      let(:raw_card_params) { { "assigned_to_name" => "" } }
+      let(:params) { { board_id: board.id, id: card.id, assigned_to_name: "" } }
+
+      it { is_expected.to run_successfully }
+
+      it "clears the assignment" do
+        result
+        expect(card.reload.assigned_to).to be_nil
+      end
+    end
+
+    context "when assigning an unknown name" do
+      fab!(:assignee, :user)
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :floater,
+          membership_mode: :manual_in,
+          title: "Keep assignee",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+          assigned_to: assignee,
+        )
+      end
+
+      let(:raw_card_params) { { "assigned_to_name" => "nonexistent_name" } }
+      let(:params) { { board_id: board.id, id: card.id, assigned_to_name: "nonexistent_name" } }
+
+      it "raises InvalidParameters" do
+        expect { result }.to raise_error(Discourse::InvalidParameters)
+        expect(card.reload.assigned_to).to eq(assignee)
+      end
+    end
+
+    context "when assigning a group the user cannot see" do
+      fab!(:hidden_group) { Fabricate(:group, visibility_level: Group.visibility_levels[:staff]) }
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :floater,
+          membership_mode: :manual_in,
+          title: "Hidden group",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      end
+
+      let(:raw_card_params) { { "assigned_to_name" => hidden_group.name } }
+      let(:params) { { board_id: board.id, id: card.id, assigned_to_name: hidden_group.name } }
+
+      it "raises InvalidParameters" do
+        expect { result }.to raise_error(Discourse::InvalidParameters)
+      end
+    end
+
+    context "when promoting a floater with assignment to a topic card" do
+      fab!(:assignee, :user)
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :floater,
+          membership_mode: :manual_in,
+          title: "Promote me",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+          assigned_to: assignee,
+        )
+      end
+
+      let(:raw_card_params) { { "topic_id" => topic.id.to_s } }
+      let(:params) { { board_id: board.id, id: card.id, topic_id: topic.id } }
+      let(:dependencies) { { guardian: Guardian.new(admin) } }
+
+      it { is_expected.to run_successfully }
+
+      it "clears the assignment on promotion" do
+        result_card = result[:card]
+        expect(result_card.assigned_to_id).to be_nil
+        expect(result_card.assigned_to_type).to be_nil
       end
     end
 

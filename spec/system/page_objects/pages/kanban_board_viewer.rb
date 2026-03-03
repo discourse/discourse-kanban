@@ -228,12 +228,6 @@ module PageObjects
         end
       end
 
-      def has_card_due_date?(card_title)
-        within(find(".kanban-card--floater", text: card_title)) do
-          has_css?(".kanban-card__due-date")
-        end
-      end
-
       def has_card_notes_indicator?(card_title)
         within(find(".kanban-card--floater", text: card_title)) do
           has_css?(".kanban-card__notes-indicator")

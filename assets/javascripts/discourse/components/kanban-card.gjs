@@ -84,11 +84,23 @@ export default class KanbanCard extends Component {
     if (this.topic?.assigned_to_user) {
       return [this.topic.assigned_to_user];
     }
+    const floaterAssignment = this.args.card.assigned_to;
+    if (!this.isTopicCard && floaterAssignment?.type === "User") {
+      return [floaterAssignment];
+    }
     return [];
   }
 
   get assignedUser() {
     return this.allAssignedUsers[0] ?? null;
+  }
+
+  get assignedGroup() {
+    const floaterAssignment = this.args.card.assigned_to;
+    if (!this.isTopicCard && floaterAssignment?.type === "Group") {
+      return floaterAssignment;
+    }
+    return null;
   }
 
   get assignedAvatarHtml() {
@@ -111,14 +123,14 @@ export default class KanbanCard extends Component {
     if (this.isTopicCard) {
       return this.topic?.last_poster?.username;
     }
-    return this.args.card.updated_by?.username;
+    return this.args.card.created_by?.username;
   }
 
   get activityDate() {
     if (this.isTopicCard) {
       return this.topic?.bumped_at;
     }
-    return this.args.card.updated_at;
+    return this.args.card.created_at;
   }
 
   get activityClass() {
@@ -149,14 +161,7 @@ export default class KanbanCard extends Component {
 
   get hasDetails() {
     const card = this.args.card;
-    return !!(card.notes || card.labels?.length || card.due_at);
-  }
-
-  get isOverdue() {
-    return (
-      this.args.card.due_at &&
-      moment(this.args.card.due_at).isBefore(moment(), "day")
-    );
+    return !!(card.notes || card.labels?.length);
   }
 
   @action
@@ -294,17 +299,6 @@ export default class KanbanCard extends Component {
             {{#each @card.labels as |label|}}
               <span class="kanban-card__label">{{label}}</span>
             {{/each}}
-            {{#if @card.due_at}}
-              <span
-                class={{concatClass
-                  "kanban-card__due-date"
-                  (if this.isOverdue "kanban-card__due-date--overdue")
-                }}
-              >
-                {{icon "clock"}}
-                {{formatDate @card.due_at format="tiny" noTitle="true"}}
-              </span>
-            {{/if}}
             {{#if @card.notes}}
               <span class="kanban-card__notes-indicator" title={{@card.notes}}>
                 {{icon "file-lines"}}
@@ -337,6 +331,13 @@ export default class KanbanCard extends Component {
               {{/each}}
             </div>
           {{/if}}
+          {{#if this.assignedGroup}}
+            <div class="kanban-card__assignments">
+              <div class="kanban-card__assigned-to">
+                {{icon "group"}}{{this.assignedGroup.name}}
+              </div>
+            </div>
+          {{/if}}
         {{/unless}}
       </div>
 
@@ -354,6 +355,12 @@ export default class KanbanCard extends Component {
           {{#if this.assignedAvatarHtml}}
             <div class="kanban-card__assignments-avatars">
               {{htmlSafe this.assignedAvatarHtml}}
+            </div>
+          {{else if this.assignedGroup}}
+            <div class="kanban-card__assignments">
+              <div class="kanban-card__assigned-to">
+                {{icon "group"}}{{this.assignedGroup.name}}
+              </div>
             </div>
           {{/if}}
         </div>

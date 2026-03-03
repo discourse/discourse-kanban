@@ -32,9 +32,8 @@ en:
         labels_placeholder: "Type labels (comma separated)"
         labels_help: "Press Enter or click Add. Use commas to add multiple labels."
         add_label: "Add"
-        due_date: "Due Date"
         remove_label: "Remove label"
-        overdue: "Overdue"
+        assigned_to: "Assigned To"
         wip_count: "%{count}/%{limit}"
       manage:
         title: "Kanban Boards"

@@ -11,8 +11,8 @@ module DiscourseKanban
       attribute :column_id, :integer
       attribute :title, :string
       attribute :notes
-      attribute :due_at
       attribute :after_card_id, :integer
+      attribute :assigned_to_name, :string
       attribute :labels, :array
 
       validates :board_id, presence: true
@@ -85,7 +85,8 @@ module DiscourseKanban
       card.title = nil
       card.notes = nil
       card.labels = []
-      card.due_at = nil
+      card.assigned_to_id = nil
+      card.assigned_to_type = nil
       card.membership_mode = :manual_in
       card.updated_by_id = guardian.user.id
       TopicMutator.apply!(topic:, column:, guardian:)
@@ -97,12 +98,28 @@ module DiscourseKanban
       if card.floater? && !context[:promoted]
         card.title = params.title || card.title
         card.notes = raw.key?("notes") ? raw["notes"] : card.notes
-        card.due_at = raw.key?("due_at") ? raw["due_at"] : card.due_at
         card.labels = params.labels || card.labels
+        card.assigned_to = resolve_assignee(raw["assigned_to_name"], guardian) if raw.key?(
+          "assigned_to_name",
+        )
         card.updated_by_id = guardian.user.id
       elsif !context[:promoted]
         card.updated_by_id = guardian.user.id
       end
+    end
+
+    def resolve_assignee(name, guardian)
+      return nil if name.blank?
+
+      user = User.find_by_username(name)
+      return user if user&.active
+
+      group = Group.find_by(name: name)
+      return group if group && guardian.can_see_group?(group)
+
+      raise Discourse::InvalidParameters.new(
+              I18n.t("discourse_kanban.errors.invalid_assignee", name: name),
+            )
     end
 
     def place_and_save(card:, column:, params:, guardian:)

@@ -9,6 +9,7 @@ module DiscourseKanban
     belongs_to :topic, optional: true
     belongs_to :created_by, class_name: "User", optional: true
     belongs_to :updated_by, class_name: "User", optional: true
+    belongs_to :assigned_to, polymorphic: true, optional: true
 
     enum :card_type, { floater: 0, topic: 1 }, default: :floater
     enum :membership_mode, { auto: 0, manual_in: 1, manual_out: 2 }, default: :manual_in
@@ -53,24 +54,27 @@ end
 #
 # Table name: discourse_kanban_cards
 #
-#  id              :bigint           not null, primary key
-#  card_type       :integer          default("floater"), not null
-#  due_at          :datetime
-#  labels          :text             default([]), not null, is an Array
-#  membership_mode :integer          default("manual_in"), not null
-#  notes           :text
-#  position        :bigint           default(0), not null
-#  title           :string
-#  created_at      :datetime         not null
-#  updated_at      :datetime         not null
-#  board_id        :bigint           not null
-#  column_id       :bigint
-#  created_by_id   :bigint
-#  topic_id        :bigint
-#  updated_by_id   :bigint
+#  id               :bigint           not null, primary key
+#  assigned_to_type :string
+#  card_type        :integer          default("floater"), not null
+#  due_at           :datetime
+#  labels           :text             default([]), not null, is an Array
+#  membership_mode  :integer          default("manual_in"), not null
+#  notes            :text
+#  position         :bigint           default(0), not null
+#  title            :string
+#  created_at       :datetime         not null
+#  updated_at       :datetime         not null
+#  assigned_to_id   :bigint
+#  board_id         :bigint           not null
+#  column_id        :bigint
+#  created_by_id    :bigint
+#  topic_id         :bigint
+#  updated_by_id    :bigint
 #
 # Indexes
 #
+#  idx_kanban_cards_assigned_to              (assigned_to_type,assigned_to_id)
 #  idx_kanban_cards_board_column_position    (board_id,column_id,position)
 #  idx_kanban_cards_board_id                 (board_id)
 #  idx_kanban_cards_column_id                (column_id)

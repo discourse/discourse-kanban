@@ -10,8 +10,8 @@ module DiscourseKanban
       attribute :topic_id, :integer
       attribute :title, :string
       attribute :notes, :string
-      attribute :due_at
       attribute :after_card_id, :integer
+      attribute :assigned_to_name, :string
       attribute :labels, :array
 
       validates :board_id, presence: true
@@ -95,7 +95,7 @@ module DiscourseKanban
           title: params.title,
           notes: params.notes,
           labels: params.labels || [],
-          due_at: params.due_at,
+          assigned_to: resolve_assignee(params.assigned_to_name, guardian),
           created_by_id: guardian.user.id,
           updated_by_id: guardian.user.id,
         )
@@ -103,6 +103,20 @@ module DiscourseKanban
       CardOrdering.append_to_column!(card, column)
       card.save!
       card
+    end
+
+    def resolve_assignee(name, guardian)
+      return nil if name.blank?
+
+      user = User.find_by_username(name)
+      return user if user&.active
+
+      group = Group.find_by(name: name)
+      return group if group && guardian.can_see_group?(group)
+
+      raise Discourse::InvalidParameters.new(
+              I18n.t("discourse_kanban.errors.invalid_assignee", name: name),
+            )
     end
 
     def unique_topic_card_violation?(error)

@@ -21,7 +21,8 @@ module DiscourseKanban
 
       topic_includes = %i[tags last_poster]
       topic_includes << :assignment if Topic.reflect_on_association(:assignment)
-      cards = @board.cards.with_column.ordered.includes(:updated_by, topic: topic_includes)
+      cards =
+        @board.cards.with_column.ordered.includes(:created_by, :assigned_to, topic: topic_includes)
       visible_topic_ids = visible_topic_ids_for(cards)
 
       assignments_by_topic = preload_all_assignments(cards, visible_topic_ids)

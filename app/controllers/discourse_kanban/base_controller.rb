@@ -71,15 +71,15 @@ module DiscourseKanban
         title: card.title,
         notes: card.notes,
         labels: card.labels,
-        due_at: card.due_at,
       }
 
       if card.topic?
         payload[:topic_id] = card.topic_id
         payload[:topic] = topic_card_payload(card.topic, assignments_by_topic:) if card.topic
       else
-        payload[:updated_at] = card.updated_at
-        payload[:updated_by] = { username: card.updated_by.username } if card.updated_by
+        payload[:created_at] = card.created_at
+        payload[:created_by] = { username: card.created_by.username } if card.created_by
+        payload[:assigned_to] = serialize_assigned_to(card.assigned_to) if card.assigned_to
       end
 
       payload
@@ -140,10 +140,19 @@ module DiscourseKanban
         :column_id,
         :title,
         :notes,
-        :due_at,
         :after_card_id,
+        :assigned_to_name,
         labels: [],
       )
+    end
+
+    def serialize_assigned_to(assignee)
+      case assignee
+      when User
+        { type: "User", username: assignee.username, avatar_template: assignee.avatar_template }
+      when Group
+        { type: "Group", name: assignee.name }
+      end
     end
 
     def message_bus_client_id

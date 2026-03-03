@@ -369,22 +369,6 @@
     color: var(--primary-high);
   }
 
-  &__due-date {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    font-size: $font-down-2;
-    color: var(--primary-medium);
-
-    .d-icon {
-      font-size: 0.85em;
-    }
-
-    &--overdue {
-      color: var(--danger);
-    }
-  }
-
   &__notes-indicator {
     margin-left: auto;
     color: var(--primary-medium);

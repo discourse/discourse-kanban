@@ -198,6 +198,75 @@ RSpec.describe DiscourseKanban::CardsController do
       usernames = all_assigned.map { |u| u["username"] }
       expect(usernames).to include(assignee_1.username, assignee_2.username)
     end
+
+    it "creates a floater card assigned to a user" do
+      assignee = Fabricate(:user)
+      sign_in(writer)
+
+      post "/kanban/boards/#{board.id}/cards.json",
+           params: {
+             card: {
+               column_id: col_todo.id,
+               title: "Assigned task",
+               assigned_to_name: assignee.username,
+             },
+           }
+
+      expect(response.status).to eq(201)
+      card = response.parsed_body["card"]
+      expect(card["assigned_to"]["type"]).to eq("User")
+      expect(card["assigned_to"]["username"]).to eq(assignee.username)
+    end
+
+    it "creates a floater card assigned to a group" do
+      group = Fabricate(:group)
+      sign_in(writer)
+
+      post "/kanban/boards/#{board.id}/cards.json",
+           params: {
+             card: {
+               column_id: col_todo.id,
+               title: "Group task",
+               assigned_to_name: group.name,
+             },
+           }
+
+      expect(response.status).to eq(201)
+      card = response.parsed_body["card"]
+      expect(card["assigned_to"]["type"]).to eq("Group")
+      expect(card["assigned_to"]["name"]).to eq(group.name)
+    end
+
+    it "rejects an unknown assignee name" do
+      sign_in(writer)
+
+      post "/kanban/boards/#{board.id}/cards.json",
+           params: {
+             card: {
+               column_id: col_todo.id,
+               title: "Bad assignee",
+               assigned_to_name: "nonexistent_user_or_group",
+             },
+           }
+
+      expect(response.status).to eq(400)
+    end
+
+    it "rejects assigning a group the user cannot see" do
+      hidden_group = Fabricate(:group, visibility_level: Group.visibility_levels[:staff])
+      sign_in(writer)
+
+      post "/kanban/boards/#{board.id}/cards.json",
+           params: {
+             card: {
+               column_id: col_todo.id,
+               title: "Hidden group",
+               assigned_to_name: hidden_group.name,
+             },
+           }
+
+      expect(response.status).to eq(400)
+    end
   end
 
   describe "PUT /kanban/boards/:board_id/cards/:id" do
@@ -250,15 +319,13 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(response.parsed_body["card"]["title"]).to eq("New title")
     end
 
-    it "preserves notes and due date when omitted from floater updates" do
-      due_at = 2.days.from_now.change(usec: 0)
+    it "preserves notes when omitted from floater updates" do
       card =
         board.cards.create!(
           card_type: :floater,
           membership_mode: :manual_in,
           title: "Keep details",
           notes: "Keep this note",
-          due_at: due_at,
           column_id: col_todo.id,
           position: 0,
           created_by_id: admin.id,
@@ -275,7 +342,6 @@ RSpec.describe DiscourseKanban::CardsController do
 
       expect(response.status).to eq(200)
       expect(card.reload.notes).to eq("Keep this note")
-      expect(card.due_at.to_i).to eq(due_at.to_i)
     end
 
     it "applies topic mutations when moving a topic card to a new column" do
@@ -603,6 +669,168 @@ RSpec.describe DiscourseKanban::CardsController do
       all_assigned = response.parsed_body.dig("card", "topic", "all_assigned_users")
       expect(all_assigned).to be_present
       expect(all_assigned.first["username"]).to eq(assignee.username)
+    end
+
+    it "assigns a user to a floater card" do
+      card =
+        board.cards.create!(
+          card_type: :floater,
+          membership_mode: :manual_in,
+          title: "Assign me",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      assignee = Fabricate(:user)
+
+      sign_in(writer)
+
+      put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+          params: {
+            card: {
+              assigned_to_name: assignee.username,
+            },
+          }
+
+      expect(response.status).to eq(200)
+      expect(card.reload.assigned_to).to eq(assignee)
+      result = response.parsed_body["card"]
+      expect(result["assigned_to"]["type"]).to eq("User")
+      expect(result["assigned_to"]["username"]).to eq(assignee.username)
+    end
+
+    it "assigns a group to a floater card" do
+      card =
+        board.cards.create!(
+          card_type: :floater,
+          membership_mode: :manual_in,
+          title: "Assign group",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      group = Fabricate(:group)
+
+      sign_in(writer)
+
+      put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+          params: {
+            card: {
+              assigned_to_name: group.name,
+            },
+          }
+
+      expect(response.status).to eq(200)
+      expect(card.reload.assigned_to).to eq(group)
+      result = response.parsed_body["card"]
+      expect(result["assigned_to"]["type"]).to eq("Group")
+      expect(result["assigned_to"]["name"]).to eq(group.name)
+    end
+
+    it "unassigns a floater card" do
+      assignee = Fabricate(:user)
+      card =
+        board.cards.create!(
+          card_type: :floater,
+          membership_mode: :manual_in,
+          title: "Unassign me",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+          assigned_to: assignee,
+        )
+
+      sign_in(writer)
+
+      put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+          params: {
+            card: {
+              assigned_to_name: "",
+            },
+          }
+
+      expect(response.status).to eq(200)
+      expect(card.reload.assigned_to).to be_nil
+      expect(response.parsed_body["card"]["assigned_to"]).to be_nil
+    end
+
+    it "does not silently clear assignment for unknown assignee name" do
+      assignee = Fabricate(:user)
+      card =
+        board.cards.create!(
+          card_type: :floater,
+          membership_mode: :manual_in,
+          title: "Keep assignee",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+          assigned_to: assignee,
+        )
+
+      sign_in(writer)
+
+      put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+          params: {
+            card: {
+              assigned_to_name: "nonexistent_user_or_group",
+            },
+          }
+
+      expect(response.status).to eq(400)
+      expect(card.reload.assigned_to).to eq(assignee)
+    end
+
+    it "rejects updating assignment to a group the user cannot see" do
+      card =
+        board.cards.create!(
+          card_type: :floater,
+          membership_mode: :manual_in,
+          title: "Hidden group",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      hidden_group = Fabricate(:group, visibility_level: Group.visibility_levels[:staff])
+
+      sign_in(writer)
+
+      put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+          params: {
+            card: {
+              assigned_to_name: hidden_group.name,
+            },
+          }
+
+      expect(response.status).to eq(400)
+      expect(card.reload.assigned_to).to be_nil
+    end
+
+    it "clears assignment when promoting a floater to a topic card" do
+      assignee = Fabricate(:user)
+      card =
+        board.cards.create!(
+          card_type: :floater,
+          membership_mode: :manual_in,
+          title: "Promote me",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+          assigned_to: assignee,
+        )
+
+      sign_in(admin)
+
+      put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+          params: {
+            card: {
+              topic_id: topic.id,
+            },
+          }
+
+      expect(response.status).to eq(200)
+      card.reload
+      expect(card.assigned_to_id).to be_nil
+      expect(card.assigned_to_type).to be_nil
     end
 
     it "rejects requests from users without write access" do
