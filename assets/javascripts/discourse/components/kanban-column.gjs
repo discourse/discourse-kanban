@@ -12,6 +12,7 @@ import { TOPIC_URL_REGEXP } from "discourse/lib/url";
 import { eq } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
 import KanbanCard from "./kanban-card";
+import autoFocus from "discourse/modifiers/auto-focus";
 
 export default class KanbanColumn extends Component {
   @service dialog;
@@ -375,6 +376,7 @@ export default class KanbanColumn extends Component {
                 value={{this.newCardTitle}}
                 {{on "input" this.onTitleInput}}
                 {{on "keydown" this.onTitleKeydown}}
+                {{autoFocus}}
               />
               <div class="kanban-column__add-card-actions">
                 <DButton
