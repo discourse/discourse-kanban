@@ -97,27 +97,30 @@ RSpec.describe DiscourseKanban::MoveTopicToColumn do
       it { is_expected.to run_successfully }
 
       it "creates a topic card on the column" do
-        card = result[:card]
-        expect(card).to be_previously_new_record
-        expect(card.topic_id).to eq(topic.id)
-        expect(card.column_id).to eq(column.id)
-        expect(card.card_type).to eq("topic")
-        expect(card.membership_mode).to eq("manual_in")
+        expect(result[:card]).to be_previously_new_record.and have_attributes(
+                                       topic_id: topic.id,
+                                       column_id: column.id,
+                                       card_type: "topic",
+                                       membership_mode: "manual_in",
+                                     )
       end
 
       it "sets creator and updater to the acting user" do
-        card = result[:card]
-        expect(card.created_by_id).to eq(admin.id)
-        expect(card.updated_by_id).to eq(admin.id)
+        expect(result[:card]).to have_attributes(created_by_id: admin.id, updated_by_id: admin.id)
       end
 
       it "publishes a card_created event scoped to board read groups" do
-        expect(messages.size).to eq(1)
-        msg = messages.first
-        expect(msg.data[:type]).to eq("card_created")
-        expect(msg.data[:client_id]).to eq(client_id)
-        expect(msg.data[:card][:topic_id]).to eq(topic.id)
-        expect(msg.group_ids).to contain_exactly(write_group.id, read_group.id)
+        expect(messages).to contain_exactly(
+          have_attributes(
+            data:
+              include(
+                type: "card_created",
+                client_id: client_id,
+                card: include(topic_id: topic.id),
+              ),
+            group_ids: contain_exactly(write_group.id, read_group.id),
+          ),
+        )
       end
     end
 
@@ -136,20 +139,18 @@ RSpec.describe DiscourseKanban::MoveTopicToColumn do
       it { is_expected.to run_successfully }
 
       it "upgrades the existing card to manual_in" do
-        card = result[:card]
-        expect(card.id).to eq(existing_card.id)
-        expect(card).not_to be_previously_new_record
-        expect(card.membership_mode).to eq("manual_in")
-      end
-
-      it "preserves the original creator" do
-        expect(result[:card].created_by_id).to eq(writer.id)
+        expect(result[:card]).not_to be_previously_new_record
+        expect(result[:card]).to have_attributes(
+          id: existing_card.id,
+          membership_mode: "manual_in",
+          created_by_id: writer.id,
+        )
       end
 
       it "publishes a card_moved event" do
-        expect(messages.size).to eq(1)
-        expect(messages.first.data[:type]).to eq("card_moved")
-        expect(messages.first.data[:client_id]).to eq(client_id)
+        expect(messages).to contain_exactly(
+          have_attributes(data: include(type: "card_moved", client_id: client_id)),
+        )
       end
     end
 
