@@ -6,12 +6,7 @@ module DiscourseKanban
 
     def create
       DiscourseKanban::MoveTopicToColumn.call(
-        **service_params.deep_merge(
-          params: {
-            board_id: params[:board_id],
-            client_id: message_bus_client_id,
-          },
-        ),
+        **service_params.deep_merge(params: { client_id: message_bus_client_id }),
       ) do
         on_success do |card:|
           render json: {

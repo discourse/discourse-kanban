@@ -11,23 +11,15 @@ module DiscourseKanban
                :title,
                :notes,
                :labels,
-               :due_at
+               :due_at,
+               :topic_id,
+               :updated_at,
+               :updated_by
 
-    attribute :topic_id
-    attribute :topic
-    attribute :updated_at
-    attribute :updated_by
+    has_one :topic, serializer: CardTopicSerializer
 
     def include_topic_id?
       object.topic?
-    end
-
-    def topic
-      CardTopicSerializer.new(
-        object.topic,
-        root: false,
-        assignments_by_topic: @options[:assignments_by_topic] || {},
-      ).as_json
     end
 
     def include_topic?
