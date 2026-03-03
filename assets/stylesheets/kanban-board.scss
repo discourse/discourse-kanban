@@ -4,6 +4,7 @@ html.kanban-board {
   }
 
   body.has-sidebar-page #main-outlet-wrapper {
+    grid-template-columns: auto 1fr;
     gap: 0;
     padding-right: 0;
   }
