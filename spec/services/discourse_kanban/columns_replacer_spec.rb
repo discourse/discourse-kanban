@@ -70,40 +70,6 @@ RSpec.describe DiscourseKanban::ColumnsReplacer do
       expect(board.cards.reload.count).to eq(0)
     end
 
-    it "persists wip_limit when creating columns" do
-      DiscourseKanban::ColumnsReplacer.replace!(
-        board:,
-        columns_payload: [{ "title" => "Backlog", "wip_limit" => 5 }],
-        user: admin,
-      )
-
-      expect(board.columns.first.wip_limit).to eq(5)
-    end
-
-    it "updates wip_limit on existing columns" do
-      col = board.columns.create!(title: "Col", position: 0, wip_limit: 3)
-
-      DiscourseKanban::ColumnsReplacer.replace!(
-        board:,
-        columns_payload: [{ "id" => col.id, "title" => "Col", "wip_limit" => 7 }],
-        user: admin,
-      )
-
-      expect(col.reload.wip_limit).to eq(7)
-    end
-
-    it "clears wip_limit when set to nil" do
-      col = board.columns.create!(title: "Col", position: 0, wip_limit: 3)
-
-      DiscourseKanban::ColumnsReplacer.replace!(
-        board:,
-        columns_payload: [{ "id" => col.id, "title" => "Col", "wip_limit" => nil }],
-        user: admin,
-      )
-
-      expect(col.reload.wip_limit).to be_nil
-    end
-
     it "marks topic cards in removed columns as manual_out" do
       topic = Fabricate(:topic)
       col = board.columns.create!(title: "Gone", position: 0)

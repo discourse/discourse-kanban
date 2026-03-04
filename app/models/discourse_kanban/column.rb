@@ -3,14 +3,13 @@
 module DiscourseKanban
   class Column < ActiveRecord::Base
     self.table_name = "discourse_kanban_columns"
+    self.ignored_columns = ["wip_limit"]
 
     belongs_to :board, class_name: "DiscourseKanban::Board", inverse_of: :columns
     has_many :cards, class_name: "DiscourseKanban::Card", dependent: :nullify, inverse_of: :column
 
     validates :title, presence: true
     validates :position, presence: true
-    validates :wip_limit, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
-
     def matches_topic?(topic)
       return true if filter_query.blank?
 
@@ -35,7 +34,6 @@ end
 #  move_to_tag         :string
 #  position            :integer          default(0), not null
 #  title               :string           not null
-#  wip_limit           :integer
 #  created_at          :datetime         not null
 #  updated_at          :datetime         not null
 #  board_id            :bigint           not null

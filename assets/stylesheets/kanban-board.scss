@@ -126,14 +126,6 @@ body.kanban-board {
     font-size: var(--font-down-1);
     font-weight: 600;
     color: var(--primary-600);
-
-    &--at-limit {
-      color: var(--danger);
-    }
-
-    &--over-limit {
-      color: var(--danger-medium);
-    }
   }
 
   &__menu-trigger {

@@ -43,18 +43,6 @@ export default class KanbanColumn extends Component {
     return this.args.column.cards?.length || 0;
   }
 
-  get wipLimit() {
-    return this.args.column.wip_limit;
-  }
-
-  get isOverWipLimit() {
-    return this.wipLimit && this.cardCount > this.wipLimit;
-  }
-
-  get isAtWipLimit() {
-    return this.wipLimit && this.cardCount === this.wipLimit;
-  }
-
   get columnTags() {
     const allColumns = this.args.allColumns || [];
     return allColumns.map((col) => col.move_to_tag).filter(Boolean);
@@ -297,20 +285,8 @@ export default class KanbanColumn extends Component {
             {{#if @column.icon}}{{icon @column.icon}}{{/if}}
             {{@column.title}}
           </span>
-          <span
-            class="kanban-column__count
-              {{if this.isOverWipLimit 'kanban-column__count--over-limit'}}
-              {{if this.isAtWipLimit 'kanban-column__count--at-limit'}}"
-          >
-            {{#if this.wipLimit}}
-              {{i18n
-                "discourse_kanban.board.wip_count"
-                count=this.cardCount
-                limit=this.wipLimit
-              }}
-            {{else}}
-              {{this.cardCount}}
-            {{/if}}
+          <span class="kanban-column__count">
+            {{this.cardCount}}
           </span>
         </span>
         {{#if @canManage}}
