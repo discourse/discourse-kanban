@@ -4,6 +4,7 @@ import { fn } from "@ember/helper";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
 import didInsert from "@ember/render-modifiers/modifiers/did-insert";
+import willDestroy from "@ember/render-modifiers/modifiers/will-destroy";
 import { schedule } from "@ember/runloop";
 import { service } from "@ember/service";
 import { modifier } from "ember-modifier";
@@ -387,6 +388,7 @@ export default class KanbanColumn extends Component {
           class="kanban-column__footer"
           {{didInsert calcColumnFooterHeight}}
           {{onWindowResize calcColumnFooterHeight}}
+          {{willDestroy calcColumnFooterHeight}}
         >
           {{#if this.isAdding}}
             <div

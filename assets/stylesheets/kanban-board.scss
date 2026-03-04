@@ -1,5 +1,5 @@
 body.kanban-board {
-  --kanban-column-header-height: min-content;
+  --kanban-column-header-height: 25px;
   --kanban-column-card-gap: var(--space-2);
   --kanban-column-padding: var(--space-2);
 
@@ -153,9 +153,9 @@ body.kanban-board {
     overflow-y: auto;
     height: 100%;
     max-height: calc(
-      var(--board-container-height) - var(
-          --kanban-column-header-height-observed
-        ) - var(--kanban-column-footer-height) - var(--kanban-header-height) -
+      var(--board-container-height) - var(--kanban-column-header-height) - var(
+          --kanban-column-footer-height
+        ) - var(--kanban-header-height) -
         (var(--kanban-column-padding) * 2)
     );
     gap: var(--kanban-column-card-gap);
