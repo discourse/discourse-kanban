@@ -1,8 +1,5 @@
-html.kanban-board {
-  #main-outlet-wrapper #main-outlet {
-    padding: 0;
-    max-width: 100%;
-  }
+body.kanban-board {
+  --kanban-header-height: 25px;
 
   body.has-sidebar-page #main-outlet-wrapper {
     grid-template-columns: auto 1fr;
@@ -18,21 +15,16 @@ html.kanban-board {
 .kanban-board-viewer {
   --desired-height: calc(100vh - var(--kanban-offset-top));
   height: max(var(--desired-height), 500px);
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding-block: 10px;
-  box-sizing: border-box;
-  position: relative;
+  display: flex;
+  flex-direction: column;
 
   &__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 10px;
-    margin-bottom: 10px;
-    position: sticky;
-    left: 0;
+    margin-bottom: var(--space-4);
     z-index: 1;
+    padding-inline: var(--space-4);
   }
 
   &__title {
@@ -60,18 +52,16 @@ html.kanban-board {
     height: 100%;
     padding: 10px 0;
     overflow-x: auto;
-
-    .kanban-board-container {
-      height: calc(100% - 50px);
-    }
   }
 }
 
 .kanban-board-container {
   display: flex;
-  gap: 0 10px;
-  height: calc(100% - 50px);
-  padding: 0 10px;
+  gap: 0 var(--space-2);
+  flex-grow: 1;
+  padding-inline: var(--space-4);
+  max-width: 100%;
+  overflow: scroll;
 }
 
 .kanban-column {
@@ -83,9 +73,9 @@ html.kanban-board {
   display: flex;
   flex-direction: column;
   padding: var(--space-2);
-  padding-right: var(--space-1);
   transition: border-color 0.15s ease;
   border-radius: var(--d-border-radius);
+  height: min-content;
 
   &.drag-target {
     border-color: var(--tertiary);
@@ -93,7 +83,8 @@ html.kanban-board {
 
   &__header {
     display: flex;
-    align-items: baseline;
+    align-items: center;
+    height: var(--kanban-header-height);
     justify-content: space-between;
   }
 
@@ -147,7 +138,6 @@ html.kanban-board {
     overflow-y: auto;
     height: 100%;
     gap: var(--space-2);
-    padding-right: var(--space-1);
     -webkit-overflow-scrolling: touch;
     transform: translate3d(0, 0, 0);
     scrollbar-width: thin;

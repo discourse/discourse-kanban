@@ -30,7 +30,7 @@ const onWindowResize = modifier((element, [callback]) => {
 
 function calcOffset(element) {
   schedule("afterRender", () => {
-    element.style.setProperty(
+    document.documentElement.style.setProperty(
       "--kanban-offset-top",
       `${element.getBoundingClientRect().top}px`
     );
@@ -783,8 +783,6 @@ export default class KanbanBoardViewer extends Component {
 
     <div
       class="kanban-board-viewer {{if this.fullscreen 'is-fullscreen'}}"
-      {{onWindowResize calcOffset}}
-      {{didInsert calcOffset}}
       {{this.setupMessageBus}}
     >
       <div class="kanban-board-viewer__header">
@@ -847,7 +845,11 @@ export default class KanbanBoardViewer extends Component {
       </div>
 
       {{#if this.columns.length}}
-        <div class="kanban-board-container">
+        <div
+          class="kanban-board-container"
+          {{onWindowResize calcOffset}}
+          {{didInsert calcOffset}}
+        >
           {{#each this.columns key="id" as |column|}}
             <KanbanColumn
               @column={{column}}
