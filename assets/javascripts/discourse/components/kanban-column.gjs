@@ -32,15 +32,6 @@ function calcColumnFooterHeight(element) {
   });
 }
 
-function calcColumnHeaderHeight(element) {
-  schedule("afterRender", () => {
-    document.documentElement.style.setProperty(
-      "--kanban-column-header-height-observed",
-      `${element.clientHeight}px`
-    );
-  });
-}
-
 export default class KanbanColumn extends Component {
   @service dialog;
 

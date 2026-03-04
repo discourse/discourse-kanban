@@ -15,7 +15,16 @@ body.kanban-board {
 
   &.has-sidebar-page #main-outlet-wrapper {
     --d-main-content-gap: var(--space-2);
-    grid-template-columns: var(--d-sidebar-width) var(--kanban-available-width);
+    grid-template-columns: var(--d-sidebar-width) calc(
+        var(--kanban-available-width) - var(--d-wrap-padding-x)
+      );
+  }
+
+  &:not(.has-sidebar-page) #main-outlet-wrapper {
+    --d-max-width: none;
+    grid-template-columns: 0 calc(
+        var(--kanban-available-width) - var(--d-wrap-padding-x)
+      );
   }
 }
 

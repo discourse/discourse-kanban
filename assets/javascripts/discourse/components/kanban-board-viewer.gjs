@@ -28,6 +28,15 @@ const onWindowResize = modifier((element, [callback]) => {
   return () => window.removeEventListener("resize", wrappedCallback);
 });
 
+const onSidebarToggle = modifier((element, [callback]) => {
+  const observer = new MutationObserver(() => callback(element));
+  observer.observe(document.body, {
+    attributes: true,
+    attributeFilter: ["class"],
+  });
+  return () => observer.disconnect();
+});
+
 function calcAvailableHeight(element) {
   schedule("afterRender", () => {
     const top = element.getBoundingClientRect().top;
@@ -61,11 +70,10 @@ function calcAvailableWidth(element) {
     if (!wrapper) {
       return;
     }
-    const sidebar = wrapper.querySelector(".sidebar-wrapper");
+    const hasSidebar = document.body.classList.contains("has-sidebar-page");
     let available;
-    if (sidebar) {
-      const gap = parseFloat(getComputedStyle(wrapper).columnGap) || 0;
-      available = wrapper.clientWidth - sidebar.offsetWidth - gap;
+    if (hasSidebar) {
+      available = window.innerWidth - element.getBoundingClientRect().left;
     } else {
       available = wrapper.clientWidth;
     }
@@ -837,6 +845,7 @@ export default class KanbanBoardViewer extends Component {
       {{didInsert calcAvailableHeight}}
       {{onWindowResize calcAvailableWidth}}
       {{didInsert calcAvailableWidth}}
+      {{onSidebarToggle calcAvailableWidth}}
     >
       <div
         class="kanban-board-viewer__header"
