@@ -12,6 +12,11 @@ body.kanban-board {
   .powered-by-discourse {
     display: none;
   }
+
+  &.has-sidebar-page #main-outlet-wrapper {
+    --d-main-content-gap: var(--space-2);
+    grid-template-columns: var(--d-sidebar-width) var(--kanban-available-width);
+  }
 }
 
 .kanban-board-viewer {

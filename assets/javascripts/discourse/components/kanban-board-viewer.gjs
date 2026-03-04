@@ -53,6 +53,29 @@ function calcAvailableHeight(element) {
   });
 }
 
+function calcAvailableWidth(element) {
+  schedule("afterRender", () => {
+    const wrapper =
+      element.closest("#main-outlet-wrapper") ||
+      document.querySelector("#main-outlet-wrapper");
+    if (!wrapper) {
+      return;
+    }
+    const sidebar = wrapper.querySelector(".sidebar-wrapper");
+    let available;
+    if (sidebar) {
+      const gap = parseFloat(getComputedStyle(wrapper).columnGap) || 0;
+      available = wrapper.clientWidth - sidebar.offsetWidth - gap;
+    } else {
+      available = wrapper.clientWidth;
+    }
+    document.documentElement.style.setProperty(
+      "--kanban-available-width",
+      `${available}px`
+    );
+  });
+}
+
 function calcHeaderHeight(element) {
   schedule("afterRender", () => {
     const height = element.clientHeight;
@@ -812,6 +835,8 @@ export default class KanbanBoardViewer extends Component {
       {{this.setupMessageBus}}
       {{onWindowResize calcAvailableHeight}}
       {{didInsert calcAvailableHeight}}
+      {{onWindowResize calcAvailableWidth}}
+      {{didInsert calcAvailableWidth}}
     >
       <div
         class="kanban-board-viewer__header"
