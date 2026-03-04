@@ -19,7 +19,6 @@ module DiscourseKanban
           move_to_category_id: col_payload[:move_to_category_id],
           move_to_assigned: col_payload[:move_to_assigned],
           move_to_status: col_payload[:move_to_status],
-          wip_limit: col_payload[:wip_limit],
           position: index,
         )
 

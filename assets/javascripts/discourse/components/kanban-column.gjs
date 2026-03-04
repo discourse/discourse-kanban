@@ -9,10 +9,10 @@ import DropdownMenu from "discourse/components/dropdown-menu";
 import DMenu from "discourse/float-kit/components/d-menu";
 import icon from "discourse/helpers/d-icon";
 import { TOPIC_URL_REGEXP } from "discourse/lib/url";
+import autoFocus from "discourse/modifiers/auto-focus";
 import { eq } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
 import KanbanCard from "./kanban-card";
-import autoFocus from "discourse/modifiers/auto-focus";
 
 export default class KanbanColumn extends Component {
   @service dialog;
@@ -22,18 +22,6 @@ export default class KanbanColumn extends Component {
 
   get cardCount() {
     return this.args.column.cards?.length || 0;
-  }
-
-  get wipLimit() {
-    return this.args.column.wip_limit;
-  }
-
-  get isOverWipLimit() {
-    return this.wipLimit && this.cardCount > this.wipLimit;
-  }
-
-  get isAtWipLimit() {
-    return this.wipLimit && this.cardCount === this.wipLimit;
   }
 
   get columnTags() {
@@ -278,20 +266,8 @@ export default class KanbanColumn extends Component {
             {{#if @column.icon}}{{icon @column.icon}}{{/if}}
             {{@column.title}}
           </span>
-          <span
-            class="kanban-column__count
-              {{if this.isOverWipLimit 'kanban-column__count--over-limit'}}
-              {{if this.isAtWipLimit 'kanban-column__count--at-limit'}}"
-          >
-            {{#if this.wipLimit}}
-              {{i18n
-                "discourse_kanban.board.wip_count"
-                count=this.cardCount
-                limit=this.wipLimit
-              }}
-            {{else}}
-              {{this.cardCount}}
-            {{/if}}
+          <span class="kanban-column__count">
+            {{this.cardCount}}
           </span>
         </span>
         {{#if @canManage}}

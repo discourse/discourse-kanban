@@ -510,7 +510,6 @@ export default class KanbanBoardViewer extends Component {
       move_to_assigned:
         col.move_to_assigned === "_user" ? "" : col.move_to_assigned,
       move_to_status: col.move_to_status,
-      wip_limit: col.wip_limit,
     };
   }
 

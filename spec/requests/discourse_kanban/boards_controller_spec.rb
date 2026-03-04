@@ -237,19 +237,6 @@ RSpec.describe DiscourseKanban::BoardsController do
       expect(cards[0]["topic"]["id"]).to eq(topic.id)
     end
 
-    it "includes wip_limit in column payload" do
-      board = DiscourseKanban::Board.create!(name: "Wip", slug: "wip-test", created_by_id: admin.id)
-      board.columns.create!(title: "Backlog", position: 0, wip_limit: 5)
-      board.columns.create!(title: "Done", position: 1, wip_limit: nil)
-
-      sign_in(admin)
-      get "/kanban/boards/#{board.id}.json"
-
-      columns = response.parsed_body["columns"]
-      expect(columns[0]["wip_limit"]).to eq(5)
-      expect(columns[1]["wip_limit"]).to be_nil
-    end
-
     it "denies access to users without read permission" do
       board =
         DiscourseKanban::Board.create!(
@@ -326,36 +313,6 @@ RSpec.describe DiscourseKanban::BoardsController do
       expect(board.name).to eq("New Name")
       expect(board.show_tags).to eq(true)
       expect(board.columns.first.title).to eq("Renamed")
-    end
-
-    it "round-trips wip_limit through board update" do
-      board =
-        DiscourseKanban::Board.create!(name: "Wip RT", slug: "wip-rt", created_by_id: admin.id)
-      col = board.columns.create!(title: "Col", position: 0)
-
-      sign_in(admin)
-
-      put "/kanban/boards/#{board.id}.json",
-          params: {
-            board: {
-              name: "Wip RT",
-              columns: [{ id: col.id, title: "Col", wip_limit: 3 }],
-            },
-          }
-
-      expect(response.status).to eq(200)
-      expect(col.reload.wip_limit).to eq(3)
-
-      put "/kanban/boards/#{board.id}.json",
-          params: {
-            board: {
-              name: "Wip RT",
-              columns: [{ id: col.id, title: "Col", wip_limit: nil }],
-            },
-          }
-
-      expect(response.status).to eq(200)
-      expect(col.reload.wip_limit).to be_nil
     end
 
     it "rejects users not in the manage group" do
