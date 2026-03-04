@@ -28,11 +28,37 @@ const onWindowResize = modifier((element, [callback]) => {
   return () => window.removeEventListener("resize", wrappedCallback);
 });
 
-function calcOffset(element) {
+function calcAvailableHeight(element) {
   schedule("afterRender", () => {
+    const top = element.getBoundingClientRect().top;
+    const parent = element.parentElement;
+    const parentBottom = parent.getBoundingClientRect().bottom;
+    const parentPaddingBottom =
+      parseFloat(getComputedStyle(parent).paddingBlockEnd) || 0;
+    const available = parentBottom - parentPaddingBottom - top;
     document.documentElement.style.setProperty(
-      "--kanban-offset-top",
-      `${element.getBoundingClientRect().top}px`
+      "--kanban-available-height",
+      `${available}px`
+    );
+
+    const container = element.querySelector(".kanban-board-container");
+    if (container) {
+      schedule("afterRender", () => {
+        document.documentElement.style.setProperty(
+          "--board-container-height",
+          `${container.clientHeight}px`
+        );
+      });
+    }
+  });
+}
+
+function calcHeaderHeight(element) {
+  schedule("afterRender", () => {
+    const height = element.clientHeight;
+    document.documentElement.style.setProperty(
+      "--kanban-header-height",
+      `${height}px`
     );
   });
 }
@@ -784,8 +810,14 @@ export default class KanbanBoardViewer extends Component {
     <div
       class="kanban-board-viewer {{if this.fullscreen 'is-fullscreen'}}"
       {{this.setupMessageBus}}
+      {{onWindowResize calcAvailableHeight}}
+      {{didInsert calcAvailableHeight}}
     >
-      <div class="kanban-board-viewer__header">
+      <div
+        class="kanban-board-viewer__header"
+        {{didInsert calcHeaderHeight}}
+        {{onWindowResize calcHeaderHeight}}
+      >
         <h2 class="kanban-board-viewer__title">{{this.board.name}}</h2>
 
         <div class="kanban-board-viewer__controls">
@@ -845,11 +877,7 @@ export default class KanbanBoardViewer extends Component {
       </div>
 
       {{#if this.columns.length}}
-        <div
-          class="kanban-board-container"
-          {{onWindowResize calcOffset}}
-          {{didInsert calcOffset}}
-        >
+        <div class="kanban-board-container">
           {{#each this.columns key="id" as |column|}}
             <KanbanColumn
               @column={{column}}

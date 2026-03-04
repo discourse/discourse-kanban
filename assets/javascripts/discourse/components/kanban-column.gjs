@@ -3,16 +3,34 @@ import { tracked } from "@glimmer/tracking";
 import { fn } from "@ember/helper";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
+import didInsert from "@ember/render-modifiers/modifiers/did-insert";
+import { schedule } from "@ember/runloop";
 import { service } from "@ember/service";
+import { modifier } from "ember-modifier";
 import DButton from "discourse/components/d-button";
 import DropdownMenu from "discourse/components/dropdown-menu";
 import DMenu from "discourse/float-kit/components/d-menu";
 import icon from "discourse/helpers/d-icon";
 import { TOPIC_URL_REGEXP } from "discourse/lib/url";
+import autoFocus from "discourse/modifiers/auto-focus";
 import { eq } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
 import KanbanCard from "./kanban-card";
-import autoFocus from "discourse/modifiers/auto-focus";
+
+const onWindowResize = modifier((element, [callback]) => {
+  const wrappedCallback = () => callback(element);
+  window.addEventListener("resize", wrappedCallback);
+  return () => window.removeEventListener("resize", wrappedCallback);
+});
+
+function calcColumnFooterHeight(element) {
+  schedule("afterRender", () => {
+    document.documentElement.style.setProperty(
+      "--kanban-column-footer-height",
+      `${element.clientHeight}px`
+    );
+  });
+}
 
 export default class KanbanColumn extends Component {
   @service dialog;
@@ -365,9 +383,16 @@ export default class KanbanColumn extends Component {
       </div>
 
       {{#if @canWrite}}
-        <div class="kanban-column__footer">
+        <div
+          class="kanban-column__footer"
+          {{didInsert calcColumnFooterHeight}}
+          {{onWindowResize calcColumnFooterHeight}}
+        >
           {{#if this.isAdding}}
-            <div class="kanban-column__add-card-form">
+            <div
+              class="kanban-column__add-card-form"
+              {{didInsert calcColumnFooterHeight}}
+            >
               <textarea
                 class="kanban-column__card-title-input"
                 placeholder={{i18n
