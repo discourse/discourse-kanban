@@ -5,6 +5,10 @@ import DiscourseRoute from "discourse/routes/discourse";
 export default class KanbanBoardCardRoute extends DiscourseRoute {
   @service router;
 
+  titleToken() {
+    return this.controller?.model?.board?.name;
+  }
+
   model(params) {
     return ajax(`/kanban/boards/${params.id}.json`).then((data) => ({
       ...data,
