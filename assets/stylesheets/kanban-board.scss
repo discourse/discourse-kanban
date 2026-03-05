@@ -1,8 +1,7 @@
-html.kanban-board {
-  #main-outlet-wrapper #main-outlet {
-    padding: 0;
-    max-width: 100%;
-  }
+body.kanban-board {
+  --kanban-column-header-height: 25px;
+  --kanban-column-card-gap: var(--space-2);
+  --kanban-column-padding: var(--space-2);
 
   body.has-sidebar-page #main-outlet-wrapper {
     grid-template-columns: auto 1fr;
@@ -13,26 +12,34 @@ html.kanban-board {
   .powered-by-discourse {
     display: none;
   }
+
+  &.has-sidebar-page #main-outlet-wrapper {
+    --d-main-content-gap: var(--space-2);
+    grid-template-columns: var(--d-sidebar-width) calc(
+        var(--kanban-available-width) - var(--d-wrap-padding-x)
+      );
+  }
+
+  &:not(.has-sidebar-page) #main-outlet-wrapper {
+    --d-max-width: none;
+    grid-template-columns: 0 calc(
+        var(--kanban-available-width) - var(--d-wrap-padding-x)
+      );
+  }
 }
 
 .kanban-board-viewer {
-  --desired-height: calc(100vh - var(--kanban-offset-top));
-  height: max(var(--desired-height), 500px);
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding-block: 10px;
-  box-sizing: border-box;
-  position: relative;
+  height: max(var(--kanban-available-height), 500px);
+  display: flex;
+  flex-direction: column;
 
   &__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 10px;
-    margin-bottom: 10px;
-    position: sticky;
-    left: 0;
+    margin-bottom: var(--space-4);
     z-index: 1;
+    padding-inline: var(--space-4);
   }
 
   &__title {
@@ -60,18 +67,16 @@ html.kanban-board {
     height: 100%;
     padding: 10px 0;
     overflow-x: auto;
-
-    .kanban-board-container {
-      height: calc(100% - 50px);
-    }
   }
 }
 
 .kanban-board-container {
   display: flex;
-  gap: 0 10px;
-  height: calc(100% - 50px);
-  padding: 0 10px;
+  gap: 0 var(--space-2);
+  flex-grow: 1;
+  padding-inline: var(--space-4);
+  max-width: 100%;
+  overflow: scroll;
 }
 
 .kanban-column {
@@ -82,10 +87,10 @@ html.kanban-board {
   border: 1px solid var(--primary-100);
   display: flex;
   flex-direction: column;
-  padding: var(--space-2);
-  padding-right: var(--space-1);
+  padding: var(--kanban-column-padding);
   transition: border-color 0.15s ease;
   border-radius: var(--d-border-radius);
+  height: min-content;
 
   &.drag-target {
     border-color: var(--tertiary);
@@ -93,7 +98,8 @@ html.kanban-board {
 
   &__header {
     display: flex;
-    align-items: baseline;
+    align-items: center;
+    height: var(--kanban-column-header-height);
     justify-content: space-between;
   }
 
@@ -109,7 +115,7 @@ html.kanban-board {
     font-weight: 500;
     padding: var(--space-1);
     background-color: var(--kanban-column-color, var(--primary-200));
-    border-radius: var(--d-border-radius);
+    border-radius: var(--d-border-radius-small);
 
     .d-icon {
       margin-right: 0.25em;
@@ -138,8 +144,13 @@ html.kanban-board {
     flex-direction: column;
     overflow-y: auto;
     height: 100%;
-    gap: var(--space-2);
-    padding-right: var(--space-1);
+    max-height: calc(
+      var(--board-container-height) - var(--kanban-column-header-height) - var(
+          --kanban-column-footer-height
+        ) - var(--kanban-header-height) -
+        (var(--kanban-column-padding) * 2)
+    );
+    gap: var(--kanban-column-card-gap);
     -webkit-overflow-scrolling: touch;
     transform: translate3d(0, 0, 0);
     scrollbar-width: thin;
@@ -211,6 +222,7 @@ html.kanban-board {
     min-height: 60px;
     resize: vertical;
     margin-bottom: var(--space-2);
+    border-radius: var(--d-border-radius);
   }
 
   &__add-card-actions {
@@ -230,11 +242,11 @@ html.kanban-board {
   background: var(--secondary);
   border: 1px solid var(--primary-low);
   padding: var(--space-2);
-  border-radius: var(--d-border-radius);
+  border-radius: var(--d-border-radius-small);
   cursor: grab;
 
   &--floater {
-    border-left: 3px solid var(--tertiary);
+    border-left: 2px solid var(--tertiary);
   }
 
   &[draggable="false"] {
