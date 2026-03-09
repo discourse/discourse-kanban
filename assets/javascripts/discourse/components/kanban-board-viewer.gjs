@@ -40,25 +40,11 @@ const onSidebarToggle = modifier((element, [callback]) => {
 function calcAvailableHeight(element) {
   schedule("afterRender", () => {
     const top = element.getBoundingClientRect().top;
-    const parent = element.parentElement;
-    const parentBottom = parent.getBoundingClientRect().bottom;
-    const parentPaddingBottom =
-      parseFloat(getComputedStyle(parent).paddingBlockEnd) || 0;
-    const available = parentBottom - parentPaddingBottom - top;
+    const available = window.innerHeight - top;
     document.documentElement.style.setProperty(
       "--kanban-available-height",
       `${available}px`
     );
-
-    const container = element.querySelector(".kanban-board-container");
-    if (container) {
-      schedule("afterRender", () => {
-        document.documentElement.style.setProperty(
-          "--board-container-height",
-          `${container.clientHeight}px`
-        );
-      });
-    }
   });
 }
 
@@ -80,16 +66,6 @@ function calcAvailableWidth(element) {
     document.documentElement.style.setProperty(
       "--kanban-available-width",
       `${available}px`
-    );
-  });
-}
-
-function calcHeaderHeight(element) {
-  schedule("afterRender", () => {
-    const height = element.clientHeight;
-    document.documentElement.style.setProperty(
-      "--kanban-header-height",
-      `${height}px`
     );
   });
 }
@@ -846,11 +822,7 @@ export default class KanbanBoardViewer extends Component {
       {{didInsert calcAvailableWidth}}
       {{onSidebarToggle calcAvailableWidth}}
     >
-      <div
-        class="kanban-board-viewer__header"
-        {{didInsert calcHeaderHeight}}
-        {{onWindowResize calcHeaderHeight}}
-      >
+      <div class="kanban-board-viewer__header">
         <h2 class="kanban-board-viewer__title">{{this.board.name}}</h2>
 
         <div class="kanban-board-viewer__controls">
