@@ -28,43 +28,12 @@ const onWindowResize = modifier((element, [callback]) => {
   return () => window.removeEventListener("resize", wrappedCallback);
 });
 
-const onSidebarToggle = modifier((element, [callback]) => {
-  const observer = new MutationObserver(() => callback(element));
-  observer.observe(document.body, {
-    attributes: true,
-    attributeFilter: ["class"],
-  });
-  return () => observer.disconnect();
-});
-
 function calcAvailableHeight(element) {
   schedule("afterRender", () => {
     const top = element.getBoundingClientRect().top;
     const available = window.innerHeight - top;
     document.documentElement.style.setProperty(
       "--kanban-available-height",
-      `${available}px`
-    );
-  });
-}
-
-function calcAvailableWidth(element) {
-  schedule("afterRender", () => {
-    const wrapper =
-      element.closest("#main-outlet-wrapper") ||
-      document.querySelector("#main-outlet-wrapper");
-    if (!wrapper) {
-      return;
-    }
-    const hasSidebar = document.body.classList.contains("has-sidebar-page");
-    let available;
-    if (hasSidebar) {
-      available = window.innerWidth - element.getBoundingClientRect().left;
-    } else {
-      available = wrapper.clientWidth;
-    }
-    document.documentElement.style.setProperty(
-      "--kanban-available-width",
       `${available}px`
     );
   });
@@ -818,9 +787,6 @@ export default class KanbanBoardViewer extends Component {
       {{this.setupMessageBus}}
       {{onWindowResize calcAvailableHeight}}
       {{didInsert calcAvailableHeight}}
-      {{onWindowResize calcAvailableWidth}}
-      {{didInsert calcAvailableWidth}}
-      {{onSidebarToggle calcAvailableWidth}}
     >
       <div class="kanban-board-viewer__header">
         <h2 class="kanban-board-viewer__title">{{this.board.name}}</h2>
