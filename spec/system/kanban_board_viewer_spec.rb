@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "Kanban Board Viewer", type: :system do
+describe "Kanban Board Viewer" do
   fab!(:user)
   fab!(:admin)
   fab!(:manager, :user)
