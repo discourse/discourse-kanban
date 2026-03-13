@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "Manage Kanban Boards", type: :system do
+describe "Manage Kanban Boards" do
   fab!(:admin)
   fab!(:manager, :user)
   fab!(:regular_user, :user)

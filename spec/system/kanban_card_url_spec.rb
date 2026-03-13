@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "Kanban Card URL", type: :system do
+describe "Kanban Card URL" do
   fab!(:admin)
   fab!(:write_group, :group)
   fab!(:manage_group, :group)
