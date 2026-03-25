@@ -12,6 +12,10 @@ en:
         exit_fullscreen: "Exit fullscreen"
         add_column: "Add Column"
         edit_column: "Edit Column"
+        clear_column: "Clear Column"
+        confirm_clear_column:
+          one: "Remove %{count} card from \"%{column_title}\"?"
+          other: "Remove %{count} cards from \"%{column_title}\"?"
         delete_column: "Delete Column"
         move_left: "Move Left"
         move_right: "Move Right"

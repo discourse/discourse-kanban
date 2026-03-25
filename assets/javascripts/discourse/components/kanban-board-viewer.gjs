@@ -108,6 +108,9 @@ export default class KanbanBoardViewer extends Component {
       case "card_deleted":
         this.#handleCardDeleted(data.card_id);
         break;
+      case "column_cleared":
+        this.#handleColumnCleared(data.column_id);
+        break;
       case "columns_reordered":
         this.#handleColumnsReordered(data.column_order);
         break;
@@ -166,6 +169,15 @@ export default class KanbanBoardViewer extends Component {
       ...col,
       cards: col.cards.filter((c) => c.id !== cardId),
     }));
+  }
+
+  #handleColumnCleared(columnId) {
+    this.columns = this.columns.map((col) => {
+      if (col.id === columnId) {
+        return { ...col, cards: [] };
+      }
+      return col;
+    });
   }
 
   #handleColumnsReordered(columnOrder) {
@@ -589,6 +601,48 @@ export default class KanbanBoardViewer extends Component {
     });
   }
 
+  @action
+  clearColumn(columnId) {
+    const column = this.columns.find((col) => col.id === columnId);
+    const cardCount = column?.cards?.length || 0;
+    if (cardCount === 0) {
+      return;
+    }
+
+    this.dialog.confirm({
+      message: i18n("discourse_kanban.board.confirm_clear_column", {
+        count: cardCount,
+        column_title: column.title,
+      }),
+      didConfirm: async () => {
+        const snapshot = this.columns.map((col) => ({
+          ...col,
+          cards: [...col.cards],
+        }));
+
+        this.columns = this.columns.map((col) => {
+          if (col.id === columnId) {
+            return { ...col, cards: [] };
+          }
+          return col;
+        });
+
+        try {
+          await ajax(
+            `/kanban/boards/${this.board.id}/columns/${columnId}/cards`,
+            {
+              type: "DELETE",
+              data: { client_id: this.messageBus.clientId },
+            }
+          );
+        } catch (error) {
+          this.columns = snapshot;
+          popupAjaxError(error);
+        }
+      },
+    });
+  }
+
   // Board settings actions
 
   @action
@@ -867,6 +921,7 @@ export default class KanbanBoardViewer extends Component {
               @onEditColumn={{this.openEditColumnModal}}
               @onMoveColumn={{this.moveColumn}}
               @onDeleteColumn={{this.deleteColumn}}
+              @onClearColumn={{this.clearColumn}}
               @allColumns={{this.columns}}
             />
           {{/each}}

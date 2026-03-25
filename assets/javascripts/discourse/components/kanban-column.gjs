@@ -115,6 +115,12 @@ export default class KanbanColumn extends Component {
   }
 
   @action
+  clearColumn(closeMenu) {
+    closeMenu();
+    this.args.onClearColumn(this.args.column.id);
+  }
+
+  @action
   deleteColumn(closeMenu) {
     closeMenu();
     this.args.onDeleteColumn(this.args.column.id);
@@ -302,6 +308,15 @@ export default class KanbanColumn extends Component {
                     @icon="arrow-right"
                     @label="discourse_kanban.board.move_right"
                     @disabled={{eq this.columnIndex this.lastColumnIndex}}
+                    class="btn-transparent"
+                  />
+                </dropdown.item>
+                <dropdown.item>
+                  <DButton
+                    @action={{fn this.clearColumn args.close}}
+                    @icon="eraser"
+                    @label="discourse_kanban.board.clear_column"
+                    @disabled={{eq this.cardCount 0}}
                     class="btn-transparent"
                   />
                 </dropdown.item>

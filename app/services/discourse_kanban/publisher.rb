@@ -20,6 +20,10 @@ module DiscourseKanban
       publish!(board, { type: "card_deleted", client_id: client_id, card_id: card_id })
     end
 
+    def self.publish_column_cleared!(board, column_id, client_id:)
+      publish!(board, { type: "column_cleared", client_id: client_id, column_id: column_id })
+    end
+
     def self.publish_board_updated!(board, client_id:)
       publish!(board, { type: "board_updated", client_id: client_id })
     end
