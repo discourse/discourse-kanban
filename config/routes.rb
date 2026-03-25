@@ -21,6 +21,7 @@ DiscourseKanban::Engine.routes.draw do
   post "/boards/:board_id/cards" => "cards#create"
   put "/boards/:board_id/cards/:id" => "cards#update"
   delete "/boards/:board_id/cards/:id" => "cards#destroy"
+  delete "/boards/:board_id/columns/:column_id/cards" => "cards#clear"
 
   post "/boards/:board_id/topic-moves" => "topic_moves#create"
 end
