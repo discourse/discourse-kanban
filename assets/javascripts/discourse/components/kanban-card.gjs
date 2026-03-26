@@ -3,7 +3,7 @@ import { tracked } from "@glimmer/tracking";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
 import { service } from "@ember/service";
-import { htmlSafe } from "@ember/template";
+import { trustHTML } from "@ember/template";
 import DButton from "discourse/components/d-button";
 import DropdownMenu from "discourse/components/dropdown-menu";
 import TopicStatus from "discourse/components/topic-status";
@@ -324,7 +324,7 @@ export default class KanbanCard extends Component {
 
       {{#if this.tagsHtml}}
         <div class="kanban-card__row kanban-card__tags">
-          {{htmlSafe this.tagsHtml}}
+          {{trustHTML this.tagsHtml}}
         </div>
       {{/if}}
 
@@ -368,7 +368,7 @@ export default class KanbanCard extends Component {
 
           {{#if this.assignedAvatarHtml}}
             <div class="kanban-card__assignments-avatars">
-              {{htmlSafe this.assignedAvatarHtml}}
+              {{trustHTML this.assignedAvatarHtml}}
             </div>
           {{else if this.assignedGroup}}
             <div class="kanban-card__assignments">
