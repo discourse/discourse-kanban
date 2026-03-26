@@ -38,6 +38,12 @@ en:
         add_label: "Add"
         remove_label: "Remove label"
         assigned_to: "Assigned To"
+      keyboard_shortcuts:
+        navigate_columns: "Navigate between columns"
+        navigate_cards: "Navigate between cards"
+        open_card: "Open selected card"
+        move_card_column: "Move card to adjacent column"
+        move_card_position: "Reorder card within column"
       manage:
         title: "Kanban Boards"
         description: "Create and manage kanban boards with columns."

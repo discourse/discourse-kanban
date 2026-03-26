@@ -54,10 +54,19 @@ export default class KanbanBoardViewer extends Component {
   @tracked dropHighlightCardId = null;
   @tracked fullscreen = false;
 
-  setupMessageBus = modifier(() => {
+  setupMessageBus = modifier((element) => {
     const channel = `/kanban/boards/${this.board.id}`;
     this.messageBus.subscribe(channel, this.onBoardMessage);
-    return () => this.messageBus.unsubscribe(channel, this.onBoardMessage);
+
+    const handleKeyboardMove = (event) => {
+      this.#handleCardMoved(event.detail);
+    };
+    element.addEventListener("kanban:card-moved", handleKeyboardMove);
+
+    return () => {
+      this.messageBus.unsubscribe(channel, this.onBoardMessage);
+      element.removeEventListener("kanban:card-moved", handleKeyboardMove);
+    };
   });
 
   constructor() {
