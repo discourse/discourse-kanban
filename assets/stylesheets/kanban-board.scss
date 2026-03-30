@@ -159,6 +159,7 @@ body.kanban-board {
   }
 
   &__drop-indicator {
+    flex-shrink: 0;
     border: 2px dashed var(--primary-low-mid);
     border-radius: var(--d-border-radius);
     background: var(--primary-very-low);
