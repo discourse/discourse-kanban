@@ -25,13 +25,27 @@ import KanbanColumnSettings from "./modal/kanban-column-settings";
 const onWindowResize = modifier((element, [callback]) => {
   const wrappedCallback = () => callback(element);
   window.addEventListener("resize", wrappedCallback);
-  return () => window.removeEventListener("resize", wrappedCallback);
+
+  const visualViewport = window.visualViewport;
+  if (visualViewport) {
+    visualViewport.addEventListener("resize", wrappedCallback);
+  }
+
+  return () => {
+    window.removeEventListener("resize", wrappedCallback);
+    if (visualViewport) {
+      visualViewport.removeEventListener("resize", wrappedCallback);
+    }
+  };
 });
 
 function calcAvailableHeight(element) {
   schedule("afterRender", () => {
-    const top = element.getBoundingClientRect().top;
-    const available = window.innerHeight - top;
+    const vv = window.visualViewport;
+    const viewportHeight = vv?.height ?? window.innerHeight;
+    const offsetTop = vv?.offsetTop ?? 0;
+    const top = element.getBoundingClientRect().top - offsetTop;
+    const available = viewportHeight - top;
     document.documentElement.style.setProperty(
       "--kanban-available-height",
       `${available}px`

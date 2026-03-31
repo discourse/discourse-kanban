@@ -1,3 +1,5 @@
+@use "lib/viewport";
+
 html:has(body.kanban-board) {
   overflow-y: hidden;
 }
@@ -23,16 +25,24 @@ body.kanban-board {
     grid-template-columns: var(--d-sidebar-width) minmax(0, 1fr);
     gap: 0;
     padding-right: 0;
+
+    @include viewport.until(md) {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 
   &:not(.has-sidebar-page) #main-outlet-wrapper {
     --d-max-width: none;
     grid-template-columns: 0 minmax(0, 1fr);
+
+    @include viewport.until(md) {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 }
 
 .kanban-board-viewer {
-  height: max(var(--kanban-available-height), 500px);
+  height: var(--kanban-available-height, 500px);
   display: flex;
   flex-direction: column;
 
@@ -71,6 +81,10 @@ body.kanban-board {
     padding: 10px 0;
     overflow-x: auto;
   }
+}
+
+body.kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
+  z-index: z("fullscreen") + 1;
 }
 
 .kanban-board-container {
