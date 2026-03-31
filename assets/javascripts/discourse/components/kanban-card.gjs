@@ -17,6 +17,7 @@ import renderTags from "discourse/lib/render-tags";
 import DiscourseURL from "discourse/lib/url";
 import Category from "discourse/models/category";
 import { kanbanBoardUrl, kanbanCardUrl } from "../lib/kanban-urls";
+import AutoLinkedText from "./auto-linked-text";
 import KanbanCardDetailModal from "./modal/kanban-card-detail";
 
 export default class KanbanCard extends Component {
@@ -196,7 +197,8 @@ export default class KanbanCard extends Component {
     }
     if (
       event.target.closest(".kanban-card__actions-trigger") ||
-      event.target.closest("[data-content]")
+      event.target.closest("[data-content]") ||
+      event.target.closest("a")
     ) {
       return;
     }
@@ -258,7 +260,9 @@ export default class KanbanCard extends Component {
             {{this.cardTitle}}
           </a>
         {{else}}
-          <span class="kanban-card__title">{{this.cardTitle}}</span>
+          <span class="kanban-card__title"><AutoLinkedText
+              @text={{this.cardTitle}}
+            /></span>
         {{/if}}
         {{#if this.canShowActions}}
           <DMenu
