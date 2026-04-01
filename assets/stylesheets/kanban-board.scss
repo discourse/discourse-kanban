@@ -10,6 +10,10 @@ body.kanban-board {
   --kanban-column-card-gap: var(--space-2);
   --kanban-column-padding: var(--space-2);
 
+  // Keep in sync with the matching JS constants in kanban-motion.js.
+  --kanban-card-reorder-duration: 180ms;
+  --kanban-card-motion-easing: cubic-bezier(0.4, 0, 0.2, 1);
+
   #main-outlet {
     padding-bottom: 0;
   }
@@ -174,10 +178,25 @@ body.kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
 
   &__drop-indicator {
     flex-shrink: 0;
-    border: 2px dashed var(--primary-low-mid);
+    border: 1px solid var(--tertiary-low);
     border-radius: var(--d-border-radius);
-    background: var(--primary-very-low);
+    background: var(--tertiary-very-low);
     box-sizing: border-box;
+    box-shadow: inset 0 0 0 1px var(--tertiary-low);
+    opacity: 0.9;
+    transition:
+      opacity var(--kanban-card-reorder-duration)
+        var(--kanban-card-motion-easing),
+      box-shadow var(--kanban-card-reorder-duration)
+        var(--kanban-card-motion-easing);
+  }
+
+  &__drop-indicator--source {
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+    opacity: 0;
+    transition: none;
   }
 
   &__empty {
@@ -270,8 +289,21 @@ body.kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     cursor: default;
   }
 
-  &.dragging {
-    opacity: 0.4;
+  &--dragging {
+    position: absolute;
+    max-height: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    background: transparent;
+    box-shadow: none;
+    pointer-events: none;
+
+    > * {
+      visibility: hidden;
+    }
   }
 
   &--drop-highlighted {
@@ -425,6 +457,17 @@ body.kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
   }
 }
 
+.kanban-card--drag-image {
+  position: fixed;
+  box-sizing: border-box;
+  top: -9999px;
+  left: -9999px;
+  margin: 0;
+  pointer-events: none;
+  box-shadow: var(--shadow-card);
+  cursor: grabbing;
+}
+
 @keyframes kanban-card-drop-highlight {
   0% {
     border-color: var(--tertiary);
@@ -443,6 +486,10 @@ body.kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
   .kanban-card--drop-highlighted {
     animation: none;
     border-color: var(--tertiary);
+  }
+
+  .kanban-column__drop-indicator {
+    transition: none;
   }
 }
 

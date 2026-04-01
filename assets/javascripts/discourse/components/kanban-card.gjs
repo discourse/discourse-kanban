@@ -20,10 +20,31 @@ import { kanbanBoardUrl, kanbanCardUrl } from "../lib/kanban-urls";
 import AutoLinkedText from "./auto-linked-text";
 import KanbanCardDetailModal from "./modal/kanban-card-detail";
 
+export function shouldInsertSourceDropIndicator(root = document) {
+  return !root.querySelector(
+    ".kanban-column__drop-indicator:not(.kanban-column__drop-indicator--source)"
+  );
+}
+
 export default class KanbanCard extends Component {
   @service modal;
 
   @tracked dragging = false;
+  dragHideTimer = null;
+  dragImageElement = null;
+
+  willDestroy() {
+    super.willDestroy(...arguments);
+    const isActiveDragSource =
+      this.dragging || this.dragHideTimer || this.dragImageElement;
+
+    this.#clearDragHideTimer();
+    this.#cleanupDragImage();
+
+    if (isActiveDragSource) {
+      this.#removeDropIndicators();
+    }
+  }
 
   get isTopicCard() {
     return this.args.card.card_type === "topic" && this.args.card.topic;
@@ -216,21 +237,105 @@ export default class KanbanCard extends Component {
       event.preventDefault();
       return;
     }
-    this.dragging = true;
-    const cardHeight = event.currentTarget.getBoundingClientRect().height;
+
+    const cardRect = event.currentTarget.getBoundingClientRect();
+    this.#setDragImage(event, event.currentTarget, cardRect);
+
     this.args.onDragStart({
       cardId: this.args.card.id,
       topicId: this.args.card.topic_id,
       fromColumnId: this.args.card.column_id,
-      cardHeight,
+      cardHeight: cardRect.height,
+      hasPlacedIndicator: false,
     });
     event.dataTransfer.effectAllowed = "move";
     event.stopPropagation();
+
+    this.#scheduleDragSourceHide(event.currentTarget, cardRect.height);
   }
 
   @action
   dragEnd() {
+    this.args.onDragEnd?.(this.args.card.id);
+    this.#clearDragHideTimer();
+    this.#removeDropIndicators();
     this.dragging = false;
+    this.#cleanupDragImage();
+  }
+
+  #scheduleDragSourceHide(cardElement, cardHeight) {
+    this.#clearDragHideTimer();
+
+    this.dragHideTimer = setTimeout(() => {
+      this.dragHideTimer = null;
+
+      if (!this.isDestroying && !this.isDestroyed) {
+        if (shouldInsertSourceDropIndicator()) {
+          this.#insertSourceDropIndicator(cardElement, cardHeight);
+        }
+        this.dragging = true;
+      }
+    }, 0);
+  }
+
+  #clearDragHideTimer() {
+    if (this.dragHideTimer) {
+      clearTimeout(this.dragHideTimer);
+      this.dragHideTimer = null;
+    }
+  }
+
+  #setDragImage(event, cardElement, cardRect) {
+    if (!event.dataTransfer?.setDragImage) {
+      return;
+    }
+
+    this.#cleanupDragImage();
+
+    const dragImage = cardElement.cloneNode(true);
+    dragImage.classList.remove("kanban-card--dragging");
+    dragImage.classList.add("kanban-card--drag-image");
+    dragImage.style.width = `${cardRect.width}px`;
+    dragImage.style.height = `${cardRect.height}px`;
+    dragImage.setAttribute("aria-hidden", "true");
+
+    document.body.append(dragImage);
+    this.dragImageElement = dragImage;
+
+    // Fallback for programmatic or test drags where the pointer coordinates are 0.
+    const offsetX =
+      event.clientX > 0 ? Math.max(event.clientX - cardRect.left, 0) : 24;
+    const offsetY =
+      event.clientY > 0 ? Math.max(event.clientY - cardRect.top, 0) : 24;
+
+    event.dataTransfer.setDragImage(dragImage, offsetX, offsetY);
+  }
+
+  #cleanupDragImage() {
+    this.dragImageElement?.remove();
+    this.dragImageElement = null;
+  }
+
+  #insertSourceDropIndicator(cardElement, cardHeight) {
+    const cardsContainer = cardElement.closest(".kanban-column__cards");
+    if (!cardsContainer) {
+      return;
+    }
+
+    this.#removeDropIndicators();
+
+    const indicator = document.createElement("div");
+    indicator.className =
+      "kanban-column__drop-indicator kanban-column__drop-indicator--source";
+    indicator.style.height = `${cardHeight}px`;
+
+    cardsContainer.insertBefore(indicator, cardElement);
+  }
+
+  #removeDropIndicators() {
+    document
+      .querySelectorAll(".kanban-column__drop-indicator")
+      .forEach((indicator) => indicator.remove());
   }
 
   <template>
@@ -238,7 +343,7 @@ export default class KanbanCard extends Component {
     <div
       class={{concatClass
         "kanban-card"
-        (if this.dragging "dragging")
+        (if this.dragging "kanban-card--dragging")
         (unless this.isTopicCard "kanban-card--floater")
         (if @isDropHighlighted "kanban-card--drop-highlighted")
         this.activityClass

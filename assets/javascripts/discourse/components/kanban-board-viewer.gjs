@@ -83,6 +83,9 @@ export default class KanbanBoardViewer extends Component {
     };
   });
 
+  _promotionAppEventListenersBound = false;
+  _promotionRouteListenerBound = false;
+
   constructor() {
     super(...arguments);
     this.board = { ...this.args.model.board };
@@ -264,8 +267,16 @@ export default class KanbanBoardViewer extends Component {
   }
 
   @action
-  async onDrop(cardId, toColumnId, afterCardId) {
-    const fromColumnId = this.dragData?.fromColumnId;
+  onDragEnd(cardId) {
+    setTimeout(() => {
+      if (this.dragData?.cardId === cardId) {
+        this.dragData = null;
+      }
+    }, 0);
+  }
+
+  @action
+  async onDrop(cardId, toColumnId, afterCardId, fromColumnId) {
     if (!fromColumnId) {
       return;
     }
@@ -488,10 +499,7 @@ export default class KanbanBoardViewer extends Component {
     }
 
     this._promotingCardId = cardId;
-
-    this.appEvents.on("topic:created", this, this._onTopicCreated);
-    this.appEvents.on("composer:cancelled", this, this._cleanupPromotion);
-    this.router.on("routeWillChange", this._onRouteWillChange);
+    this.#bindPromotionListeners();
 
     const opts = { title: card.title };
     if (card.notes) {
@@ -786,16 +794,47 @@ export default class KanbanBoardViewer extends Component {
   _onRouteWillChange(transition) {
     if (this._promotingCardId) {
       transition.abort();
-      this.router.off("routeWillChange", this._onRouteWillChange);
+      this.#unbindPromotionRouteListener();
       this._promotingCardId = null;
     }
   }
 
   _cleanupPromotion() {
     this._promotingCardId = null;
+    this.#unbindPromotionAppEventListeners();
+    this.#unbindPromotionRouteListener();
+  }
+
+  #bindPromotionListeners() {
+    if (!this._promotionAppEventListenersBound) {
+      this.appEvents.on("topic:created", this, this._onTopicCreated);
+      this.appEvents.on("composer:cancelled", this, this._cleanupPromotion);
+      this._promotionAppEventListenersBound = true;
+    }
+
+    if (!this._promotionRouteListenerBound) {
+      this.router.on("routeWillChange", this._onRouteWillChange);
+      this._promotionRouteListenerBound = true;
+    }
+  }
+
+  #unbindPromotionAppEventListeners() {
+    if (!this._promotionAppEventListenersBound) {
+      return;
+    }
+
     this.appEvents.off("topic:created", this, this._onTopicCreated);
     this.appEvents.off("composer:cancelled", this, this._cleanupPromotion);
+    this._promotionAppEventListenersBound = false;
+  }
+
+  #unbindPromotionRouteListener() {
+    if (!this._promotionRouteListenerBound) {
+      return;
+    }
+
     this.router.off("routeWillChange", this._onRouteWillChange);
+    this._promotionRouteListenerBound = false;
   }
 
   #findCard(cardId) {
@@ -936,6 +975,7 @@ export default class KanbanBoardViewer extends Component {
               @dropHighlightCardId={{this.dropHighlightCardId}}
               @dragData={{this.dragData}}
               @onDragStart={{this.onDragStart}}
+              @onDragEnd={{this.onDragEnd}}
               @onDrop={{this.onDrop}}
               @onAddCard={{this.onAddCard}}
               @onUpdateCard={{this.onUpdateCard}}

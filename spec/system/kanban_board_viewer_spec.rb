@@ -108,6 +108,25 @@ describe "Kanban Board Viewer" do
     end
   end
 
+  context "when dragging cards without confirmation" do
+    it "moves card immediately" do
+      board = create_board(allow_write_group_ids: [write_group.id], require_confirmation: false)
+      col_todo = board.columns.create!(title: "To Do", position: 0)
+      col_done = board.columns.create!(title: "Done", position: 1)
+
+      topic1 = Fabricate(:topic, title: "Polish release checklist", category: category)
+      add_topic_card(board, col_todo, topic1)
+
+      sign_in(user)
+      board_viewer.visit_board(board)
+
+      board_viewer.drag_card_to_column("Polish release checklist", "Done")
+
+      expect(board_viewer).to have_card_in_column("Done", "Polish release checklist")
+      expect(board_viewer).to have_no_card_in_column("To Do", "Polish release checklist")
+    end
+  end
+
   context "when user has read-only access" do
     it "cards are not draggable" do
       board = create_board

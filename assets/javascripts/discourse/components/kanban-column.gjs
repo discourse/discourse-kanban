@@ -12,7 +12,17 @@ import { TOPIC_URL_REGEXP } from "discourse/lib/url";
 import autoFocus from "discourse/modifiers/auto-focus";
 import { eq } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
+import { animateCardReorder, captureCardRects } from "../lib/kanban-motion";
 import KanbanCard from "./kanban-card";
+
+export function shouldAnimateDropIndicatorPlacement({
+  hadIndicator,
+  columnId,
+  fromColumnId,
+  hasPlacedIndicator,
+}) {
+  return hadIndicator || columnId !== fromColumnId || hasPlacedIndicator;
+}
 
 export default class KanbanColumn extends Component {
   @service dialog;
@@ -146,11 +156,12 @@ export default class KanbanColumn extends Component {
     let indicator = cardsContainer.querySelector(
       ".kanban-column__drop-indicator"
     );
+    const hadIndicator = !!indicator;
     if (!indicator) {
       indicator = document.createElement("div");
       indicator.className = "kanban-column__drop-indicator";
-      indicator.style.height = `${dragData.cardHeight}px`;
     }
+    indicator.style.height = `${dragData.cardHeight}px`;
 
     const cardElements = [...cardsContainer.querySelectorAll(".kanban-card")];
     let insertBefore = null;
@@ -172,11 +183,40 @@ export default class KanbanColumn extends Component {
       emptyMsg.hidden = true;
     }
 
+    if (
+      this.#indicatorMatchesPosition(cardsContainer, indicator, insertBefore)
+    ) {
+      return;
+    }
+
+    const shouldAnimate = shouldAnimateDropIndicatorPlacement({
+      hadIndicator,
+      columnId: this.args.column.id,
+      fromColumnId: dragData.fromColumnId,
+      hasPlacedIndicator: dragData.hasPlacedIndicator,
+    });
+
+    const previousRects = shouldAnimate
+      ? captureCardRects(cardsContainer, {
+          skipCardIds: [dragData.cardId],
+        })
+      : null;
+
+    indicator.classList.remove("kanban-column__drop-indicator--source");
+
     if (insertBefore) {
       cardsContainer.insertBefore(indicator, insertBefore);
     } else {
       cardsContainer.appendChild(indicator);
     }
+
+    if (shouldAnimate) {
+      animateCardReorder(cardsContainer, previousRects, {
+        skipCardIds: [dragData.cardId],
+      });
+    }
+
+    dragData.hasPlacedIndicator = true;
   }
 
   @action
@@ -184,7 +224,7 @@ export default class KanbanColumn extends Component {
     event.preventDefault();
     if (!event.currentTarget.contains(event.relatedTarget)) {
       event.currentTarget.classList.remove("drag-target");
-      this.removeDropIndicator(event.currentTarget);
+      this.removeDropIndicator(event.currentTarget, { animate: true });
     }
   }
 
@@ -195,7 +235,7 @@ export default class KanbanColumn extends Component {
 
     const dragData = this.args.dragData;
     if (!dragData) {
-      this.removeDropIndicator(event.currentTarget);
+      this.removeDropIndicator(event.currentTarget, { animate: false });
       return;
     }
 
@@ -218,12 +258,17 @@ export default class KanbanColumn extends Component {
       }
     }
 
-    this.removeDropIndicator(event.currentTarget);
+    this.removeDropIndicator(event.currentTarget, { animate: false });
 
     const isSameColumn = dragData.fromColumnId === this.args.column.id;
 
     const performDrop = () => {
-      this.args.onDrop(dragData.cardId, this.args.column.id, afterCardId);
+      this.args.onDrop(
+        dragData.cardId,
+        this.args.column.id,
+        afterCardId,
+        dragData.fromColumnId
+      );
     };
 
     if (!isSameColumn && this.args.board.require_confirmation) {
@@ -240,11 +285,36 @@ export default class KanbanColumn extends Component {
     }
   }
 
-  removeDropIndicator(columnEl) {
-    columnEl.querySelector(".kanban-column__drop-indicator")?.remove();
+  removeDropIndicator(columnEl, { animate = false } = {}) {
+    const cardsContainer = columnEl.querySelector(".kanban-column__cards");
+    const indicator = columnEl.querySelector(".kanban-column__drop-indicator");
+    const dragData = this.args.dragData;
+
+    if (!indicator) {
+      columnEl
+        .querySelector(".kanban-column__empty")
+        ?.removeAttribute("hidden");
+      return;
+    }
+
+    const previousRects =
+      animate && cardsContainer
+        ? captureCardRects(cardsContainer, {
+            skipCardIds: dragData ? [dragData.cardId] : [],
+          })
+        : null;
+
+    indicator.remove();
+
     const emptyMsg = columnEl.querySelector(".kanban-column__empty");
     if (emptyMsg) {
       emptyMsg.hidden = false;
+    }
+
+    if (cardsContainer && previousRects) {
+      animateCardReorder(cardsContainer, previousRects, {
+        skipCardIds: dragData ? [dragData.cardId] : [],
+      });
     }
   }
 
@@ -257,6 +327,18 @@ export default class KanbanColumn extends Component {
       }
     }
     return "";
+  }
+
+  #indicatorMatchesPosition(cardsContainer, indicator, insertBefore) {
+    if (indicator.parentElement !== cardsContainer) {
+      return false;
+    }
+
+    if (insertBefore) {
+      return indicator.nextElementSibling === insertBefore;
+    }
+
+    return indicator === cardsContainer.lastElementChild;
   }
 
   <template>
@@ -344,6 +426,7 @@ export default class KanbanColumn extends Component {
             @allSameCategory={{@allSameCategory}}
             @isDropHighlighted={{eq @dropHighlightCardId card.id}}
             @onDragStart={{@onDragStart}}
+            @onDragEnd={{@onDragEnd}}
             @onUpdateCard={{@onUpdateCard}}
             @onDeleteCard={{@onDeleteCard}}
             @onPromoteToTopic={{fn @onPromoteToTopic card.id}}
