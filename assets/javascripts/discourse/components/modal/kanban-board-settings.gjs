@@ -1,21 +1,18 @@
 import Component from "@glimmer/component";
 import { cached, tracked } from "@glimmer/tracking";
 import { fn } from "@ember/helper";
-import { on } from "@ember/modifier";
 import { action } from "@ember/object";
 import { cancel } from "@ember/runloop";
 import { service } from "@ember/service";
-import { modifier } from "ember-modifier";
-import DButton from "discourse/components/d-button";
 import DModal from "discourse/components/d-modal";
 import Form from "discourse/components/form";
-import concatClass from "discourse/helpers/concat-class";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
 import discourseDebounce from "discourse/lib/debounce";
 import CategorySelector from "discourse/select-kit/components/category-selector";
 import GroupChooser from "discourse/select-kit/components/group-chooser";
 import { i18n } from "discourse-i18n";
+import KanbanEditableTitle from "../kanban-editable-title";
 
 const CARD_STYLE_OPTIONS = [
   {
@@ -29,14 +26,8 @@ export default class KanbanBoardSettings extends Component {
   @service dialog;
   @service site;
 
-  @tracked isEditingName = !this.args.model.board?.name;
   @tracked editingName = this.args.model.board?.name || "";
   constraintWarning = null;
-
-  focusNameInput = modifier((element) => {
-    element.focus();
-    element.select();
-  });
 
   willDestroy() {
     super.willDestroy(...arguments);
@@ -80,48 +71,10 @@ export default class KanbanBoardSettings extends Component {
     return this.args.model.isNew;
   }
 
-  get hasName() {
-    return !!(this.editingName || this.args.model.board?.name);
-  }
-
-  get displayName() {
-    return (
-      this.editingName ||
-      this.args.model.board?.name ||
-      i18n("discourse_kanban.manage.name_placeholder")
-    );
-  }
-
   @action
-  startEditingName() {
-    this.editingName =
-      this.formApi?.get("name") || this.args.model.board?.name || "";
-    this.isEditingName = true;
-  }
-
-  @action
-  updateName(event) {
-    this.editingName = event.target.value;
-  }
-
-  @action
-  finishEditingName() {
-    this.isEditingName = false;
-    const trimmed = this.editingName.trim();
-    this.editingName = trimmed;
-    this.formApi?.set("name", trimmed);
-  }
-
-  @action
-  handleNameKeydown(event) {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      event.target.blur();
-    } else if (event.key === "Escape") {
-      this.editingName =
-        this.formApi?.get("name") || this.args.model.board?.name || "";
-      this.isEditingName = false;
-    }
+  onNameInput(value) {
+    this.editingName = value;
+    this.formApi?.set("name", value);
   }
 
   @action
@@ -232,43 +185,22 @@ export default class KanbanBoardSettings extends Component {
       class="kanban-board-settings-modal"
     >
       <:body>
-        <div class="kanban-board-settings-modal__header">
-          {{#if this.isEditingName}}
-            <input
-              type="text"
-              value={{this.editingName}}
-              placeholder={{i18n "discourse_kanban.manage.name_placeholder"}}
-              class="kanban-board-settings-modal__name-input"
-              {{this.focusNameInput}}
-              {{on "input" this.updateName}}
-              {{on "blur" this.finishEditingName}}
-              {{on "keydown" this.handleNameKeydown}}
-            />
-          {{else}}
-            {{! template-lint-disable no-invalid-interactive }}
-            <div
-              class={{concatClass
-                "kanban-board-settings-modal__name"
-                (unless this.hasName "--empty")
-              }}
-              {{on "click" this.startEditingName}}
-            >{{this.displayName}}</div>
-          {{/if}}
-          <DButton
-            @action={{@closeModal}}
-            @icon="xmark"
-            class="btn-flat kanban-board-settings-modal__close"
-          />
-        </div>
+        <KanbanEditableTitle
+          @value={{this.editingName}}
+          @placeholder={{i18n "discourse_kanban.manage.name_placeholder"}}
+          @onInput={{this.onNameInput}}
+          @onClose={{@closeModal}}
+        />
         <div class="kanban-board-settings-modal__container">
+
           <Form
             @data={{this.formData}}
             @onSubmit={{this.save}}
             @onRegisterApi={{this.onRegisterApi}}
             as |form data|
           >
-            <form.Section>
 
+            <form.Section>
               <form.Field
                 @name="slug"
                 @title={{i18n "discourse_kanban.manage.slug"}}
