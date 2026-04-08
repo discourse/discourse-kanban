@@ -1,76 +1,68 @@
 import Component from "@glimmer/component";
-import { tracked } from "@glimmer/tracking";
-import { on } from "@ember/modifier";
+import { cached } from "@glimmer/tracking";
+import { fn } from "@ember/helper";
 import { action } from "@ember/object";
 import { cancel } from "@ember/runloop";
 import { service } from "@ember/service";
-import DButton from "discourse/components/d-button";
 import DModal from "discourse/components/d-modal";
+import Form from "discourse/components/form";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
-import { discourseDebounce } from "discourse/lib/debounce";
+import discourseDebounce from "discourse/lib/debounce";
 import CategorySelector from "discourse/select-kit/components/category-selector";
 import GroupChooser from "discourse/select-kit/components/group-chooser";
-import MiniTagChooser from "discourse/select-kit/components/mini-tag-chooser";
-import { eq } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
 
 const CARD_STYLE_OPTIONS = [
-  { id: "detailed", name: "discourse_kanban.manage.card_style_detailed" },
-  { id: "simple", name: "discourse_kanban.manage.card_style_simple" },
+  {
+    id: "detailed",
+    name: i18n("discourse_kanban.manage.card_style_detailed"),
+  },
+  { id: "simple", name: i18n("discourse_kanban.manage.card_style_simple") },
 ];
 
 export default class KanbanBoardSettings extends Component {
   @service dialog;
   @service site;
 
-  @tracked editName;
-  @tracked editSlug;
-  @tracked editCategoryIds;
-  @tracked editTagNames;
-  @tracked editCardStyle;
-  @tracked editShowTags;
-  @tracked editShowTopicThumbnail;
-  @tracked editShowActivityIndicators;
-  @tracked editRequireConfirmation;
-  @tracked editAllowReadGroupIds;
-  @tracked editAllowWriteGroupIds;
-  @tracked saving = false;
-  @tracked constraintWarning = null;
-
-  constructor() {
-    super(...arguments);
-    const board = this.args.model.board;
-    if (board) {
-      this.editName = board.name || "";
-      this.editSlug = board.slug || "";
-      this.editCategoryIds = board.category_ids || [];
-      this.editTagNames = board.tag_names || [];
-      this.editCardStyle = board.card_style || "detailed";
-      this.editShowTags = board.show_tags ?? false;
-      this.editShowTopicThumbnail = board.show_topic_thumbnail ?? false;
-      this.editShowActivityIndicators = board.show_activity_indicators ?? false;
-      this.editRequireConfirmation = board.require_confirmation ?? true;
-      this.editAllowReadGroupIds = board.allow_read_group_ids || [];
-      this.editAllowWriteGroupIds = board.allow_write_group_ids || [];
-    } else {
-      this.editName = "";
-      this.editSlug = "";
-      this.editCategoryIds = [];
-      this.editTagNames = [];
-      this.editCardStyle = "detailed";
-      this.editShowTags = false;
-      this.editShowTopicThumbnail = false;
-      this.editShowActivityIndicators = false;
-      this.editRequireConfirmation = true;
-      this.editAllowReadGroupIds = [];
-      this.editAllowWriteGroupIds = [];
-    }
-  }
+  constraintWarning = null;
 
   willDestroy() {
     super.willDestroy(...arguments);
     cancel(this._constraintCheckTimer);
+  }
+
+  @cached
+  get formData() {
+    const board = this.args.model.board;
+    if (board) {
+      return {
+        name: board.name || "",
+        slug: board.slug || "",
+        category_ids: board.category_ids || [],
+        tag_names: board.tag_names || [],
+        card_style: board.card_style || "detailed",
+        show_tags: board.show_tags ?? false,
+        show_topic_thumbnail: board.show_topic_thumbnail ?? false,
+        show_activity_indicators: board.show_activity_indicators ?? false,
+        require_confirmation: board.require_confirmation ?? true,
+        allow_read_group_ids: board.allow_read_group_ids || [],
+        allow_write_group_ids: board.allow_write_group_ids || [],
+      };
+    }
+    return {
+      name: "",
+      slug: "",
+      category_ids: [],
+      tag_names: [],
+      card_style: "detailed",
+      show_tags: false,
+      show_topic_thumbnail: false,
+      show_activity_indicators: false,
+      require_confirmation: true,
+      allow_read_group_ids: [],
+      allow_write_group_ids: [],
+    };
   }
 
   get isNew() {
@@ -83,77 +75,32 @@ export default class KanbanBoardSettings extends Component {
       : i18n("discourse_kanban.board.board_settings");
   }
 
-  get cardStyleOptions() {
-    return CARD_STYLE_OPTIONS.map((opt) => ({
-      id: opt.id,
-      name: i18n(opt.name),
-    }));
-  }
-
-  get selectedCategories() {
-    return this.editCategoryIds
+  @action
+  selectedCategories(categoryIds) {
+    return (categoryIds || [])
       .map((id) => this.site.categories?.find((c) => c.id === id))
       .filter(Boolean);
   }
 
   @action
-  onNameInput(event) {
-    this.editName = event.target.value;
+  onCategoriesChange(field, categories) {
+    const ids = categories?.map((c) => c.id) || [];
+    field.set(ids);
+    this._checkConstraints(ids, null);
   }
 
   @action
-  onSlugInput(event) {
-    this.editSlug = event.target.value;
+  onTagsChange(field, tags) {
+    field.set(tags || []);
+    this._checkConstraints(null, tags);
   }
 
   @action
-  onCategoriesChange(categories) {
-    this.editCategoryIds = categories?.map((c) => c.id) || [];
-    this._checkConstraints();
+  setGroupIds(field, groupIds) {
+    field.set(groupIds || []);
   }
 
-  @action
-  onTagsChange(tags) {
-    this.editTagNames = tags || [];
-    this._checkConstraints();
-  }
-
-  @action
-  onCardStyleChange(event) {
-    this.editCardStyle = event.target.value;
-  }
-
-  @action
-  onShowTagsChange(event) {
-    this.editShowTags = event.target.checked;
-  }
-
-  @action
-  onShowTopicThumbnailChange(event) {
-    this.editShowTopicThumbnail = event.target.checked;
-  }
-
-  @action
-  onShowActivityIndicatorsChange(event) {
-    this.editShowActivityIndicators = event.target.checked;
-  }
-
-  @action
-  onRequireConfirmationChange(event) {
-    this.editRequireConfirmation = event.target.checked;
-  }
-
-  @action
-  onReadGroupsChange(groupIds) {
-    this.editAllowReadGroupIds = groupIds || [];
-  }
-
-  @action
-  onWriteGroupsChange(groupIds) {
-    this.editAllowWriteGroupIds = groupIds || [];
-  }
-
-  _checkConstraints() {
+  _checkConstraints(categoryIds, tagNames) {
     if (this.isNew) {
       return;
     }
@@ -161,11 +108,13 @@ export default class KanbanBoardSettings extends Component {
     this._constraintCheckTimer = discourseDebounce(
       this,
       this._fetchConstraintPreview,
+      categoryIds,
+      tagNames,
       500
     );
   }
 
-  async _fetchConstraintPreview() {
+  async _fetchConstraintPreview(categoryIds, tagNames) {
     const boardId = this.args.model.board?.id;
     if (!boardId) {
       return;
@@ -177,8 +126,8 @@ export default class KanbanBoardSettings extends Component {
         {
           type: "POST",
           data: {
-            category_ids: this.editCategoryIds,
-            tag_names: this.editTagNames,
+            category_ids: categoryIds ?? this.formApi?.get("category_ids"),
+            tag_names: tagNames ?? this.formApi?.get("tag_names"),
           },
         }
       );
@@ -193,48 +142,30 @@ export default class KanbanBoardSettings extends Component {
     }
   }
 
-  get _boardData() {
-    return {
-      name: this.editName,
-      slug: this.editSlug,
-      category_ids: this.editCategoryIds,
-      tag_names: this.editTagNames,
-      card_style: this.editCardStyle,
-      show_tags: this.editShowTags,
-      show_topic_thumbnail: this.editShowTopicThumbnail,
-      show_activity_indicators: this.editShowActivityIndicators,
-      require_confirmation: this.editRequireConfirmation,
-      allow_read_group_ids: this.editAllowReadGroupIds,
-      allow_write_group_ids: this.editAllowWriteGroupIds,
-    };
+  @action
+  onRegisterApi(api) {
+    this.formApi = api;
   }
 
   @action
-  async save() {
-    if (this.saving) {
-      return;
-    }
-
+  async save(data) {
     if (this.constraintWarning) {
       this.dialog.confirm({
         message: this.constraintWarning,
-        didConfirm: () => this._performSave(),
+        didConfirm: () => this._performSave(data),
       });
       return;
     }
 
-    await this._performSave();
+    await this._performSave(data);
   }
 
-  async _performSave() {
-    this.saving = true;
+  async _performSave(data) {
     try {
-      await this.args.model.onSave(this._boardData);
+      await this.args.model.onSave(data);
       this.args.closeModal();
     } catch (error) {
       popupAjaxError(error);
-    } finally {
-      this.saving = false;
     }
   }
 
@@ -251,148 +182,158 @@ export default class KanbanBoardSettings extends Component {
       class="kanban-board-settings-modal"
     >
       <:body>
-        <div class="kanban-board-settings__field">
-          <label>{{i18n "discourse_kanban.manage.name"}}</label>
-          <input
-            type="text"
-            value={{this.editName}}
-            {{on "input" this.onNameInput}}
-          />
-        </div>
-
-        <div class="kanban-board-settings__field">
-          <label>{{i18n "discourse_kanban.manage.slug"}}</label>
-          <input
-            type="text"
-            value={{this.editSlug}}
-            {{on "input" this.onSlugInput}}
-          />
-        </div>
-
-        <div class="kanban-board-settings__field">
-          <label>{{i18n "discourse_kanban.manage.board_categories"}}</label>
-          <CategorySelector
-            @categories={{this.selectedCategories}}
-            @onChange={{this.onCategoriesChange}}
-          />
-        </div>
-
-        <div class="kanban-board-settings__field">
-          <label>{{i18n "discourse_kanban.manage.board_tags"}}</label>
-          <MiniTagChooser
-            @value={{this.editTagNames}}
-            @onChange={{this.onTagsChange}}
-          />
-        </div>
-
-        {{#if this.constraintWarning}}
-          <div class="kanban-board-settings__warning alert alert-warning">
-            {{this.constraintWarning}}
-          </div>
-        {{/if}}
-
-        <div class="kanban-board-settings__field">
-          <label>{{i18n "discourse_kanban.manage.card_style"}}</label>
-          <select {{on "change" this.onCardStyleChange}}>
-            {{#each this.cardStyleOptions as |styleOption|}}
-              <option
-                value={{styleOption.id}}
-                selected={{if (eq styleOption.id this.editCardStyle) true}}
-              >{{styleOption.name}}</option>
-            {{/each}}
-          </select>
-        </div>
-
-        <div
-          class="kanban-board-settings__field kanban-board-settings__field--checkbox"
+        <Form
+          @data={{this.formData}}
+          @onSubmit={{this.save}}
+          @onRegisterApi={{this.onRegisterApi}}
+          as |form data|
         >
-          <label>
-            <input
-              type="checkbox"
-              checked={{this.editShowTags}}
-              {{on "change" this.onShowTagsChange}}
-            />
-            {{i18n "discourse_kanban.manage.show_tags"}}
-          </label>
-        </div>
+        <form.Section>
 
-        <div
-          class="kanban-board-settings__field kanban-board-settings__field--checkbox"
-        >
-          <label>
-            <input
-              type="checkbox"
-              checked={{this.editShowTopicThumbnail}}
-              {{on "change" this.onShowTopicThumbnailChange}}
-            />
-            {{i18n "discourse_kanban.manage.show_topic_thumbnail"}}
-          </label>
-        </div>
+          <form.Field
+            @name="name"
+            @title={{i18n "discourse_kanban.manage.name"}}
+            @format="max"
+            @type="input"
+            as |field|
+          >
+            <field.Control />
+          </form.Field>
 
-        <div
-          class="kanban-board-settings__field kanban-board-settings__field--checkbox"
-        >
-          <label>
-            <input
-              type="checkbox"
-              checked={{this.editShowActivityIndicators}}
-              {{on "change" this.onShowActivityIndicatorsChange}}
-            />
-            {{i18n "discourse_kanban.manage.show_activity_indicators"}}
-          </label>
-        </div>
+          <form.Field
+            @name="slug"
+            @title={{i18n "discourse_kanban.manage.slug"}}
+            @format="max"
+            @type="input"
+            as |field|
+          >
+            <field.Control />
+          </form.Field>
 
-        <div
-          class="kanban-board-settings__field kanban-board-settings__field--checkbox"
-        >
-          <label>
-            <input
-              type="checkbox"
-              checked={{this.editRequireConfirmation}}
-              {{on "change" this.onRequireConfirmationChange}}
-            />
-            {{i18n "discourse_kanban.manage.require_confirmation"}}
-          </label>
-        </div>
+          <form.Field
+            @name="category_ids"
+            @title={{i18n "discourse_kanban.manage.board_categories"}}
+            @format="max"
+            @type="custom"
+            as |field|
+          >
+            <field.Control>
+              <CategorySelector
+                @categories={{this.selectedCategories data.category_ids}}
+                @onChange={{fn this.onCategoriesChange field}}
+              />
+            </field.Control>
+          </form.Field>
 
-        <div class="kanban-board-settings__field">
-          <label>{{i18n "discourse_kanban.manage.allow_read_groups"}}</label>
-          <GroupChooser
-            @content={{this.site.groups}}
-            @value={{this.editAllowReadGroupIds}}
-            @onChange={{this.onReadGroupsChange}}
-          />
-        </div>
+          <form.Field
+            @name="tag_names"
+            @title={{i18n "discourse_kanban.manage.board_tags"}}
+            @format="max"
+            @type="tag-chooser"
+            as |field|
+          >
+            <field.Control />
+          </form.Field>
 
-        <div class="kanban-board-settings__field">
-          <label>{{i18n "discourse_kanban.manage.allow_write_groups"}}</label>
-          <GroupChooser
-            @content={{this.site.groups}}
-            @value={{this.editAllowWriteGroupIds}}
-            @onChange={{this.onWriteGroupsChange}}
-          />
-        </div>
+          {{#if this.constraintWarning}}
+            <form.Alert @type="warning">
+              {{this.constraintWarning}}
+            </form.Alert>
+          {{/if}}
+          <form.Field
+            @name="card_style"
+            @title={{i18n "discourse_kanban.manage.card_style"}}
+            @format="max"
+            @type="select"
+            as |field|
+          >
+            <field.Control @content={{CARD_STYLE_OPTIONS}} />
+          </form.Field>
+        </form.Section>
+        <form.Section>
+<form.Field
+            @name="show_tags"
+            @title={{i18n "discourse_kanban.manage.show_tags"}}
+            @type="toggle"
+            as |field|
+          >
+            <field.Control />
+          </form.Field>
+
+          <form.Field
+            @name="show_topic_thumbnail"
+            @title={{i18n "discourse_kanban.manage.show_topic_thumbnail"}}
+            @type="toggle"
+            as |field|
+          >
+            <field.Control />
+          </form.Field>
+
+          <form.Field
+            @name="show_activity_indicators"
+            @title={{i18n "discourse_kanban.manage.show_activity_indicators"}}
+            @type="toggle"
+            as |field|
+          >
+            <field.Control />
+          </form.Field>
+
+          <form.Field
+            @name="require_confirmation"
+            @title={{i18n "discourse_kanban.manage.require_confirmation"}}
+            @type="toggle"
+            as |field|
+          >
+            <field.Control />
+          </form.Field>
+        </form.Section>
+        <form.Section>
+<form.Field
+            @name="allow_read_group_ids"
+            @title={{i18n "discourse_kanban.manage.allow_read_groups"}}
+            @format="max"
+            @type="custom"
+            as |field|
+          >
+            <field.Control>
+              <GroupChooser
+                @content={{this.site.groups}}
+                @value={{data.allow_read_group_ids}}
+                @onChange={{fn this.setGroupIds field}}
+              />
+            </field.Control>
+          </form.Field>
+
+          <form.Field
+            @name="allow_write_group_ids"
+            @title={{i18n "discourse_kanban.manage.allow_write_groups"}}
+            @format="max"
+            @type="custom"
+            as |field|
+          >
+            <field.Control>
+              <GroupChooser
+                @content={{this.site.groups}}
+                @value={{data.allow_write_group_ids}}
+                @onChange={{fn this.setGroupIds field}}
+              />
+            </field.Control>
+          </form.Field>
+        </form.Section>
+          
+
+          <form.Actions>
+            <form.Submit />
+            {{#unless this.isNew}}
+              <form.Button
+                class="btn-danger"
+                @action={{this.onDelete}}
+                @label="discourse_kanban.board.delete_board"
+              />
+            {{/unless}}
+          </form.Actions>
+        </Form>
       </:body>
-      <:footer>
-        <DButton
-          class="btn-primary"
-          @action={{this.save}}
-          @label="save"
-          @isLoading={{this.saving}}
-        />
-        {{#unless this.isNew}}
-          <DButton
-            class="btn-danger"
-            @action={{this.onDelete}}
-            @label="discourse_kanban.board.delete_board"
-          />
-        {{/unless}}
-        <DButton
-          class="btn-flat d-modal-cancel"
-          @action={{@closeModal}}
-          @label="cancel"
-        />
-      </:footer>
     </DModal>
   </template>
 }

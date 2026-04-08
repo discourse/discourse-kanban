@@ -659,50 +659,8 @@ body.kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
   }
 }
 
-.kanban-column-settings-modal .icon-picker,
-.kanban-board-settings-modal .icon-picker {
-  .select-kit-header-wrapper > .d-icon {
-    margin-right: 0.25em;
-  }
-}
-
-.kanban-column-settings-modal,
-.kanban-board-settings-modal {
-  .kanban-column-settings__field,
-  .kanban-board-settings__field {
-    margin-bottom: 1em;
-
-    label {
-      display: block;
-      font-weight: 600;
-      font-size: $font-down-1;
-      margin-bottom: 0.25em;
-    }
-
-    input[type="text"],
-    input[type="number"],
-    select {
-      width: 100%;
-      margin: 0;
-    }
-
-    .select-kit {
-      width: 100%;
-    }
-
-    &--checkbox label {
-      display: flex;
-      align-items: center;
-      gap: 0.5em;
-      font-weight: normal;
-      cursor: pointer;
-
-      input[type="checkbox"] {
-        width: auto;
-        margin: 0;
-      }
-    }
-  }
+.select-kit.multi-select.form-kit__control-tag-chooser {
+  width: 100%;
 }
 
 .kanban-column-settings-modal {
