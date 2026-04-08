@@ -53,13 +53,10 @@ describe "Kanban Board Viewer" do
   context "when viewing a board" do
     it "displays columns and cards" do
       board = create_board(tag_ids: [tag1.id, tag2.id])
-      col_todo =
-        board.columns.create!(title: "To Do", position: 0, icon: "list", tag_id: tag1.id)
-      col_done =
-        board.columns.create!(title: "Done", position: 1, icon: "check", tag_id: tag2.id)
+      col_todo = board.columns.create!(title: "To Do", position: 0, icon: "list", tag_id: tag1.id)
+      col_done = board.columns.create!(title: "Done", position: 1, icon: "check", tag_id: tag2.id)
 
-      topic1 =
-        Fabricate(:topic, title: "Implement login page", category: category, tags: [tag1])
+      topic1 = Fabricate(:topic, title: "Implement login page", category: category, tags: [tag1])
       topic2 =
         Fabricate(
           :topic,

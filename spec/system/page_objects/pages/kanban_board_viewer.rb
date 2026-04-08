@@ -42,6 +42,8 @@ module PageObjects
       def drag_card_to_column(card_title, target_column_title)
         find(".kanban-card", text: card_title).drag_to(
           find(".kanban-column", text: /#{Regexp.escape(target_column_title)}/i),
+          html5: true,
+          delay: 0.4,
         )
         self
       end

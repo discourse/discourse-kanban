@@ -53,7 +53,6 @@ end
 #  card_type        :integer          default("floater"), not null
 #  due_at           :datetime
 #  labels           :text             default([]), not null, is an Array
-#  membership_mode  :integer          default("manual_in"), not null
 #  notes            :text
 #  position         :bigint           default(0), not null
 #  title            :string

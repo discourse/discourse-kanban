@@ -175,14 +175,15 @@ end
 #  id                       :bigint           not null, primary key
 #  allow_read_group_ids     :integer          default([]), not null, is an Array
 #  allow_write_group_ids    :integer          default([]), not null, is an Array
-#  base_filter_query        :text
 #  card_style               :integer          default("detailed"), not null
+#  category_ids             :integer          default([]), not null, is an Array
 #  name                     :string           not null
 #  require_confirmation     :boolean          default(TRUE), not null
 #  show_activity_indicators :boolean          default(FALSE), not null
 #  show_tags                :boolean          default(FALSE), not null
 #  show_topic_thumbnail     :boolean          default(FALSE), not null
 #  slug                     :string           not null
+#  tag_ids                  :integer          default([]), not null, is an Array
 #  created_at               :datetime         not null
 #  updated_at               :datetime         not null
 #  created_by_id            :bigint
@@ -190,6 +191,8 @@ end
 #
 # Indexes
 #
+#  idx_kanban_boards_category_ids                  (category_ids) USING gin
+#  idx_kanban_boards_tag_ids                       (tag_ids) USING gin
 #  index_discourse_kanban_boards_on_created_by_id  (created_by_id)
 #  index_discourse_kanban_boards_on_slug           (slug) UNIQUE
 #
