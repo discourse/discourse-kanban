@@ -101,7 +101,7 @@ describe "Kanban Board Viewer" do
     it "moves card after confirming" do
       board = create_board(allow_write_group_ids: [write_group.id])
       col_todo = board.columns.create!(title: "To Do", position: 0)
-      col_done = board.columns.create!(title: "Done", position: 1, move_to_status: "closed")
+      col_done = board.columns.create!(title: "Done", position: 1)
 
       topic1 = Fabricate(:topic, title: "Fix critical checkout regression", category: category)
       add_topic_card(board, col_todo, topic1)

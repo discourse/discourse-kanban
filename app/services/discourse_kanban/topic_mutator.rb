@@ -3,6 +3,8 @@
 module DiscourseKanban
   class TopicMutator
     def self.apply!(topic:, column:, guardian:)
+      return unless mutates_topic?(column)
+
       user = guardian.user
       raise Discourse::InvalidAccess.new unless user
       raise Discourse::InvalidAccess.new unless guardian.can_edit?(topic)
@@ -11,6 +13,13 @@ module DiscourseKanban
       move_topic_tags(topic, column, guardian)
       move_topic_assignment(topic, column, user)
       move_topic_status(topic, column, user)
+    end
+
+    def self.mutates_topic?(column)
+      return true if column.move_to_category_id.present?
+      return true if column.move_to_status.present?
+      return true if column.move_to_assigned.present?
+      column.board.columns.any? { |c| c.tag_id.present? }
     end
 
     def self.move_topic_to_category(topic, column, guardian, user)

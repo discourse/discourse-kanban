@@ -19,7 +19,7 @@ RSpec.describe DiscourseKanban::TopicMutator do
 
   describe ".apply!" do
     it "raises InvalidAccess when user is nil" do
-      column = board.columns.create!(title: "Col", position: 0)
+      column = board.columns.create!(title: "Col", position: 0, move_to_status: "closed")
 
       expect {
         described_class.apply!(topic: topic, column: column, guardian: Guardian.new(nil))
@@ -27,7 +27,7 @@ RSpec.describe DiscourseKanban::TopicMutator do
     end
 
     it "raises InvalidAccess when user cannot edit the topic" do
-      column = board.columns.create!(title: "Col", position: 0)
+      column = board.columns.create!(title: "Col", position: 0, move_to_status: "closed")
       other_user = Fabricate(:user)
 
       topic.update!(category: Fabricate(:private_category, group: Fabricate(:group)))
