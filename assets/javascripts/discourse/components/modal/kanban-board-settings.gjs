@@ -247,7 +247,11 @@ export default class KanbanBoardSettings extends Component {
             @type="select"
             as |field|
           >
-            <field.Control @content={{CARD_STYLE_OPTIONS}} />
+            <field.Control as |select| >
+              {{#each CARD_STYLE_OPTIONS as |option|}}
+                <select.Option @value={{option.id}}>{{option.name}}</select.Option>
+              {{/each}}
+              </field.Control>
           </form.Field>
         </form.Section>
         <form.Section>
