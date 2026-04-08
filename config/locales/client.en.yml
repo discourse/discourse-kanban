@@ -39,6 +39,15 @@ en:
         add_label: "Add"
         remove_label: "Remove label"
         assigned_to: "Assigned To"
+        view_topic: "View topic"
+        topic_load_error: "Could not load topic content."
+        topic_reply_count:
+          one: "%{count} reply"
+          other: "%{count} replies"
+        topic_last_reply: "last by %{username}"
+        assign: "Assign"
+        reassign: "Reassign"
+        unassign: "Unassign"
       keyboard_shortcuts:
         navigate_columns: "Navigate between columns"
         navigate_cards: "Navigate between cards"

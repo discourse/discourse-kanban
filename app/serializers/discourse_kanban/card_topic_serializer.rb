@@ -2,10 +2,19 @@
 
 module DiscourseKanban
   class CardTopicSerializer < ApplicationSerializer
-    attributes :id, :title, :slug, :category_id, :tags, :bumped_at, :closed, :image_url
+    attributes :id,
+               :title,
+               :slug,
+               :category_id,
+               :tags,
+               :bumped_at,
+               :closed,
+               :image_url,
+               :posts_count
 
     attribute :last_poster
     attribute :assigned_to_user
+    attribute :assigned_to_group
     attribute :all_assigned_users
 
     def tags
@@ -30,6 +39,15 @@ module DiscourseKanban
       object.respond_to?(:assignment) && object.assignment&.assigned_to.is_a?(User)
     end
 
+    def assigned_to_group
+      group = object.assignment.assigned_to
+      { name: group.name }
+    end
+
+    def include_assigned_to_group?
+      object.respond_to?(:assignment) && object.assignment&.assigned_to.is_a?(Group)
+    end
+
     def all_assigned_users
       @all_assigned_users ||=
         topic_assignments.filter_map { |a| serialize_user(a.assigned_to) }.uniq { |u| u[:username] }
@@ -47,9 +65,7 @@ module DiscourseKanban
 
     def fallback_assignments
       return [] unless defined?(Assignment)
-      Assignment.where(topic_id: object.id, active: true, assigned_to_type: "User").includes(
-        :assigned_to,
-      )
+      Assignment.where(topic_id: object.id, active: true).includes(:assigned_to)
     end
 
     def serialize_user(user)

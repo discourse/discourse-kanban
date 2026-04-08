@@ -16,11 +16,12 @@ import { bind } from "discourse/lib/decorators";
 import DiscourseURL from "discourse/lib/url";
 import Category from "discourse/models/category";
 import { i18n } from "discourse-i18n";
-import { kanbanBoardUrl, kanbanCardUrl } from "../lib/kanban-urls";
+import { kanbanBoardUrl } from "../lib/kanban-urls";
 import KanbanColumn from "./kanban-column";
 import KanbanBoardSettings from "./modal/kanban-board-settings";
 import KanbanCardDetailModal from "./modal/kanban-card-detail";
 import KanbanColumnSettings from "./modal/kanban-column-settings";
+import KanbanTopicCardDetailModal from "./modal/kanban-topic-card-detail";
 
 const onWindowResize = modifier((element, [callback]) => {
   const wrappedCallback = () => callback(element);
@@ -101,9 +102,9 @@ export default class KanbanBoardViewer extends Component {
         }
         const card = this.#findCard(this.args.initialCardId);
         if (card) {
-          this.#openCardModalWithUrl(card);
+          this.#openInitialCardModal(card);
         } else {
-          DiscourseURL.replaceState(kanbanBoardUrl(this.board));
+          DiscourseURL.routeTo(kanbanBoardUrl(this.board));
         }
       });
     }
@@ -233,6 +234,11 @@ export default class KanbanBoardViewer extends Component {
     } catch {
       // Board may have been deleted — no action needed
     }
+  }
+
+  @bind
+  refreshBoard() {
+    return this.#handleBoardUpdated();
   }
 
   get canWrite() {
@@ -852,24 +858,29 @@ export default class KanbanBoardViewer extends Component {
     return null;
   }
 
-  #openCardModalWithUrl(card) {
+  #openInitialCardModal(card) {
     const boardUrl = kanbanBoardUrl(this.board);
-    const cardUrlPath = kanbanCardUrl(this.board, card.id);
+    const isTopicCard = card.card_type === "topic" && card.topic;
+    const ModalComponent = isTopicCard
+      ? KanbanTopicCardDetailModal
+      : KanbanCardDetailModal;
+    let navigatedAway = false;
 
-    DiscourseURL.replaceState(cardUrlPath);
-    this.modal
-      .show(KanbanCardDetailModal, {
-        model: {
+    const model = isTopicCard
+      ? {
           card,
-          canWrite: this.canWrite,
-          onUpdateCard: this.onUpdateCard,
-        },
-      })
-      .finally(() => {
-        if (!this.isDestroying && !this.isDestroyed) {
-          DiscourseURL.replaceState(boardUrl);
+          onNavigateAway: (url) => {
+            navigatedAway = true;
+            DiscourseURL.routeTo(url);
+          },
         }
-      });
+      : { card, canWrite: this.canWrite, onUpdateCard: this.onUpdateCard };
+
+    this.modal.show(ModalComponent, { model }).finally(() => {
+      if (!navigatedAway && !this.isDestroying && !this.isDestroyed) {
+        DiscourseURL.replaceState(boardUrl);
+      }
+    });
   }
 
   _highlightDroppedCard(cardId) {
@@ -986,6 +997,7 @@ export default class KanbanBoardViewer extends Component {
               @onUpdateCard={{this.onUpdateCard}}
               @onDeleteCard={{this.onDeleteCard}}
               @onPromoteToTopic={{this.onPromoteToTopic}}
+              @onRefreshBoard={{this.refreshBoard}}
               @onEditColumn={{this.openEditColumnModal}}
               @onMoveColumn={{this.moveColumn}}
               @onDeleteColumn={{this.deleteColumn}}

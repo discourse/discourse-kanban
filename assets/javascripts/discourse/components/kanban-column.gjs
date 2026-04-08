@@ -430,6 +430,7 @@ export default class KanbanColumn extends Component {
             @onUpdateCard={{@onUpdateCard}}
             @onDeleteCard={{@onDeleteCard}}
             @onPromoteToTopic={{fn @onPromoteToTopic card.id}}
+            @onRefreshBoard={{@onRefreshBoard}}
             @columnTags={{this.columnTags}}
           />
         {{else}}

@@ -303,6 +303,53 @@ describe "Kanban Board Viewer" do
     end
   end
 
+  context "with topic card detail modal" do
+    it "opens the topic detail modal when clicking a topic card" do
+      board = create_board(show_tags: true)
+      col_todo = board.columns.create!(title: "To Do", position: 0)
+
+      topic = Fabricate(:topic, title: "Implement search feature", category: category, tags: [tag1])
+      Fabricate(:post, topic: topic, raw: "Here is the **plan** for implementing search.")
+      Fabricate(:post, topic: topic, raw: "Looks great, let's do it!")
+
+      add_topic_card(board, col_todo, topic)
+
+      sign_in(user)
+      board_viewer.visit_board(board)
+
+      board_viewer.click_topic_card("Implement search feature")
+      expect(board_viewer).to have_topic_card_detail_modal
+      expect(board_viewer).to have_topic_card_detail_cooked
+      expect(board_viewer).to have_topic_card_detail_category
+      expect(board_viewer).to have_topic_card_detail_tags
+      expect(board_viewer).to have_topic_card_detail_reply_count
+      expect(page).to have_current_path(
+        "/kanban/boards/sprint-board/#{board.id}/card/#{board.cards.last.id}",
+      )
+
+      find(".modal-close").click
+      expect(board_viewer).to have_no_topic_card_detail_modal
+      expect(page).to have_current_path("/kanban/boards/sprint-board/#{board.id}")
+    end
+
+    it "opens the topic detail modal when visiting a card URL directly" do
+      board = create_board
+      col_todo = board.columns.create!(title: "To Do", position: 0)
+
+      topic = Fabricate(:topic, title: "Fix the login bug on mobile", category: category)
+      Fabricate(:post, topic: topic, raw: "Login is broken on mobile.")
+
+      card = add_topic_card(board, col_todo, topic)
+
+      sign_in(user)
+      board_viewer.visit_card(board, card)
+
+      expect(board_viewer).to have_board_title("Sprint Board")
+      expect(board_viewer).to have_topic_card_detail_modal
+      expect(board_viewer).to have_topic_card_detail_cooked
+    end
+  end
+
   context "with controls menu" do
     it "toggles fullscreen mode" do
       board = create_board

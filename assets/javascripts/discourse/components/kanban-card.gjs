@@ -2,6 +2,7 @@ import Component from "@glimmer/component";
 import { tracked } from "@glimmer/tracking";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
+import { getOwner } from "@ember/owner";
 import { service } from "@ember/service";
 import { trustHTML } from "@ember/template";
 import DButton from "discourse/components/d-button";
@@ -19,6 +20,7 @@ import Category from "discourse/models/category";
 import { kanbanBoardUrl, kanbanCardUrl } from "../lib/kanban-urls";
 import AutoLinkedText from "./auto-linked-text";
 import KanbanCardDetailModal from "./modal/kanban-card-detail";
+import KanbanTopicCardDetailModal from "./modal/kanban-topic-card-detail";
 
 export function shouldInsertSourceDropIndicator(root = document) {
   return !root.querySelector(
@@ -27,7 +29,9 @@ export function shouldInsertSourceDropIndicator(root = document) {
 }
 
 export default class KanbanCard extends Component {
+  @service currentUser;
   @service modal;
+  @service siteSettings;
 
   @tracked dragging = false;
   dragHideTimer = null;
@@ -56,14 +60,6 @@ export default class KanbanCard extends Component {
 
   get cardTitle() {
     return this.isTopicCard ? this.topic.title : this.args.card.title;
-  }
-
-  get topicUrl() {
-    if (!this.isTopicCard) {
-      return null;
-    }
-    const t = this.topic;
-    return `/t/${t.slug}/${t.id}`;
   }
 
   get tagsHtml() {
@@ -183,6 +179,18 @@ export default class KanbanCard extends Component {
     return this.args.canWrite;
   }
 
+  get canAssign() {
+    return (
+      this.isTopicCard &&
+      this.siteSettings.assign_enabled &&
+      this.currentUser?.can_assign
+    );
+  }
+
+  get isTopicAssigned() {
+    return this.allAssignedUsers.length > 0 || !!this.topic?.assigned_to_group;
+  }
+
   get hasDetails() {
     const card = this.args.card;
     return !!(card.notes || card.labels?.length);
@@ -212,10 +220,50 @@ export default class KanbanCard extends Component {
   }
 
   @action
+  openTopicDetailModal() {
+    const board = this.args.board;
+    const boardUrl = kanbanBoardUrl(board);
+    const cardUrlPath = kanbanCardUrl(board, this.args.card.id);
+    let navigatedAway = false;
+
+    DiscourseURL.replaceState(cardUrlPath);
+
+    this.modal
+      .show(KanbanTopicCardDetailModal, {
+        model: {
+          card: this.args.card,
+          onNavigateAway: (url) => {
+            navigatedAway = true;
+            DiscourseURL.routeTo(url);
+          },
+        },
+      })
+      .finally(() => {
+        if (!navigatedAway && !this.isDestroying && !this.isDestroyed) {
+          DiscourseURL.replaceState(boardUrl);
+        }
+      });
+  }
+
+  @action
+  assignTopic() {
+    const taskActions = getOwner(this).lookup("service:task-actions");
+    taskActions.showAssignModal(this.topic, {
+      isAssigned: this.isTopicAssigned,
+      targetType: "Topic",
+      onSuccess: () => this.args.onRefreshBoard?.(),
+    });
+  }
+
+  @action
+  async unassignTopic() {
+    const taskActions = getOwner(this).lookup("service:task-actions");
+    await taskActions.unassign(this.topic.id, "Topic");
+    this.args.onRefreshBoard?.();
+  }
+
+  @action
   onCardClick(event) {
-    if (this.isTopicCard) {
-      return;
-    }
     if (
       event.target.closest(".kanban-card__actions-trigger") ||
       event.target.closest("[data-content]") ||
@@ -223,7 +271,19 @@ export default class KanbanCard extends Component {
     ) {
       return;
     }
-    this.openDetailModal();
+    if (this.isTopicCard) {
+      this.openTopicDetailModal();
+    } else {
+      this.openDetailModal();
+    }
+  }
+
+  @action
+  onCardKeydown(event) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      this.onCardClick(event);
+    }
   }
 
   @action
@@ -349,21 +409,23 @@ export default class KanbanCard extends Component {
         this.activityClass
       }}
       draggable={{if @canWrite "true" "false"}}
-      role={{unless this.isTopicCard "button"}}
+      role="button"
+      tabindex="0"
       data-card-id={{@card.id}}
       data-topic-id={{@card.topic_id}}
       {{on "dragstart" this.dragStart}}
       {{on "dragend" this.dragEnd}}
       {{on "click" this.onCardClick}}
+      {{on "keydown" this.onCardKeydown}}
     >
       <div class="kanban-card__row kanban-card__title-row">
         {{#if this.topicStatusModel}}
           <TopicStatus @topic={{this.topicStatusModel}} />
         {{/if}}
-        {{#if this.topicUrl}}
-          <a href={{this.topicUrl}} class="kanban-card__title">
+        {{#if this.isTopicCard}}
+          <span class="kanban-card__title kanban-card__title--topic">
             {{this.cardTitle}}
-          </a>
+          </span>
         {{else}}
           <span class="kanban-card__title"><AutoLinkedText
               @text={{this.cardTitle}}
@@ -395,6 +457,30 @@ export default class KanbanCard extends Component {
                     />
                   </dropdown.item>
                 {{/unless}}
+                {{#if this.canAssign}}
+                  {{#if this.isTopicAssigned}}
+                    <dropdown.item>
+                      <DButton
+                        @action={{this.unassignTopic}}
+                        @icon="user-xmark"
+                        @label="discourse_kanban.board.unassign"
+                        class="btn-transparent"
+                      />
+                    </dropdown.item>
+                  {{/if}}
+                  <dropdown.item>
+                    <DButton
+                      @action={{this.assignTopic}}
+                      @icon="user-plus"
+                      @label={{if
+                        this.isTopicAssigned
+                        "discourse_kanban.board.reassign"
+                        "discourse_kanban.board.assign"
+                      }}
+                      class="btn-transparent"
+                    />
+                  </dropdown.item>
+                {{/if}}
                 <dropdown.item>
                   <DButton
                     @action={{this.removeCard}}

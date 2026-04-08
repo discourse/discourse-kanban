@@ -244,6 +244,40 @@ module PageObjects
           has_css?(".kanban-card__notes-indicator")
         end
       end
+
+      def click_topic_card(card_title)
+        find(".kanban-card:not(.kanban-card--floater)", text: card_title).click
+        self
+      end
+
+      def has_topic_card_detail_modal?
+        has_css?(".kanban-topic-card-detail-modal")
+      end
+
+      def has_no_topic_card_detail_modal?
+        has_no_css?(".kanban-topic-card-detail-modal")
+      end
+
+      def has_topic_card_detail_cooked?
+        within(".kanban-topic-card-detail-modal") { has_css?(".kanban-topic-card-detail__cooked") }
+      end
+
+      def has_topic_card_detail_category?
+        within(".kanban-topic-card-detail-modal") { has_css?(".badge-category__wrapper") }
+      end
+
+      def has_topic_card_detail_tags?
+        within(".kanban-topic-card-detail-modal") { has_css?(".kanban-topic-card-detail__tags") }
+      end
+
+      def has_topic_card_detail_reply_count?
+        within(".kanban-topic-card-detail-modal") { has_css?(".kanban-topic-card-detail__stats") }
+      end
+
+      def click_topic_card_view_topic
+        within(".kanban-topic-card-detail-modal") { find(".btn-primary").click }
+        self
+      end
     end
   end
 end

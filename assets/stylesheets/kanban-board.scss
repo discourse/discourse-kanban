@@ -569,6 +569,84 @@ body.kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
   }
 }
 
+.kanban-topic-card-detail-modal {
+  .d-modal__container {
+    max-width: 720px;
+    width: 90vw;
+  }
+
+  .kanban-topic-card-detail__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5em;
+    margin-bottom: 1em;
+    padding-bottom: 0.75em;
+    border-bottom: 1px solid var(--primary-low);
+    font-size: var(--font-down-1);
+    color: var(--primary-medium);
+
+    .badge-category__wrapper {
+      font-size: inherit;
+
+      &:focus-visible {
+        outline: none;
+      }
+    }
+  }
+
+  .kanban-topic-card-detail__cooked .cooked {
+    img:not(.emoji) {
+      max-width: 100%;
+      height: auto;
+    }
+  }
+
+  .kanban-topic-card-detail__stats {
+    display: flex;
+    align-items: center;
+    gap: 0.35em;
+    margin-top: 1em;
+    padding-top: 0.75em;
+    border-top: 1px solid var(--primary-low);
+    color: var(--primary-medium);
+    font-size: $font-down-1;
+
+    .d-icon {
+      font-size: $font-down-1;
+    }
+  }
+
+  .kanban-topic-card-detail__separator {
+    margin: 0 0.1em;
+  }
+
+  .kanban-topic-card-detail__assigned {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+
+    .d-icon {
+      color: var(--primary-medium);
+    }
+  }
+
+  .kanban-topic-card-detail__username {
+    font-weight: 600;
+    color: var(--primary-medium);
+  }
+
+  .kanban-topic-card-detail__error {
+    padding: 1em;
+    text-align: center;
+    color: var(--primary-medium);
+  }
+}
+
+.kanban-card__title--topic {
+  cursor: pointer;
+}
+
 @keyframes kanban-label-chip-enter {
   0% {
     opacity: 0;
