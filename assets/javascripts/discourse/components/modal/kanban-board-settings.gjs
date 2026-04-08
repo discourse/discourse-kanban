@@ -1,11 +1,15 @@
 import Component from "@glimmer/component";
-import { cached } from "@glimmer/tracking";
+import { cached, tracked } from "@glimmer/tracking";
 import { fn } from "@ember/helper";
+import { on } from "@ember/modifier";
 import { action } from "@ember/object";
 import { cancel } from "@ember/runloop";
 import { service } from "@ember/service";
+import { modifier } from "ember-modifier";
+import DButton from "discourse/components/d-button";
 import DModal from "discourse/components/d-modal";
 import Form from "discourse/components/form";
+import concatClass from "discourse/helpers/concat-class";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
 import discourseDebounce from "discourse/lib/debounce";
@@ -25,7 +29,14 @@ export default class KanbanBoardSettings extends Component {
   @service dialog;
   @service site;
 
+  @tracked isEditingName = !this.args.model.board?.name;
+  @tracked editingName = this.args.model.board?.name || "";
   constraintWarning = null;
+
+  focusNameInput = modifier((element) => {
+    element.focus();
+    element.select();
+  });
 
   willDestroy() {
     super.willDestroy(...arguments);
@@ -69,10 +80,48 @@ export default class KanbanBoardSettings extends Component {
     return this.args.model.isNew;
   }
 
-  get modalTitle() {
-    return this.isNew
-      ? i18n("discourse_kanban.board.new_board")
-      : i18n("discourse_kanban.board.board_settings");
+  get hasName() {
+    return !!(this.editingName || this.args.model.board?.name);
+  }
+
+  get displayName() {
+    return (
+      this.editingName ||
+      this.args.model.board?.name ||
+      i18n("discourse_kanban.manage.name_placeholder")
+    );
+  }
+
+  @action
+  startEditingName() {
+    this.editingName =
+      this.formApi?.get("name") || this.args.model.board?.name || "";
+    this.isEditingName = true;
+  }
+
+  @action
+  updateName(event) {
+    this.editingName = event.target.value;
+  }
+
+  @action
+  finishEditingName() {
+    this.isEditingName = false;
+    const trimmed = this.editingName.trim();
+    this.editingName = trimmed;
+    this.formApi?.set("name", trimmed);
+  }
+
+  @action
+  handleNameKeydown(event) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      event.target.blur();
+    } else if (event.key === "Escape") {
+      this.editingName =
+        this.formApi?.get("name") || this.args.model.board?.name || "";
+      this.isEditingName = false;
+    }
   }
 
   @action
@@ -179,171 +228,193 @@ export default class KanbanBoardSettings extends Component {
   <template>
     <DModal
       @closeModal={{@closeModal}}
-      @title={{this.modalTitle}}
+      @hideHeader={{true}}
       class="kanban-board-settings-modal"
     >
       <:body>
-        <Form
-          @data={{this.formData}}
-          @onSubmit={{this.save}}
-          @onRegisterApi={{this.onRegisterApi}}
-          as |form data|
-        >
-          <form.Section>
+        <div class="kanban-board-settings-modal__header">
+          {{#if this.isEditingName}}
+            <input
+              type="text"
+              value={{this.editingName}}
+              placeholder={{i18n "discourse_kanban.manage.name_placeholder"}}
+              class="kanban-board-settings-modal__name-input"
+              {{this.focusNameInput}}
+              {{on "input" this.updateName}}
+              {{on "blur" this.finishEditingName}}
+              {{on "keydown" this.handleNameKeydown}}
+            />
+          {{else}}
+            {{! template-lint-disable no-invalid-interactive }}
+            <div
+              class={{concatClass
+                "kanban-board-settings-modal__name"
+                (unless this.hasName "--empty")
+              }}
+              {{on "click" this.startEditingName}}
+            >{{this.displayName}}</div>
+          {{/if}}
+          <DButton
+            @action={{@closeModal}}
+            @icon="xmark"
+            class="btn-flat kanban-board-settings-modal__close"
+          />
+        </div>
+        <div class="kanban-board-settings-modal__container">
+          <Form
+            @data={{this.formData}}
+            @onSubmit={{this.save}}
+            @onRegisterApi={{this.onRegisterApi}}
+            as |form data|
+          >
+            <form.Section>
 
-            <form.Field
-              @name="name"
-              @title={{i18n "discourse_kanban.manage.name"}}
-              @format="max"
-              @type="input"
-              as |field|
-            >
-              <field.Control />
-            </form.Field>
+              <form.Field
+                @name="slug"
+                @title={{i18n "discourse_kanban.manage.slug"}}
+                @format="max"
+                @type="input"
+                as |field|
+              >
+                <field.Control />
+              </form.Field>
 
-            <form.Field
-              @name="slug"
-              @title={{i18n "discourse_kanban.manage.slug"}}
-              @format="max"
-              @type="input"
-              as |field|
-            >
-              <field.Control />
-            </form.Field>
+              <form.Field
+                @name="category_ids"
+                @title={{i18n "discourse_kanban.manage.board_categories"}}
+                @format="max"
+                @type="custom"
+                as |field|
+              >
+                <field.Control>
+                  <CategorySelector
+                    @categories={{this.selectedCategories data.category_ids}}
+                    @onChange={{fn this.onCategoriesChange field}}
+                  />
+                </field.Control>
+              </form.Field>
 
-            <form.Field
-              @name="category_ids"
-              @title={{i18n "discourse_kanban.manage.board_categories"}}
-              @format="max"
-              @type="custom"
-              as |field|
-            >
-              <field.Control>
-                <CategorySelector
-                  @categories={{this.selectedCategories data.category_ids}}
-                  @onChange={{fn this.onCategoriesChange field}}
+              <form.Field
+                @name="tag_names"
+                @title={{i18n "discourse_kanban.manage.board_tags"}}
+                @format="max"
+                @type="tag-chooser"
+                @onSet={{this.onTagsChange}}
+                as |field|
+              >
+                <field.Control
+                  @showAllTags={{true}}
+                  @excludeSynonyms={{true}}
+                  @allowCreate={{true}}
                 />
-              </field.Control>
-            </form.Field>
+              </form.Field>
 
-            <form.Field
-              @name="tag_names"
-              @title={{i18n "discourse_kanban.manage.board_tags"}}
-              @format="max"
-              @type="tag-chooser"
-              @onSet={{this.onTagsChange}}
-              as |field|
-            >
-              <field.Control
-                @showAllTags={{true}}
-                @excludeSynonyms={{true}}
-                @allowCreate={{true}}
-              />
-            </form.Field>
+              {{#if this.constraintWarning}}
+                <form.Alert @type="warning">
+                  {{this.constraintWarning}}
+                </form.Alert>
+              {{/if}}
+            </form.Section>
+            <form.Section>
+              <form.Field
+                @name="card_style"
+                @title={{i18n "discourse_kanban.manage.card_style"}}
+                @format="max"
+                @type="select"
+                as |field|
+              >
+                <field.Control as |select|>
+                  {{#each CARD_STYLE_OPTIONS as |option|}}
+                    <select.Option
+                      @value={{option.id}}
+                    >{{option.name}}</select.Option>
+                  {{/each}}
+                </field.Control>
+              </form.Field>
+              <form.Field
+                @name="show_tags"
+                @title={{i18n "discourse_kanban.manage.show_tags"}}
+                @type="checkbox"
+                as |field|
+              >
+                <field.Control />
+              </form.Field>
 
-            {{#if this.constraintWarning}}
-              <form.Alert @type="warning">
-                {{this.constraintWarning}}
-              </form.Alert>
-            {{/if}}
-          </form.Section>
-          <form.Section>
-                        <form.Field
-              @name="card_style"
-              @title={{i18n "discourse_kanban.manage.card_style"}}
-              @format="max"
-              @type="select"
-              as |field|
-            >
-              <field.Control as |select|>
-                {{#each CARD_STYLE_OPTIONS as |option|}}
-                  <select.Option
-                    @value={{option.id}}
-                  >{{option.name}}</select.Option>
-                {{/each}}
-              </field.Control>
-            </form.Field>
-            <form.Field
-              @name="show_tags"
-              @title={{i18n "discourse_kanban.manage.show_tags"}}
-              @type="checkbox"
-              as |field|
-            >
-              <field.Control />
-            </form.Field>
+              <form.Field
+                @name="show_topic_thumbnail"
+                @title={{i18n "discourse_kanban.manage.show_topic_thumbnail"}}
+                @type="checkbox"
+                as |field|
+              >
+                <field.Control />
+              </form.Field>
 
-            <form.Field
-              @name="show_topic_thumbnail"
-              @title={{i18n "discourse_kanban.manage.show_topic_thumbnail"}}
-              @type="checkbox"
-              as |field|
-            >
-              <field.Control />
-            </form.Field>
+              <form.Field
+                @name="show_activity_indicators"
+                @title={{i18n
+                  "discourse_kanban.manage.show_activity_indicators"
+                }}
+                @type="checkbox"
+                as |field|
+              >
+                <field.Control />
+              </form.Field>
 
-            <form.Field
-              @name="show_activity_indicators"
-              @title={{i18n "discourse_kanban.manage.show_activity_indicators"}}
-              @type="checkbox"
-              as |field|
-            >
-              <field.Control />
-            </form.Field>
+              <form.Field
+                @name="require_confirmation"
+                @title={{i18n "discourse_kanban.manage.require_confirmation"}}
+                @type="checkbox"
+                as |field|
+              >
+                <field.Control />
+              </form.Field>
+            </form.Section>
+            <form.Section>
+              <form.Field
+                @name="allow_read_group_ids"
+                @title={{i18n "discourse_kanban.manage.allow_read_groups"}}
+                @format="max"
+                @type="custom"
+                as |field|
+              >
+                <field.Control>
+                  <GroupChooser
+                    @content={{this.site.groups}}
+                    @value={{data.allow_read_group_ids}}
+                    @onChange={{fn this.setGroupIds field}}
+                  />
+                </field.Control>
+              </form.Field>
 
-            <form.Field
-              @name="require_confirmation"
-              @title={{i18n "discourse_kanban.manage.require_confirmation"}}
-              @type="checkbox"
-              as |field|
-            >
-              <field.Control />
-            </form.Field>
-          </form.Section>
-          <form.Section>
-            <form.Field
-              @name="allow_read_group_ids"
-              @title={{i18n "discourse_kanban.manage.allow_read_groups"}}
-              @format="max"
-              @type="custom"
-              as |field|
-            >
-              <field.Control>
-                <GroupChooser
-                  @content={{this.site.groups}}
-                  @value={{data.allow_read_group_ids}}
-                  @onChange={{fn this.setGroupIds field}}
+              <form.Field
+                @name="allow_write_group_ids"
+                @title={{i18n "discourse_kanban.manage.allow_write_groups"}}
+                @format="max"
+                @type="custom"
+                as |field|
+              >
+                <field.Control>
+                  <GroupChooser
+                    @content={{this.site.groups}}
+                    @value={{data.allow_write_group_ids}}
+                    @onChange={{fn this.setGroupIds field}}
+                  />
+                </field.Control>
+              </form.Field>
+            </form.Section>
+
+            <form.Actions>
+              <form.Submit />
+              {{#unless this.isNew}}
+                <form.Button
+                  class="btn-danger"
+                  @action={{this.onDelete}}
+                  @label="discourse_kanban.board.delete_board"
                 />
-              </field.Control>
-            </form.Field>
-
-            <form.Field
-              @name="allow_write_group_ids"
-              @title={{i18n "discourse_kanban.manage.allow_write_groups"}}
-              @format="max"
-              @type="custom"
-              as |field|
-            >
-              <field.Control>
-                <GroupChooser
-                  @content={{this.site.groups}}
-                  @value={{data.allow_write_group_ids}}
-                  @onChange={{fn this.setGroupIds field}}
-                />
-              </field.Control>
-            </form.Field>
-          </form.Section>
-
-          <form.Actions>
-            <form.Submit />
-            {{#unless this.isNew}}
-              <form.Button
-                class="btn-danger"
-                @action={{this.onDelete}}
-                @label="discourse_kanban.board.delete_board"
-              />
-            {{/unless}}
-          </form.Actions>
-        </Form>
+              {{/unless}}
+            </form.Actions>
+          </Form>
+        </div>
       </:body>
     </DModal>
   </template>

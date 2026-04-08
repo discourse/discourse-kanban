@@ -1,3 +1,69 @@
+.kanban-board-settings-modal {
+  .d-modal__body {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+    min-height: 0;
+  }
+
+  .form-kit {
+    padding: var(--space-4);
+  }
+
+  &__container {
+    overflow-y: scroll;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--primary-low);
+    gap: var(--space-1);
+  }
+
+  &__name,
+  &__name-input {
+    flex: 1;
+    font-size: var(--font-up-1);
+    font-weight: 700;
+    font-family: inherit;
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid transparent;
+    border-radius: var(--d-border-radius);
+    line-height: 1.5;
+    height: 36px;
+    box-sizing: border-box;
+    margin: 0 !important;
+  }
+
+  &__name {
+    cursor: pointer;
+
+    &:hover {
+      background: var(--primary-very-low);
+    }
+
+    &.--empty {
+      color: var(--primary-medium);
+      font-weight: 400;
+      background: var(--primary-very-low);
+    }
+  }
+
+  &__name-input {
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: var(--tertiary) !important;
+    background: var(--primary-very-low);
+  }
+
+  &__close {
+    flex-shrink: 0;
+  }
+}
+
 .discourse-kanban-manage {
   &__header {
     display: flex;
