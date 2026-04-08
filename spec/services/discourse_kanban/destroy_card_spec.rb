@@ -40,7 +40,6 @@ RSpec.describe DiscourseKanban::DestroyCard do
       fab!(:card) do
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Delete",
           column_id: column.id,
           position: 0,
@@ -62,7 +61,6 @@ RSpec.describe DiscourseKanban::DestroyCard do
       fab!(:card) do
         board.cards.create!(
           card_type: :topic,
-          membership_mode: :manual_in,
           topic_id: topic.id,
           column_id: column.id,
           position: 0,
@@ -76,12 +74,11 @@ RSpec.describe DiscourseKanban::DestroyCard do
     end
 
     context "when topic card is covered by board filter" do
-      before { board.update!(base_filter_query: "category:#{category.slug}") }
+      before { board.update!(category_ids: [category.id]) }
 
       fab!(:card) do
         board.cards.create!(
           card_type: :topic,
-          membership_mode: :manual_in,
           topic_id: topic.id,
           column_id: column.id,
           position: 0,
@@ -93,9 +90,9 @@ RSpec.describe DiscourseKanban::DestroyCard do
 
       it { is_expected.to run_successfully }
 
-      it "soft-deletes the card by setting manual_out" do
+      it "destroys the card" do
         result
-        expect(card.reload.membership_mode).to eq("manual_out")
+        expect(DiscourseKanban::Card.find_by(id: card.id)).to be_nil
       end
     end
 
@@ -109,7 +106,6 @@ RSpec.describe DiscourseKanban::DestroyCard do
       fab!(:card) do
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Protected",
           column_id: column.id,
           position: 0,

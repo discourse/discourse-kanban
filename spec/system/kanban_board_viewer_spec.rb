@@ -30,16 +30,21 @@ describe "Kanban Board Viewer" do
         require_confirmation: true,
         show_tags: true,
         show_activity_indicators: true,
+        category_ids: [category.id],
       }.merge(attrs),
     )
   end
 
   def add_topic_card(board, column, topic)
+    card = board.cards.find_by(topic_id: topic.id)
+    if card
+      card.update!(column_id: column.id) if card.column_id != column.id
+      return card
+    end
     board.cards.create!(
       topic_id: topic.id,
       column_id: column.id,
       card_type: :topic,
-      membership_mode: :manual_in,
       position: column.cards.count,
       created_by_id: admin.id,
     )
@@ -47,13 +52,22 @@ describe "Kanban Board Viewer" do
 
   context "when viewing a board" do
     it "displays columns and cards" do
-      board = create_board
-      col_todo = board.columns.create!(title: "To Do", position: 0, icon: "list")
-      col_done = board.columns.create!(title: "Done", position: 1, icon: "check")
+      board = create_board(tag_ids: [tag1.id, tag2.id])
+      col_todo =
+        board.columns.create!(title: "To Do", position: 0, icon: "list", tag_id: tag1.id)
+      col_done =
+        board.columns.create!(title: "Done", position: 1, icon: "check", tag_id: tag2.id)
 
-      topic1 = Fabricate(:topic, title: "Implement login page", category: category)
-      topic2 = Fabricate(:topic, title: "Write integration test coverage", category: category)
-      topic3 = Fabricate(:topic, title: "Deploy to staging", category: category)
+      topic1 =
+        Fabricate(:topic, title: "Implement login page", category: category, tags: [tag1])
+      topic2 =
+        Fabricate(
+          :topic,
+          title: "Write integration test coverage",
+          category: category,
+          tags: [tag1],
+        )
+      topic3 = Fabricate(:topic, title: "Deploy to staging", category: category, tags: [tag2])
 
       add_topic_card(board, col_todo, topic1)
       add_topic_card(board, col_todo, topic2)
@@ -146,8 +160,7 @@ describe "Kanban Board Viewer" do
   context "when cards have tags" do
     it "shows tags but filters column tags" do
       board = create_board(show_tags: true, allow_write_group_ids: [write_group.id])
-      col_todo = board.columns.create!(title: "To Do", position: 0, move_to_tag: "priority")
-      col_done = board.columns.create!(title: "Done", position: 1)
+      col_todo = board.columns.create!(title: "To Do", position: 0, tag_id: tag1.id)
 
       topic1 =
         Fabricate(
@@ -212,7 +225,6 @@ describe "Kanban Board Viewer" do
       col_todo = board.columns.create!(title: "To Do", position: 0)
       board.cards.create!(
         card_type: :floater,
-        membership_mode: :manual_in,
         title: "Old task name",
         column_id: col_todo.id,
         position: 0,
@@ -238,7 +250,6 @@ describe "Kanban Board Viewer" do
       col_todo = board.columns.create!(title: "To Do", position: 0)
       board.cards.create!(
         card_type: :floater,
-        membership_mode: :manual_in,
         title: "Old task name",
         column_id: col_todo.id,
         position: 0,
@@ -260,7 +271,6 @@ describe "Kanban Board Viewer" do
       col_todo = board.columns.create!(title: "To Do", position: 0)
       board.cards.create!(
         card_type: :floater,
-        membership_mode: :manual_in,
         title: "Label me",
         column_id: col_todo.id,
         position: 0,

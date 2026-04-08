@@ -56,6 +56,27 @@ RSpec.describe DiscourseKanban::UpdateBoard do
         expect(board.updated_by_id).to eq(manager.id)
       end
 
+      it "does not delete topic cards on unconstrained boards" do
+        let_raw = { "name" => "Updated", "columns" => [{ "id" => column.id, "title" => "Col" }] }
+        let_params = let_raw.merge("id" => board.id)
+
+        board.cards.create!(
+          topic_id: Fabricate(:topic).id,
+          card_type: :topic,
+          column_id: column.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+
+        expect {
+          described_class.call(
+            params: let_params,
+            raw_board_params: let_raw,
+            guardian: Guardian.new(manager),
+          )
+        }.not_to change { board.cards.where(card_type: :topic).count }
+      end
+
       context "with column changes" do
         let(:raw) do
           {

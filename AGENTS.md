@@ -4,7 +4,7 @@
 
 This plugin has **two independent linting systems** that must both pass for CI to be green.
 
-### 1. Core `bin/lint` (from repo root `/var/www/discourse`)
+### 1. Core `bin/lint` (from discourse repo root)
 
 ```bash
 bin/lint plugins/discourse-kanban/path/to/changed/file
@@ -30,12 +30,6 @@ bin/lint plugins/discourse-kanban/path/to/changed/files
 cd plugins/discourse-kanban && pnpm lint
 ```
 
-### Common gotchas
-
-- **Pre-existing lint failures**: `pnpm lint` checks ALL files, so you may see failures in files you didn't touch. Fix them — CI will fail otherwise.
-- **SCSS prettier**: Prettier formats SCSS strictly (e.g., `&, &:visited` must be on separate lines). Always verify `.scss` files.
-- **`bin/lint` passes but `pnpm lint` fails**: `bin/lint` only checks files you explicitly pass. `pnpm lint` checks everything including TypeScript types.
-
 ## Testing
 
 ### Ruby specs
@@ -54,6 +48,3 @@ bin/rspec plugins/discourse-kanban/spec/path/file_spec.rb:123
 bin/rspec plugins/discourse-kanban/spec/system/
 ```
 
-### Known issues
-
-- `core_features_spec.rb` has 2 failures (`lists latest topics`) caused by a core shared example expecting exactly 4 topics while seed data adds extra ones. This affects all plugins, not just kanban.

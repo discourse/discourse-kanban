@@ -20,7 +20,6 @@ RSpec.describe DiscourseKanban::Card do
       card =
         board.cards.build(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "A task",
           column_id: column.id,
           position: 0,
@@ -33,7 +32,6 @@ RSpec.describe DiscourseKanban::Card do
       card =
         board.cards.build(
           card_type: :topic,
-          membership_mode: :manual_in,
           topic_id: topic.id,
           column_id: column.id,
           position: 0,
@@ -46,7 +44,6 @@ RSpec.describe DiscourseKanban::Card do
       card =
         board.cards.build(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: nil,
           column_id: column.id,
           position: 0,
@@ -60,7 +57,6 @@ RSpec.describe DiscourseKanban::Card do
       card =
         board.cards.build(
           card_type: :topic,
-          membership_mode: :manual_in,
           topic_id: nil,
           column_id: column.id,
           position: 0,
@@ -74,7 +70,6 @@ RSpec.describe DiscourseKanban::Card do
       card =
         board.cards.build(
           card_type: :floater,
-          membership_mode: :manual_in,
           topic_id: topic.id,
           column_id: column.id,
           position: 0,
@@ -88,7 +83,6 @@ RSpec.describe DiscourseKanban::Card do
       card =
         board.cards.build(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Orphan",
           column_id: nil,
           position: 0,
@@ -98,24 +92,10 @@ RSpec.describe DiscourseKanban::Card do
       expect(card.errors[:column_id]).to include("can't be blank")
     end
 
-    it "allows nil column_id for manual_out topic cards" do
+    it "requires column_id for topic cards" do
       card =
         board.cards.build(
           card_type: :topic,
-          membership_mode: :manual_out,
-          topic_id: topic.id,
-          column_id: nil,
-          position: 0,
-          created_by_id: admin.id,
-        )
-      expect(card).to be_valid
-    end
-
-    it "requires column_id for manual_in topic cards" do
-      card =
-        board.cards.build(
-          card_type: :topic,
-          membership_mode: :manual_in,
           topic_id: topic.id,
           column_id: nil,
           position: 0,
@@ -129,7 +109,6 @@ RSpec.describe DiscourseKanban::Card do
       card =
         board.cards.build(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "No position",
           column_id: column.id,
           position: nil,
@@ -145,7 +124,6 @@ RSpec.describe DiscourseKanban::Card do
       card =
         board.cards.build(
           card_type: :floater,
-          membership_mode: :manual_in,
           topic_id: topic.id,
           column_id: column.id,
           position: 0,
@@ -159,7 +137,6 @@ RSpec.describe DiscourseKanban::Card do
       card =
         board.cards.build(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Floater",
           column_id: column.id,
           position: 0,
@@ -175,20 +152,11 @@ RSpec.describe DiscourseKanban::Card do
       in_col =
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "In column",
           column_id: column.id,
           position: 0,
           created_by_id: admin.id,
         )
-      board.cards.create!(
-        card_type: :topic,
-        membership_mode: :manual_out,
-        topic_id: topic.id,
-        column_id: nil,
-        position: 0,
-        created_by_id: admin.id,
-      )
 
       expect(described_class.with_column.pluck(:id)).to eq([in_col.id])
     end
@@ -197,7 +165,6 @@ RSpec.describe DiscourseKanban::Card do
       card_b =
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "B",
           column_id: column.id,
           position: 1,
@@ -206,7 +173,6 @@ RSpec.describe DiscourseKanban::Card do
       card_a =
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "A",
           column_id: column.id,
           position: 0,

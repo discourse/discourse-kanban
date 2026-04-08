@@ -36,7 +36,12 @@ module DiscourseKanban
     end
 
     def self.publish_card_event!(board, type, card_payload, client_id:)
-      publish!(board, { type: type, client_id: client_id, card: card_payload })
+      # Strip topic data from broadcast payloads to prevent leaking
+      # private topic details to board readers who lack category access.
+      # Clients merge with existing state or refetch through the
+      # authorized show endpoint.
+      safe_payload = card_payload.except("topic", :topic)
+      publish!(board, { type: type, client_id: client_id, card: safe_payload })
     end
     private_class_method :publish_card_event!
 

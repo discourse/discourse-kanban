@@ -2,11 +2,16 @@ import Component from "@glimmer/component";
 import { tracked } from "@glimmer/tracking";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
+import { cancel } from "@ember/runloop";
 import { service } from "@ember/service";
 import DButton from "discourse/components/d-button";
 import DModal from "discourse/components/d-modal";
+import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
+import { discourseDebounce } from "discourse/lib/debounce";
+import CategorySelector from "discourse/select-kit/components/category-selector";
 import GroupChooser from "discourse/select-kit/components/group-chooser";
+import MiniTagChooser from "discourse/select-kit/components/mini-tag-chooser";
 import { eq } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
 
@@ -16,11 +21,13 @@ const CARD_STYLE_OPTIONS = [
 ];
 
 export default class KanbanBoardSettings extends Component {
+  @service dialog;
   @service site;
 
   @tracked editName;
   @tracked editSlug;
-  @tracked editBaseFilterQuery;
+  @tracked editCategoryIds;
+  @tracked editTagNames;
   @tracked editCardStyle;
   @tracked editShowTags;
   @tracked editShowTopicThumbnail;
@@ -29,6 +36,7 @@ export default class KanbanBoardSettings extends Component {
   @tracked editAllowReadGroupIds;
   @tracked editAllowWriteGroupIds;
   @tracked saving = false;
+  @tracked constraintWarning = null;
 
   constructor() {
     super(...arguments);
@@ -36,7 +44,8 @@ export default class KanbanBoardSettings extends Component {
     if (board) {
       this.editName = board.name || "";
       this.editSlug = board.slug || "";
-      this.editBaseFilterQuery = board.base_filter_query || "";
+      this.editCategoryIds = board.category_ids || [];
+      this.editTagNames = board.tag_names || [];
       this.editCardStyle = board.card_style || "detailed";
       this.editShowTags = board.show_tags ?? false;
       this.editShowTopicThumbnail = board.show_topic_thumbnail ?? false;
@@ -47,7 +56,8 @@ export default class KanbanBoardSettings extends Component {
     } else {
       this.editName = "";
       this.editSlug = "";
-      this.editBaseFilterQuery = "";
+      this.editCategoryIds = [];
+      this.editTagNames = [];
       this.editCardStyle = "detailed";
       this.editShowTags = false;
       this.editShowTopicThumbnail = false;
@@ -56,6 +66,11 @@ export default class KanbanBoardSettings extends Component {
       this.editAllowReadGroupIds = [];
       this.editAllowWriteGroupIds = [];
     }
+  }
+
+  willDestroy() {
+    super.willDestroy(...arguments);
+    cancel(this._constraintCheckTimer);
   }
 
   get isNew() {
@@ -75,6 +90,12 @@ export default class KanbanBoardSettings extends Component {
     }));
   }
 
+  get selectedCategories() {
+    return this.editCategoryIds
+      .map((id) => this.site.categories?.find((c) => c.id === id))
+      .filter(Boolean);
+  }
+
   @action
   onNameInput(event) {
     this.editName = event.target.value;
@@ -86,8 +107,15 @@ export default class KanbanBoardSettings extends Component {
   }
 
   @action
-  onBaseFilterQueryInput(event) {
-    this.editBaseFilterQuery = event.target.value;
+  onCategoriesChange(categories) {
+    this.editCategoryIds = categories?.map((c) => c.id) || [];
+    this._checkConstraints();
+  }
+
+  @action
+  onTagsChange(tags) {
+    this.editTagNames = tags || [];
+    this._checkConstraints();
   }
 
   @action
@@ -125,16 +153,52 @@ export default class KanbanBoardSettings extends Component {
     this.editAllowWriteGroupIds = groupIds || [];
   }
 
-  @action
-  async save() {
-    if (this.saving) {
+  _checkConstraints() {
+    if (this.isNew) {
       return;
     }
-    this.saving = true;
-    const boardData = {
+    cancel(this._constraintCheckTimer);
+    this._constraintCheckTimer = discourseDebounce(
+      this,
+      this._fetchConstraintPreview,
+      500
+    );
+  }
+
+  async _fetchConstraintPreview() {
+    const boardId = this.args.model.board?.id;
+    if (!boardId) {
+      return;
+    }
+
+    try {
+      const result = await ajax(
+        `/kanban/boards/${boardId}/constraint-preview`,
+        {
+          type: "POST",
+          data: {
+            category_ids: this.editCategoryIds,
+            tag_names: this.editTagNames,
+          },
+        }
+      );
+      this.constraintWarning =
+        result.cards_to_remove > 0
+          ? i18n("discourse_kanban.manage.constraint_warning", {
+              count: result.cards_to_remove,
+            })
+          : null;
+    } catch {
+      this.constraintWarning = null;
+    }
+  }
+
+  get _boardData() {
+    return {
       name: this.editName,
       slug: this.editSlug,
-      base_filter_query: this.editBaseFilterQuery,
+      category_ids: this.editCategoryIds,
+      tag_names: this.editTagNames,
       card_style: this.editCardStyle,
       show_tags: this.editShowTags,
       show_topic_thumbnail: this.editShowTopicThumbnail,
@@ -143,8 +207,29 @@ export default class KanbanBoardSettings extends Component {
       allow_read_group_ids: this.editAllowReadGroupIds,
       allow_write_group_ids: this.editAllowWriteGroupIds,
     };
+  }
+
+  @action
+  async save() {
+    if (this.saving) {
+      return;
+    }
+
+    if (this.constraintWarning) {
+      this.dialog.confirm({
+        message: this.constraintWarning,
+        didConfirm: () => this._performSave(),
+      });
+      return;
+    }
+
+    await this._performSave();
+  }
+
+  async _performSave() {
+    this.saving = true;
     try {
-      await this.args.model.onSave(boardData);
+      await this.args.model.onSave(this._boardData);
       this.args.closeModal();
     } catch (error) {
       popupAjaxError(error);
@@ -185,13 +270,26 @@ export default class KanbanBoardSettings extends Component {
         </div>
 
         <div class="kanban-board-settings__field">
-          <label>{{i18n "discourse_kanban.manage.base_filter_query"}}</label>
-          <input
-            type="text"
-            value={{this.editBaseFilterQuery}}
-            {{on "input" this.onBaseFilterQueryInput}}
+          <label>{{i18n "discourse_kanban.manage.board_categories"}}</label>
+          <CategorySelector
+            @categories={{this.selectedCategories}}
+            @onChange={{this.onCategoriesChange}}
           />
         </div>
+
+        <div class="kanban-board-settings__field">
+          <label>{{i18n "discourse_kanban.manage.board_tags"}}</label>
+          <MiniTagChooser
+            @value={{this.editTagNames}}
+            @onChange={{this.onTagsChange}}
+          />
+        </div>
+
+        {{#if this.constraintWarning}}
+          <div class="kanban-board-settings__warning alert alert-warning">
+            {{this.constraintWarning}}
+          </div>
+        {{/if}}
 
         <div class="kanban-board-settings__field">
           <label>{{i18n "discourse_kanban.manage.card_style"}}</label>

@@ -3,6 +3,7 @@
 module DiscourseKanban
   class Board < ActiveRecord::Base
     self.table_name = "discourse_kanban_boards"
+    self.ignored_columns = ["base_filter_query"]
 
     has_many :columns,
              -> { order(:position, :id) },
@@ -17,6 +18,8 @@ module DiscourseKanban
     validates :slug, uniqueness: true
 
     validate :validate_group_ids
+    validate :validate_category_ids
+    validate :validate_tag_ids
 
     before_validation :normalize_slug
     before_validation :normalize_group_ids
@@ -48,8 +51,44 @@ module DiscourseKanban
       (allow_read_group_ids + allow_write_group_ids).uniq
     end
 
+    def tag_names=(names)
+      names = Array(names).select(&:present?)
+      resolved = Tag.where(name: names).pluck(:name, :id).to_h
+      missing = names - resolved.keys
+      if missing.any?
+        raise Discourse::InvalidParameters.new(
+                I18n.t("discourse_kanban.errors.unknown_tag_names", tag_names: missing.join(", ")),
+              )
+      end
+      self.tag_ids = resolved.values
+    end
+
+    def has_constraints?
+      category_ids.present? || tag_ids.present?
+    end
+
     def topic_matches?(topic)
-      self.class.topic_matches_query?(topic, base_filter_query)
+      return false unless has_constraints?
+
+      cat_match = category_ids.blank? || category_ids.include?(topic.category_id)
+      tag_match = tag_ids.blank? || (topic.tag_ids & tag_ids).any?
+      cat_match && tag_match
+    end
+
+    def topic_will_match_after_mutation?(topic, column)
+      return true unless has_constraints?
+
+      effective_category_id = column&.move_to_category_id || topic.category_id
+      cat_match = category_ids.blank? || category_ids.include?(effective_category_id)
+
+      effective_tag_ids = topic.tag_ids.dup
+      if column&.tag_id.present?
+        sibling_tag_ids = columns.filter_map { |c| c.tag_id.presence }.uniq - [column.tag_id]
+        effective_tag_ids = (effective_tag_ids - sibling_tag_ids + [column.tag_id]).uniq
+      end
+      tag_match = tag_ids.blank? || (effective_tag_ids & tag_ids).any?
+
+      cat_match && tag_match
     end
 
     def first_matching_column(topic)
@@ -57,56 +96,14 @@ module DiscourseKanban
     end
 
     def all_matching_columns(topic)
-      if base_filter_query.present?
-        return [] unless topic_matches?(topic)
+      return [] unless topic_matches?(topic)
 
-        lowest_blank = columns.select { |c| c.filter_query.blank? }.min_by(&:id)
+      topic_tag_id_set = topic.tag_ids.to_set
+      catch_all = columns.select { |c| c.tag_id.blank? }.min_by(&:id)
 
-        result = []
-        columns.each do |column|
-          if column.filter_query.blank?
-            result << lowest_blank if result.exclude?(lowest_blank)
-          elsif column.matches_topic?(topic)
-            result << column
-          end
-        end
-        return result
-      end
-
-      columns.select do |column|
-        next false if column.filter_query.blank?
-
-        self.class.topic_matches_query?(topic, column.filter_query)
-      end
-    end
-
-    def self.topic_matches_query?(topic, query, matcher_context: nil)
-      return false if query.blank?
-
-      cache = matcher_context&.dig(:cache)
-      cache_key = [topic.id, query]
-      return cache[cache_key] if cache&.key?(cache_key)
-
-      scope =
-        matcher_context&.dig(:scope) ||
-          TopicQuery.new(Discourse.system_user, limit: false, no_definitions: true).latest_results
-      guardian = matcher_context&.dig(:guardian) || Guardian.new(Discourse.system_user)
-
-      matches =
-        TopicsFilter
-          .new(guardian:, scope:, loaded_topic_users_reference: guardian.authenticated?)
-          .filter_from_query_string(query)
-          .where(id: topic.id)
-          .exists?
-      cache[cache_key] = matches if cache
-      matches
-    rescue StandardError => error
-      Rails.logger.warn(
-        "DiscourseKanban::Board.topic_matches_query? failed for topic #{topic&.id}, " \
-          "query=#{query.inspect}: #{error.class}: #{error.message}",
-      )
-      cache[cache_key] = false if cache
-      false
+      result = columns.select { |c| c.tag_id.present? && topic_tag_id_set.include?(c.tag_id) }
+      result << catch_all if catch_all
+      result
     end
 
     private
@@ -121,9 +118,11 @@ module DiscourseKanban
       self.allow_write_group_ids = normalize_group_array(allow_write_group_ids)
     end
 
-    def normalize_group_array(values)
+    def normalize_id_array(values)
       Array(values).map(&:to_i).uniq.reject(&:zero?)
     end
+
+    alias_method :normalize_group_array, :normalize_id_array
 
     def validate_group_ids
       all_group_ids = allow_read_group_ids + allow_write_group_ids
@@ -136,6 +135,34 @@ module DiscourseKanban
       errors.add(
         :base,
         I18n.t("discourse_kanban.errors.unknown_group_ids", group_ids: missing_group_ids.join(",")),
+      )
+    end
+
+    def validate_category_ids
+      return if category_ids.blank?
+
+      self.category_ids = normalize_id_array(category_ids)
+      existing = Category.where(id: category_ids).pluck(:id)
+      missing = category_ids - existing
+      return if missing.empty?
+
+      errors.add(
+        :base,
+        I18n.t("discourse_kanban.errors.unknown_category_ids", category_ids: missing.join(",")),
+      )
+    end
+
+    def validate_tag_ids
+      return if tag_ids.blank?
+
+      self.tag_ids = normalize_id_array(tag_ids)
+      existing = Tag.where(id: tag_ids).pluck(:id)
+      missing = tag_ids - existing
+      return if missing.empty?
+
+      errors.add(
+        :base,
+        I18n.t("discourse_kanban.errors.unknown_tag_ids", tag_ids: missing.join(",")),
       )
     end
   end

@@ -43,7 +43,6 @@ RSpec.describe DiscourseKanban::ClearColumn do
       let!(:floater1) do
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Floater 1",
           column_id: column.id,
           position: 0,
@@ -53,7 +52,6 @@ RSpec.describe DiscourseKanban::ClearColumn do
       let!(:floater2) do
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Floater 2",
           column_id: column.id,
           position: 1,
@@ -63,7 +61,6 @@ RSpec.describe DiscourseKanban::ClearColumn do
       let!(:topic_card1) do
         board.cards.create!(
           card_type: :topic,
-          membership_mode: :manual_in,
           topic_id: topic1.id,
           column_id: column.id,
           position: 2,
@@ -73,7 +70,6 @@ RSpec.describe DiscourseKanban::ClearColumn do
       let!(:topic_card2) do
         board.cards.create!(
           card_type: :topic,
-          membership_mode: :manual_in,
           topic_id: topic2.id,
           column_id: column.id,
           position: 3,
@@ -83,7 +79,6 @@ RSpec.describe DiscourseKanban::ClearColumn do
       let!(:other_column_card) do
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Other",
           column_id: other_column.id,
           position: 0,
@@ -99,14 +94,10 @@ RSpec.describe DiscourseKanban::ClearColumn do
         expect(DiscourseKanban::Card.find_by(id: floater2.id)).to be_nil
       end
 
-      it "sets topic cards to manual_out with nil column" do
+      it "destroys topic cards" do
         result
-        topic_card1.reload
-        topic_card2.reload
-        expect(topic_card1.membership_mode).to eq("manual_out")
-        expect(topic_card1.column_id).to be_nil
-        expect(topic_card2.membership_mode).to eq("manual_out")
-        expect(topic_card2.column_id).to be_nil
+        expect(DiscourseKanban::Card.find_by(id: topic_card1.id)).to be_nil
+        expect(DiscourseKanban::Card.find_by(id: topic_card2.id)).to be_nil
       end
 
       it "does not affect cards in other columns" do

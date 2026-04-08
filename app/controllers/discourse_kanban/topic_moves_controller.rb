@@ -22,6 +22,13 @@ module DiscourseKanban
         on_failed_policy(:can_write) { raise Discourse::InvalidAccess }
         on_failed_policy(:can_see_topic) { raise Discourse::InvalidAccess }
         on_failed_policy(:can_edit_topic) { raise Discourse::InvalidAccess }
+        on_failed_policy(:topic_matches_constraints) do
+          render json:
+                   failed_json.merge(
+                     errors: [I18n.t("discourse_kanban.errors.topic_does_not_match_constraints")],
+                   ),
+                 status: :unprocessable_entity
+        end
         on_failed_contract do |contract|
           render json: failed_json.merge(errors: contract.errors.full_messages),
                  status: :bad_request

@@ -13,15 +13,17 @@ RSpec.describe DiscourseKanban::MoveColumn do
 
     fab!(:admin)
     fab!(:user)
+    fab!(:sales_tag, :tag) { Fabricate(:tag, name: "sales") }
+    fab!(:star_tag, :tag) { Fabricate(:tag, name: "star") }
     fab!(:board) do
       DiscourseKanban::Board.create!(
         name: "Sales",
         slug: "sales-mc",
-        base_filter_query: "tags:sales",
+        tag_ids: [sales_tag.id],
         created_by_id: admin.id,
       )
     end
-    fab!(:col_star) { board.columns.create!(title: "Star", position: 0, filter_query: "tags:star") }
+    fab!(:col_star) { board.columns.create!(title: "Star", position: 0, tag_id: star_tag.id) }
     fab!(:col_progress) { board.columns.create!(title: "In Progress", position: 1) }
     fab!(:col_done) { board.columns.create!(title: "Done", position: 2) }
 
@@ -109,7 +111,6 @@ RSpec.describe DiscourseKanban::MoveColumn do
       card =
         board.cards.create!(
           card_type: :topic,
-          membership_mode: :manual_in,
           topic_id: topic.id,
           column_id: col_progress.id,
           position: 0,

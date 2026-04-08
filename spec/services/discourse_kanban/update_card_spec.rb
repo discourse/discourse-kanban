@@ -44,7 +44,6 @@ RSpec.describe DiscourseKanban::UpdateCard do
       fab!(:card) do
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Old",
           column_id: col_todo.id,
           position: 0,
@@ -67,7 +66,6 @@ RSpec.describe DiscourseKanban::UpdateCard do
       fab!(:card) do
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Move me",
           column_id: col_todo.id,
           position: 0,
@@ -93,7 +91,6 @@ RSpec.describe DiscourseKanban::UpdateCard do
       fab!(:card) do
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Keep details",
           notes: "Important note",
           column_id: col_todo.id,
@@ -117,7 +114,6 @@ RSpec.describe DiscourseKanban::UpdateCard do
       fab!(:card) do
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Promote me",
           notes: "Some notes",
           labels: %w[urgent],
@@ -147,9 +143,8 @@ RSpec.describe DiscourseKanban::UpdateCard do
       fab!(:existing_topic_card) do
         board.cards.create!(
           card_type: :topic,
-          membership_mode: :manual_out,
           topic_id: topic.id,
-          column_id: nil,
+          column_id: col_todo.id,
           position: 0,
           created_by_id: admin.id,
         )
@@ -158,7 +153,6 @@ RSpec.describe DiscourseKanban::UpdateCard do
       fab!(:card) do
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Promote me",
           column_id: col_todo.id,
           position: 1,
@@ -173,7 +167,7 @@ RSpec.describe DiscourseKanban::UpdateCard do
       it { is_expected.to run_successfully }
 
       it "sets original_column_id to the adopted card's original column" do
-        expect(result[:original_column_id]).to be_nil
+        expect(result[:original_column_id]).to eq(col_todo.id)
       end
 
       it "sets adopted_floater_id to the floater's id" do
@@ -190,7 +184,6 @@ RSpec.describe DiscourseKanban::UpdateCard do
       fab!(:card_a) do
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Card A",
           column_id: col_done.id,
           position: 0,
@@ -201,7 +194,6 @@ RSpec.describe DiscourseKanban::UpdateCard do
       fab!(:card_b) do
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Card B",
           column_id: col_done.id,
           position: 1,
@@ -212,7 +204,6 @@ RSpec.describe DiscourseKanban::UpdateCard do
       fab!(:card) do
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Move to first",
           column_id: col_todo.id,
           position: 0,
@@ -236,49 +227,11 @@ RSpec.describe DiscourseKanban::UpdateCard do
       end
     end
 
-    context "when moving a topic card into a column with a manual_out marker for the same topic" do
-      fab!(:card) do
-        board.cards.create!(
-          card_type: :topic,
-          membership_mode: :auto,
-          topic_id: topic.id,
-          column_id: col_todo.id,
-          position: 0,
-          created_by_id: admin.id,
-        )
-      end
-
-      fab!(:manual_out_card) do
-        board.cards.create!(
-          card_type: :topic,
-          membership_mode: :manual_out,
-          topic_id: topic.id,
-          column_id: col_done.id,
-          position: 0,
-          created_by_id: admin.id,
-        )
-      end
-
-      let(:params) { { board_id: board.id, id: card.id, column_id: col_done.id } }
-      let(:raw_card_params) { { "column_id" => col_done.id.to_s } }
-      let(:dependencies) { { guardian: Guardian.new(admin) } }
-
-      it { is_expected.to run_successfully }
-
-      it "clears the manual_out marker and moves the card" do
-        marker_id = manual_out_card.id
-        result
-        expect(DiscourseKanban::Card.find_by(id: marker_id)).to be_nil
-        expect(card.reload.column_id).to eq(col_done.id)
-      end
-    end
-
     context "when assigning a user to a floater card" do
       fab!(:assignee, :user)
       fab!(:card) do
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Assign me",
           column_id: col_todo.id,
           position: 0,
@@ -302,7 +255,6 @@ RSpec.describe DiscourseKanban::UpdateCard do
       fab!(:card) do
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Assign group",
           column_id: col_todo.id,
           position: 0,
@@ -326,7 +278,6 @@ RSpec.describe DiscourseKanban::UpdateCard do
       fab!(:card) do
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Unassign me",
           column_id: col_todo.id,
           position: 0,
@@ -351,7 +302,6 @@ RSpec.describe DiscourseKanban::UpdateCard do
       fab!(:card) do
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Keep assignee",
           column_id: col_todo.id,
           position: 0,
@@ -374,7 +324,6 @@ RSpec.describe DiscourseKanban::UpdateCard do
       fab!(:card) do
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Hidden group",
           column_id: col_todo.id,
           position: 0,
@@ -395,7 +344,6 @@ RSpec.describe DiscourseKanban::UpdateCard do
       fab!(:card) do
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Promote me",
           column_id: col_todo.id,
           position: 0,
@@ -433,7 +381,6 @@ RSpec.describe DiscourseKanban::UpdateCard do
       fab!(:card) do
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Protected",
           column_id: col_todo.id,
           position: 0,

@@ -2,7 +2,7 @@
 
 module DiscourseKanban
   class ColumnsReplacer
-    def self.replace!(board:, columns_payload:, user:)
+    def self.replace!(board:, columns_payload:, **)
       current_columns = board.columns.index_by(&:id)
       kept_column_ids = []
 
@@ -11,11 +11,21 @@ module DiscourseKanban
         id = col_payload[:id].presence&.to_i
         column = id && current_columns[id] ? current_columns[id] : board.columns.build
 
+        tag_name = col_payload[:tag_name].presence
+        resolved_tag_id = nil
+        if tag_name
+          resolved_tag_id = Tag.find_by(name: tag_name)&.id
+          if resolved_tag_id.nil?
+            raise Discourse::InvalidParameters.new(
+                    I18n.t("discourse_kanban.errors.unknown_tag_name", tag_name: tag_name),
+                  )
+          end
+        end
+
         column.assign_attributes(
           title: col_payload[:title],
           icon: col_payload[:icon],
-          filter_query: col_payload[:filter_query],
-          move_to_tag: col_payload[:move_to_tag],
+          tag_id: resolved_tag_id,
           move_to_category_id: col_payload[:move_to_category_id],
           move_to_assigned: col_payload[:move_to_assigned],
           move_to_status: col_payload[:move_to_status],
@@ -29,21 +39,7 @@ module DiscourseKanban
       removed_columns = board.columns.where.not(id: kept_column_ids)
       removed_column_ids = removed_columns.pluck(:id)
 
-      if removed_column_ids.present?
-        board
-          .cards
-          .where(column_id: removed_column_ids, card_type: Card.card_types[:floater])
-          .delete_all
-        board
-          .cards
-          .where(column_id: removed_column_ids, card_type: Card.card_types[:topic])
-          .update_all(
-            column_id: nil,
-            membership_mode: Card.membership_modes[:manual_out],
-            updated_by_id: user.id,
-            updated_at: Time.zone.now,
-          )
-      end
+      board.cards.where(column_id: removed_column_ids).delete_all if removed_column_ids.present?
 
       removed_columns.delete_all
     end

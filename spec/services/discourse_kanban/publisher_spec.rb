@@ -23,7 +23,6 @@ RSpec.describe DiscourseKanban::Publisher do
   fab!(:card) do
     board.cards.create!(
       card_type: :floater,
-      membership_mode: :manual_in,
       title: "Test card",
       column_id: column.id,
       position: 0,

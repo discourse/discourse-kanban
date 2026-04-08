@@ -20,7 +20,8 @@ RSpec.describe DiscourseKanban::CardsController do
     )
   end
   fab!(:col_todo) { board.columns.create!(title: "To Do", position: 0) }
-  fab!(:col_done) { board.columns.create!(title: "Done", position: 1, move_to_tag: "done") }
+  fab!(:done_tag, :tag) { Fabricate(:tag, name: "done") }
+  fab!(:col_done) { board.columns.create!(title: "Done", position: 1, tag_id: done_tag.id) }
 
   before do
     enable_current_plugin
@@ -74,7 +75,6 @@ RSpec.describe DiscourseKanban::CardsController do
         unless inserted_competitor
           board.cards.create!(
             card_type: :topic,
-            membership_mode: :auto,
             topic_id: topic.id,
             column_id: col_done.id,
             position: 0,
@@ -101,7 +101,6 @@ RSpec.describe DiscourseKanban::CardsController do
 
       created_card = board.cards.find_by(topic_id: topic.id, column_id: col_todo.id)
       expect(created_card).to be_present
-      expect(created_card.membership_mode).to eq("manual_in")
     end
 
     it "returns 404 when topic does not exist" do
@@ -274,7 +273,6 @@ RSpec.describe DiscourseKanban::CardsController do
       card =
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Move me",
           column_id: col_todo.id,
           position: 0,
@@ -298,7 +296,6 @@ RSpec.describe DiscourseKanban::CardsController do
       card =
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Old title",
           column_id: col_todo.id,
           position: 0,
@@ -323,7 +320,6 @@ RSpec.describe DiscourseKanban::CardsController do
       card =
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Keep details",
           notes: "Keep this note",
           column_id: col_todo.id,
@@ -346,13 +342,11 @@ RSpec.describe DiscourseKanban::CardsController do
 
     it "applies topic mutations when moving a topic card to a new column" do
       SiteSetting.tagging_enabled = true
-      Fabricate(:tag, name: "done")
-      col_done.update!(move_to_tag: "done")
+      allow(DiscourseKanban::TopicSync).to receive(:sync_topic)
 
       card =
         board.cards.create!(
           card_type: :topic,
-          membership_mode: :manual_in,
           topic_id: topic.id,
           column_id: col_todo.id,
           position: 0,
@@ -377,7 +371,6 @@ RSpec.describe DiscourseKanban::CardsController do
       card1 =
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "First",
           column_id: col_todo.id,
           position: 0,
@@ -386,7 +379,6 @@ RSpec.describe DiscourseKanban::CardsController do
       card2 =
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Second",
           column_id: col_todo.id,
           position: 1,
@@ -411,7 +403,6 @@ RSpec.describe DiscourseKanban::CardsController do
       card =
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Promote me",
           notes: "Some notes",
           labels: %w[urgent],
@@ -449,7 +440,6 @@ RSpec.describe DiscourseKanban::CardsController do
       floater =
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Promote me",
           column_id: col_todo.id,
           position: 0,
@@ -463,7 +453,6 @@ RSpec.describe DiscourseKanban::CardsController do
         unless inserted_competitor
           board.cards.create!(
             card_type: :topic,
-            membership_mode: :auto,
             topic_id: topic.id,
             column_id: col_todo.id,
             position: 1,
@@ -490,13 +479,12 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(response.parsed_body.dig("card", "topic_id")).to eq(topic.id)
     end
 
-    it "promotes a floater reactivating an existing manual_out topic card" do
+    it "promotes a floater adopting an existing topic card in the same column" do
       existing_topic_card =
         board.cards.create!(
           card_type: :topic,
-          membership_mode: :manual_out,
           topic_id: topic.id,
-          column_id: nil,
+          column_id: col_todo.id,
           position: 0,
           created_by_id: admin.id,
         )
@@ -504,7 +492,6 @@ RSpec.describe DiscourseKanban::CardsController do
       floater =
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Promote me",
           column_id: col_todo.id,
           position: 1,
@@ -527,7 +514,6 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(result["column_id"]).to eq(col_todo.id)
 
       existing_topic_card.reload
-      expect(existing_topic_card).to be_manual_in
       expect(existing_topic_card.column_id).to eq(col_todo.id)
 
       expect(DiscourseKanban::Card.find_by(id: floater.id)).to be_nil
@@ -537,9 +523,8 @@ RSpec.describe DiscourseKanban::CardsController do
       existing_topic_card =
         board.cards.create!(
           card_type: :topic,
-          membership_mode: :manual_out,
           topic_id: topic.id,
-          column_id: nil,
+          column_id: col_todo.id,
           position: 0,
           created_by_id: admin.id,
         )
@@ -547,7 +532,6 @@ RSpec.describe DiscourseKanban::CardsController do
       floater =
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Promote me",
           column_id: col_todo.id,
           position: 1,
@@ -573,9 +557,8 @@ RSpec.describe DiscourseKanban::CardsController do
       existing_topic_card =
         board.cards.create!(
           card_type: :topic,
-          membership_mode: :manual_out,
           topic_id: topic.id,
-          column_id: nil,
+          column_id: col_todo.id,
           position: 0,
           created_by_id: admin.id,
         )
@@ -583,7 +566,6 @@ RSpec.describe DiscourseKanban::CardsController do
       floater =
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Promote me",
           column_id: col_todo.id,
           position: 1,
@@ -614,7 +596,6 @@ RSpec.describe DiscourseKanban::CardsController do
       card =
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Promote me",
           column_id: col_todo.id,
           position: 0,
@@ -649,7 +630,6 @@ RSpec.describe DiscourseKanban::CardsController do
       card =
         board.cards.create!(
           card_type: :topic,
-          membership_mode: :manual_in,
           topic_id: topic.id,
           column_id: col_todo.id,
           position: 0,
@@ -675,7 +655,6 @@ RSpec.describe DiscourseKanban::CardsController do
       card =
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Assign me",
           column_id: col_todo.id,
           position: 0,
@@ -703,7 +682,6 @@ RSpec.describe DiscourseKanban::CardsController do
       card =
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Assign group",
           column_id: col_todo.id,
           position: 0,
@@ -732,7 +710,6 @@ RSpec.describe DiscourseKanban::CardsController do
       card =
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Unassign me",
           column_id: col_todo.id,
           position: 0,
@@ -759,7 +736,6 @@ RSpec.describe DiscourseKanban::CardsController do
       card =
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Keep assignee",
           column_id: col_todo.id,
           position: 0,
@@ -784,7 +760,6 @@ RSpec.describe DiscourseKanban::CardsController do
       card =
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Hidden group",
           column_id: col_todo.id,
           position: 0,
@@ -810,7 +785,6 @@ RSpec.describe DiscourseKanban::CardsController do
       card =
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Promote me",
           column_id: col_todo.id,
           position: 0,
@@ -837,7 +811,6 @@ RSpec.describe DiscourseKanban::CardsController do
       card =
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Protected",
           column_id: col_todo.id,
           position: 0,
@@ -857,7 +830,6 @@ RSpec.describe DiscourseKanban::CardsController do
       card =
         board.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Delete me",
           column_id: col_todo.id,
           position: 0,
@@ -873,13 +845,12 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(response.status).to eq(204)
     end
 
-    it "soft-deletes a topic card by marking it manual_out" do
-      board.update!(base_filter_query: "category:#{category.slug}")
+    it "destroys a topic card" do
+      board.update!(category_ids: [category.id])
 
       card =
         board.cards.create!(
           card_type: :topic,
-          membership_mode: :manual_in,
           topic_id: topic.id,
           column_id: col_todo.id,
           position: 0,
@@ -888,29 +859,11 @@ RSpec.describe DiscourseKanban::CardsController do
 
       sign_in(writer)
 
-      expect { delete "/kanban/boards/#{board.id}/cards/#{card.id}.json" }.not_to change {
+      expect { delete "/kanban/boards/#{board.id}/cards/#{card.id}.json" }.to change {
         DiscourseKanban::Card.count
-      }
+      }.by(-1)
 
       expect(response.status).to eq(204)
-      expect(card.reload.membership_mode).to eq("manual_out")
-    end
-
-    it "excludes soft-deleted topic cards from board display" do
-      card =
-        board.cards.create!(
-          card_type: :topic,
-          membership_mode: :manual_in,
-          topic_id: topic.id,
-          column_id: col_todo.id,
-          position: 0,
-          created_by_id: admin.id,
-        )
-
-      sign_in(writer)
-      delete "/kanban/boards/#{board.id}/cards/#{card.id}.json"
-
-      expect(board.cards.with_column.where(id: card.id)).to be_empty
     end
   end
 end

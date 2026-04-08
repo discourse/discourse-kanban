@@ -3,21 +3,16 @@
 module DiscourseKanban
   class Column < ActiveRecord::Base
     self.table_name = "discourse_kanban_columns"
-    self.ignored_columns = ["wip_limit"]
+    self.ignored_columns = %w[wip_limit filter_query move_to_tag]
 
     belongs_to :board, class_name: "DiscourseKanban::Board", inverse_of: :columns
     has_many :cards, class_name: "DiscourseKanban::Card", dependent: :nullify, inverse_of: :column
 
     validates :title, presence: true
     validates :position, presence: true
+
     def matches_topic?(topic)
-      return true if filter_query.blank?
-
-      Board.topic_matches_query?(topic, combined_query)
-    end
-
-    def combined_query
-      [board.base_filter_query, filter_query].reject(&:blank?).join(" ")
+      tag_id.blank? || topic.tag_ids.include?(tag_id)
     end
   end
 end

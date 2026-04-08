@@ -31,15 +31,31 @@ module DiscourseKanban
       board.columns.find_by(id: params.column_id)
     end
 
-    def clear(board:, column:)
+    def clear(board:, column:, guardian:)
       cards = Card.where(board_id: board.id, column_id: column.id)
 
-      cards.where(card_type: :topic).update_all(
-        membership_mode: Card.membership_modes[:manual_out],
-        column_id: nil,
-      )
+      remove_column_tag_from_topics(cards, column, guardian)
 
-      cards.where(card_type: :floater).delete_all
+      cards.delete_all
+    end
+
+    def remove_column_tag_from_topics(cards, column, guardian)
+      return if column.tag_id.blank?
+
+      tag = Tag.find_by(id: column.tag_id)
+      return if tag.blank?
+
+      topic_ids = cards.where(card_type: :topic).where.not(topic_id: nil).pluck(:topic_id)
+      return if topic_ids.empty?
+
+      Topic
+        .where(id: topic_ids)
+        .includes(:tags)
+        .find_each do |topic|
+          next unless guardian.can_edit?(topic)
+          updated_tags = topic.tags.map(&:name) - [tag.name]
+          DiscourseTagging.tag_topic_by_names(topic, guardian, updated_tags)
+        end
     end
   end
 end

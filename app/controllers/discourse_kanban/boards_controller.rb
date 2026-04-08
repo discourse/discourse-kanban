@@ -2,7 +2,7 @@
 
 module DiscourseKanban
   class BoardsController < BaseController
-    before_action :ensure_logged_in, only: %i[create update destroy move_column]
+    before_action :ensure_logged_in, only: %i[create update destroy move_column constraint_preview]
     before_action :find_board!, only: %i[show]
     before_action :ensure_board_read!, only: %i[show]
 
@@ -13,7 +13,8 @@ module DiscourseKanban
     def index
       boards =
         DiscourseKanban::Board.includes(:columns).to_a.select { |board| board.can_read?(guardian) }
-      render json: { boards: boards.map { |board| board_payload(board) } }
+      tag_name_map = build_tag_name_map(*boards)
+      render json: { boards: boards.map { |board| board_payload(board, tag_name_map:) } }
     end
 
     def show
@@ -27,7 +28,9 @@ module DiscourseKanban
 
       assignments_by_topic = preload_all_assignments(cards, visible_topic_ids)
 
-      columns = @board.columns.map { |column| column_payload(column).merge(cards: []) }
+      tag_name_map = build_tag_name_map(@board)
+      columns =
+        @board.columns.map { |column| column_payload(column, tag_name_map:).merge(cards: []) }
       columns_by_id = columns.index_by { |column| column[:id] }
 
       cards.each do |card|
@@ -38,7 +41,7 @@ module DiscourseKanban
         )
       end
 
-      render json: { board: board_payload(@board), columns: columns }
+      render json: { board: board_payload(@board, tag_name_map:), columns: columns }
     end
 
     def create
@@ -63,7 +66,11 @@ module DiscourseKanban
         params: raw.merge("id" => params[:id], "client_id" => params[:client_id]),
         raw_board_params: raw,
       ) do
-        on_success { |board:| render json: { board: board_payload(board) } }
+        on_success do |board:, cards_removed_count:|
+          response = { board: board_payload(board) }
+          response[:cards_removed_count] = cards_removed_count if cards_removed_count.to_i > 0
+          render json: response
+        end
         on_model_not_found(:board) { raise Discourse::NotFound }
         on_failed_policy(:can_manage) { raise Discourse::InvalidAccess }
         on_failed_contract do |contract|
@@ -95,6 +102,49 @@ module DiscourseKanban
         end
         on_failure { render json: failed_json, status: :unprocessable_entity }
       end
+    end
+
+    def constraint_preview
+      board = DiscourseKanban::Board.find_by(id: params[:id])
+      raise Discourse::NotFound if board.blank?
+      raise Discourse::InvalidAccess unless guardian.can_manage_kanban_boards?
+
+      new_category_ids = Array(params[:category_ids]).map(&:to_i).reject(&:zero?)
+      new_tag_ids =
+        if params[:tag_names].present?
+          Tag.where(name: Array(params[:tag_names])).pluck(:id)
+        else
+          []
+        end
+
+      cat_empty = new_category_ids.empty?
+      tag_empty = new_tag_ids.empty?
+
+      if cat_empty && tag_empty
+        count = 0
+      else
+        count =
+          DB.query_single(
+            <<~SQL,
+              SELECT COUNT(*) FROM discourse_kanban_cards c
+              JOIN topics t ON t.id = c.topic_id
+              WHERE c.board_id = :board_id AND c.card_type = #{DiscourseKanban::Card.card_types[:topic]}
+                AND NOT (
+                  (:cat_empty OR t.category_id = ANY(:category_ids))
+                  AND (:tag_empty OR EXISTS (
+                    SELECT 1 FROM topic_tags tt WHERE tt.topic_id = t.id AND tt.tag_id = ANY(:tag_ids)
+                  ))
+                )
+            SQL
+            board_id: board.id,
+            category_ids: "{#{new_category_ids.join(",")}}",
+            tag_ids: "{#{new_tag_ids.join(",")}}",
+            cat_empty: cat_empty,
+            tag_empty: tag_empty,
+          ).first
+      end
+
+      render json: { cards_to_remove: count }
     end
 
     def destroy

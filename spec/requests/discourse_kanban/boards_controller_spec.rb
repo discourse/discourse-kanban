@@ -77,12 +77,12 @@ RSpec.describe DiscourseKanban::BoardsController do
           card_style: "detailed",
           show_activity_indicators: true,
           allow_write_group_ids: [write_group.id],
+          category_ids: [category.id],
           created_by_id: admin.id,
         )
       col = board.columns.create!(title: "Backlog", position: 0, icon: "list")
       board.cards.create!(
         card_type: :topic,
-        membership_mode: :manual_in,
         topic_id: topic.id,
         column_id: col.id,
         position: 0,
@@ -162,12 +162,12 @@ RSpec.describe DiscourseKanban::BoardsController do
           name: "Detailed",
           slug: "detailed",
           card_style: "detailed",
+          category_ids: [category.id],
           created_by_id: admin.id,
         )
       col = board.columns.create!(title: "Col", position: 0)
       board.cards.create!(
         card_type: :topic,
-        membership_mode: :manual_in,
         topic_id: topic.id,
         column_id: col.id,
         position: 0,
@@ -189,12 +189,17 @@ RSpec.describe DiscourseKanban::BoardsController do
       visible_topic = Fabricate(:topic, category: category)
       private_topic = Fabricate(:topic, category: private_category)
 
-      board = DiscourseKanban::Board.create!(name: "Mixed", slug: "mixed", created_by_id: admin.id)
+      board =
+        DiscourseKanban::Board.create!(
+          name: "Mixed",
+          slug: "mixed",
+          category_ids: [category.id, private_category.id],
+          created_by_id: admin.id,
+        )
       col = board.columns.create!(title: "Col", position: 0)
 
       board.cards.create!(
         card_type: :topic,
-        membership_mode: :manual_in,
         topic_id: visible_topic.id,
         column_id: col.id,
         position: 0,
@@ -202,7 +207,6 @@ RSpec.describe DiscourseKanban::BoardsController do
       )
       board.cards.create!(
         card_type: :topic,
-        membership_mode: :manual_in,
         topic_id: private_topic.id,
         column_id: col.id,
         position: 1,
@@ -223,7 +227,7 @@ RSpec.describe DiscourseKanban::BoardsController do
         DiscourseKanban::Board.create!(
           name: "Auto Board",
           slug: "auto-board",
-          base_filter_query: "category:#{category.slug}",
+          category_ids: [category.id],
           created_by_id: admin.id,
         )
       board.columns.create!(title: "Backlog", position: 0)
@@ -333,11 +337,12 @@ RSpec.describe DiscourseKanban::BoardsController do
   end
 
   describe "POST /kanban/boards/:id/move-column" do
+    fab!(:sales_tag, :tag) { Fabricate(:tag, name: "sales") }
     fab!(:board_mc) do
       DiscourseKanban::Board.create!(
         name: "Move Col",
         slug: "move-col",
-        base_filter_query: "tags:sales",
+        tag_ids: [sales_tag.id],
         created_by_id: admin.id,
       )
     end

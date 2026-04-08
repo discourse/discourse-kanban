@@ -22,6 +22,7 @@ module DiscourseKanban
     policy :can_see_topic
     policy :can_edit_topic
     model :column
+    policy :topic_matches_constraints
 
     transaction do
       step :apply_topic_mutations
@@ -57,6 +58,10 @@ module DiscourseKanban
       board.columns.find_by(id: params.to_column_id)
     end
 
+    def topic_matches_constraints(board:, topic:, column:)
+      board.topic_will_match_after_mutation?(topic, column)
+    end
+
     def apply_topic_mutations(topic:, column:, guardian:)
       TopicMutator.apply!(topic:, column:, guardian:)
     end
@@ -64,11 +69,7 @@ module DiscourseKanban
     def place_topic_card(board:, topic:, column:, params:, guardian:)
       card = board.cards.find_or_initialize_by(topic:, column:)
 
-      card.assign_attributes(
-        card_type: :topic,
-        membership_mode: :manual_in,
-        updated_by_id: guardian.user.id,
-      )
+      card.assign_attributes(card_type: :topic, updated_by_id: guardian.user.id)
       card.created_by_id ||= guardian.user.id
 
       if card.new_record?

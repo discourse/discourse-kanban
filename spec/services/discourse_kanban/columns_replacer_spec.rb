@@ -58,7 +58,6 @@ RSpec.describe DiscourseKanban::ColumnsReplacer do
       col = board.columns.create!(title: "Gone", position: 0)
       board.cards.create!(
         card_type: :floater,
-        membership_mode: :manual_in,
         title: "Floater",
         column_id: col.id,
         position: 0,
@@ -70,7 +69,7 @@ RSpec.describe DiscourseKanban::ColumnsReplacer do
       expect(board.cards.reload.count).to eq(0)
     end
 
-    it "marks topic cards in removed columns as manual_out" do
+    it "deletes topic cards in removed columns" do
       topic = Fabricate(:topic)
       col = board.columns.create!(title: "Gone", position: 0)
       card =
@@ -80,7 +79,6 @@ RSpec.describe DiscourseKanban::ColumnsReplacer do
           .tap do |c|
             c.assign_attributes(
               card_type: :topic,
-              membership_mode: :manual_in,
               column_id: col.id,
               position: 0,
               created_by_id: admin.id,
@@ -90,10 +88,7 @@ RSpec.describe DiscourseKanban::ColumnsReplacer do
 
       DiscourseKanban::ColumnsReplacer.replace!(board:, columns_payload: [], user: admin)
 
-      card.reload
-      expect(card.column_id).to be_nil
-      expect(card.membership_mode).to eq("manual_out")
-      expect(card.updated_by_id).to eq(admin.id)
+      expect(DiscourseKanban::Card.find_by(id: card.id)).to be_nil
     end
   end
 end

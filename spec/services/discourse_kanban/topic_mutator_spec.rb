@@ -37,13 +37,12 @@ RSpec.describe DiscourseKanban::TopicMutator do
       }.to raise_error(Discourse::InvalidAccess)
     end
 
-    context "with move_to_tag" do
+    context "with tag_id" do
       before { SiteSetting.tagging_enabled = true }
 
       it "adds the configured tag to the topic" do
-        Fabricate(:tag, name: "in-progress")
-        column =
-          board.columns.create!(title: "In Progress", position: 0, move_to_tag: "in-progress")
+        tag = Fabricate(:tag, name: "in-progress")
+        column = board.columns.create!(title: "In Progress", position: 0, tag_id: tag.id)
 
         described_class.apply!(topic: topic, column: column, guardian: Guardian.new(admin))
 
@@ -52,10 +51,10 @@ RSpec.describe DiscourseKanban::TopicMutator do
 
       it "preserves existing tags" do
         existing_tag = Fabricate(:tag, name: "existing")
-        Fabricate(:tag, name: "new-tag")
+        new_tag = Fabricate(:tag, name: "new-tag")
         topic.tags << existing_tag
 
-        column = board.columns.create!(title: "Col", position: 0, move_to_tag: "new-tag")
+        column = board.columns.create!(title: "Col", position: 0, tag_id: new_tag.id)
 
         described_class.apply!(topic: topic, column: column, guardian: Guardian.new(admin))
 
@@ -65,16 +64,16 @@ RSpec.describe DiscourseKanban::TopicMutator do
       end
 
       it "removes tags from other columns on the same board" do
-        Fabricate(:tag, name: "todo")
-        Fabricate(:tag, name: "doing")
-        Fabricate(:tag, name: "done")
+        todo_tag = Fabricate(:tag, name: "todo")
+        doing_tag = Fabricate(:tag, name: "doing")
+        done_tag = Fabricate(:tag, name: "done")
         unrelated_tag = Fabricate(:tag, name: "unrelated")
 
-        board.columns.create!(title: "Todo", position: 0, move_to_tag: "todo")
-        doing_column = board.columns.create!(title: "Doing", position: 1, move_to_tag: "doing")
-        board.columns.create!(title: "Done", position: 2, move_to_tag: "done")
+        board.columns.create!(title: "Todo", position: 0, tag_id: todo_tag.id)
+        doing_column = board.columns.create!(title: "Doing", position: 1, tag_id: doing_tag.id)
+        board.columns.create!(title: "Done", position: 2, tag_id: done_tag.id)
 
-        topic.tags = [Tag.find_by(name: "todo"), unrelated_tag]
+        topic.tags = [todo_tag, unrelated_tag]
 
         described_class.apply!(topic: topic, column: doing_column, guardian: Guardian.new(admin))
 
@@ -82,12 +81,40 @@ RSpec.describe DiscourseKanban::TopicMutator do
         expect(tag_names).to contain_exactly("doing", "unrelated")
       end
 
-      it "does nothing when move_to_tag is blank" do
-        column = board.columns.create!(title: "Col", position: 0, move_to_tag: "")
+      it "does nothing when tag_id is nil" do
+        column = board.columns.create!(title: "Col", position: 0, tag_id: nil)
 
         expect {
           described_class.apply!(topic: topic, column: column, guardian: Guardian.new(admin))
         }.not_to change { topic.reload.tags.count }
+      end
+
+      it "removes the source column tag when moving to a column with no tag" do
+        ford_tag = Fabricate(:tag, name: "ford")
+        board.columns.create!(title: "Ford", position: 0, tag_id: ford_tag.id)
+        catchall_column = board.columns.create!(title: "Backlog", position: 1)
+
+        topic.tags = [ford_tag]
+
+        described_class.apply!(topic: topic, column: catchall_column, guardian: Guardian.new(admin))
+
+        expect(topic.reload.tags.map(&:name)).not_to include("ford")
+      end
+
+      it "removes only sibling column tags when moving to a column with no tag" do
+        ford_tag = Fabricate(:tag, name: "ford-tag")
+        chevy_tag = Fabricate(:tag, name: "chevy-tag")
+        unrelated_tag = Fabricate(:tag, name: "unrelated-tag")
+
+        board.columns.create!(title: "Ford", position: 0, tag_id: ford_tag.id)
+        board.columns.create!(title: "Chevy", position: 1, tag_id: chevy_tag.id)
+        catchall_column = board.columns.create!(title: "Backlog", position: 2)
+
+        topic.tags = [ford_tag, unrelated_tag]
+
+        described_class.apply!(topic: topic, column: catchall_column, guardian: Guardian.new(admin))
+
+        expect(topic.reload.tags.map(&:name)).to contain_exactly("unrelated-tag")
       end
     end
 

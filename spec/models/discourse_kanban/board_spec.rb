@@ -55,48 +55,99 @@ RSpec.describe DiscourseKanban::Board do
     expect(board.can_write?(Guardian.new(creator))).to eq(true)
   end
 
-  it "caches query matches per topic id and query" do
-    category_1 = Fabricate(:category, name: "Cache One")
-    category_2 = Fabricate(:category, name: "Cache Two")
-    topic_1 = Fabricate(:topic, category: category_1)
-    topic_2 = Fabricate(:topic, category: category_2)
-    query = "category:#{category_1.slug}"
+  describe "#topic_matches?" do
+    fab!(:category)
+    fab!(:tag)
 
-    matcher_context = {
-      scope:
-        TopicQuery.new(Discourse.system_user, limit: false, no_definitions: true).latest_results,
-      guardian: Guardian.new(Discourse.system_user),
-      cache: {
-      },
-    }
+    it "matches topic by category_ids" do
+      board = described_class.create!(name: "B", slug: "b", category_ids: [category.id])
+      topic = Fabricate(:topic, category: category)
 
-    expect(described_class.topic_matches_query?(topic_1, query, matcher_context:)).to eq(true)
-    expect(described_class.topic_matches_query?(topic_2, query, matcher_context:)).to eq(false)
+      expect(board.topic_matches?(topic)).to eq(true)
+    end
+
+    it "does not match topic in different category" do
+      board = described_class.create!(name: "B", slug: "b", category_ids: [category.id])
+      topic = Fabricate(:topic, category: Fabricate(:category))
+
+      expect(board.topic_matches?(topic)).to eq(false)
+    end
+
+    it "matches topic by tag_ids" do
+      board = described_class.create!(name: "B", slug: "b", tag_ids: [tag.id])
+      topic = Fabricate(:topic, tags: [tag])
+
+      expect(board.topic_matches?(topic)).to eq(true)
+    end
+
+    it "does not match topic without required tags" do
+      board = described_class.create!(name: "B", slug: "b", tag_ids: [tag.id])
+      topic = Fabricate(:topic)
+
+      expect(board.topic_matches?(topic)).to eq(false)
+    end
+
+    it "requires both category and tag match when both are set" do
+      board =
+        described_class.create!(
+          name: "B",
+          slug: "b",
+          category_ids: [category.id],
+          tag_ids: [tag.id],
+        )
+      topic_with_both = Fabricate(:topic, category: category, tags: [tag])
+      topic_category_only = Fabricate(:topic, category: category)
+      topic_tag_only = Fabricate(:topic, tags: [tag])
+
+      expect(board.topic_matches?(topic_with_both)).to eq(true)
+      expect(board.topic_matches?(topic_category_only)).to eq(false)
+      expect(board.topic_matches?(topic_tag_only)).to eq(false)
+    end
+
+    it "returns false when both category_ids and tag_ids are empty" do
+      board = described_class.create!(name: "B", slug: "b")
+      topic = Fabricate(:topic)
+
+      expect(board.topic_matches?(topic)).to eq(false)
+    end
   end
 
-  it "hits TopicsFilter only once for repeated checks of the same topic and query" do
-    category = Fabricate(:category, name: "Cache Calls")
-    topic = Fabricate(:topic, category: category)
-    query = "category:#{category.slug}"
+  describe "#all_matching_columns" do
+    fab!(:category)
+    fab!(:tag_a) { Fabricate(:tag, name: "alpha") }
+    fab!(:tag_b) { Fabricate(:tag, name: "beta") }
 
-    matcher_context = {
-      scope:
-        TopicQuery.new(Discourse.system_user, limit: false, no_definitions: true).latest_results,
-      guardian: Guardian.new(Discourse.system_user),
-      cache: {
-      },
-    }
+    it "matches columns by tag_id" do
+      board = described_class.create!(name: "B", slug: "b", category_ids: [category.id])
+      col_a = board.columns.create!(title: "A", position: 0, tag_id: tag_a.id)
+      col_b = board.columns.create!(title: "B", position: 1, tag_id: tag_b.id)
 
-    filter = mock
-    TopicsFilter.expects(:new).once.returns(filter)
-    filter.expects(:filter_from_query_string).once.with(query).returns(Topic.where(id: topic.id))
+      topic = Fabricate(:topic, category: category, tags: [tag_a])
+      expect(board.all_matching_columns(topic)).to eq([col_a])
 
-    expect(described_class.topic_matches_query?(topic, query, matcher_context:)).to eq(true)
-    expect(described_class.topic_matches_query?(topic, query, matcher_context:)).to eq(true)
-  end
+      topic2 = Fabricate(:topic, category: category, tags: [tag_a, tag_b])
+      expect(board.all_matching_columns(topic2)).to contain_exactly(col_a, col_b)
+    end
 
-  it "does not match when query is blank" do
-    topic = Fabricate(:topic)
-    expect(described_class.topic_matches_query?(topic, "")).to eq(false)
+    it "includes catch-all column for all board-matching topics" do
+      board = described_class.create!(name: "B", slug: "b", category_ids: [category.id])
+      catch_all = board.columns.create!(title: "Catch", position: 0, tag_id: nil)
+      col_a = board.columns.create!(title: "A", position: 1, tag_id: tag_a.id)
+
+      topic = Fabricate(:topic, category: category, tags: [tag_a])
+      expect(board.all_matching_columns(topic)).to contain_exactly(col_a, catch_all)
+
+      topic2 = Fabricate(:topic, category: category)
+      expect(board.all_matching_columns(topic2)).to eq([catch_all])
+    end
+
+    it "uses lowest-ID catch-all when multiple catch-all columns exist" do
+      board = described_class.create!(name: "B", slug: "b", category_ids: [category.id])
+      catch_1 = board.columns.create!(title: "First", position: 0, tag_id: nil)
+      _catch_2 = board.columns.create!(title: "Second", position: 1, tag_id: nil)
+
+      topic = Fabricate(:topic, category: category)
+      expect(board.all_matching_columns(topic)).to eq([catch_1])
+    end
   end
 end

@@ -26,12 +26,16 @@ module DiscourseKanban
       end
     end
 
-    def board_payload(board)
+    def board_payload(board, tag_name_map: nil)
+      tag_name_map ||= build_tag_name_map(board)
+
       {
         id: board.id,
         name: board.name,
         slug: board.slug,
-        base_filter_query: board.base_filter_query,
+        category_ids: board.category_ids,
+        tag_ids: board.tag_ids,
+        tag_names: board.tag_ids.filter_map { |id| tag_name_map[id] }.sort,
         allow_read_group_ids: board.allow_read_group_ids,
         allow_write_group_ids: board.allow_write_group_ids,
         require_confirmation: board.require_confirmation,
@@ -41,22 +45,28 @@ module DiscourseKanban
         show_activity_indicators: board.show_activity_indicators,
         can_write: board.can_write?(guardian),
         can_manage: guardian.can_manage_kanban_boards?,
-        columns: board.columns.map { |column| column_payload(column) },
+        columns: board.columns.map { |column| column_payload(column, tag_name_map:) },
       }
     end
 
-    def column_payload(column)
+    def column_payload(column, tag_name_map: {})
       {
         id: column.id,
         title: column.title,
         icon: column.icon,
         position: column.position,
-        filter_query: column.filter_query,
-        move_to_tag: column.move_to_tag,
+        tag_id: column.tag_id,
+        tag_name: column.tag_id ? tag_name_map[column.tag_id] : nil,
         move_to_category_id: column.move_to_category_id,
         move_to_assigned: column.move_to_assigned,
         move_to_status: column.move_to_status,
       }
+    end
+
+    def build_tag_name_map(*boards)
+      all_tag_ids = boards.flat_map { |b| b.tag_ids + b.columns.filter_map(&:tag_id) }.uniq
+      return {} if all_tag_ids.empty?
+      Tag.where(id: all_tag_ids).pluck(:id, :name).to_h
     end
 
     def card_mutation_params
@@ -79,7 +89,6 @@ module DiscourseKanban
       params.require(:board).permit(
         :name,
         :slug,
-        :base_filter_query,
         :require_confirmation,
         :show_tags,
         :card_style,
@@ -87,13 +96,14 @@ module DiscourseKanban
         :show_activity_indicators,
         allow_read_group_ids: [],
         allow_write_group_ids: [],
+        category_ids: [],
+        tag_names: [],
         columns: %i[
           id
           title
           icon
           position
-          filter_query
-          move_to_tag
+          tag_name
           move_to_category_id
           move_to_assigned
           move_to_status

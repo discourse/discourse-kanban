@@ -3,6 +3,8 @@
 RSpec.describe DiscourseKanban::TopicSync do
   fab!(:admin)
   fab!(:category) { Fabricate(:category, name: "Todo") }
+  fab!(:tag_a) { Fabricate(:tag, name: "sync-alpha") }
+  fab!(:tag_b) { Fabricate(:tag, name: "sync-beta") }
   fab!(:topic) { Fabricate(:topic, category: category) }
 
   before do
@@ -10,15 +12,14 @@ RSpec.describe DiscourseKanban::TopicSync do
     SiteSetting.discourse_kanban_enabled = true
   end
 
-  it "creates an auto topic card when board and column filters match" do
+  it "creates an auto topic card when board category matches and column is catch-all" do
     board =
       DiscourseKanban::Board.create!(
         name: "Todo Board",
         slug: "todo-board",
-        base_filter_query: "category:#{category.slug}",
+        category_ids: [category.id],
         created_by_id: admin.id,
       )
-
     column = board.columns.create!(title: "Backlog", position: 0)
 
     expect { described_class.sync_topic(topic) }.to change { DiscourseKanban::Card.count }.by(1)
@@ -26,63 +27,28 @@ RSpec.describe DiscourseKanban::TopicSync do
     card = DiscourseKanban::Card.last
     expect(card.topic_id).to eq(topic.id)
     expect(card.column_id).to eq(column.id)
-    expect(card.membership_mode).to eq("auto")
   end
 
-  it "does not override manually removed topic cards" do
+  it "creates an auto card when board tag matches and column tag matches" do
+    tagged_topic = Fabricate(:topic, tags: [tag_a])
     board =
       DiscourseKanban::Board.create!(
-        name: "Todo Board",
-        slug: "todo-board-2",
-        base_filter_query: "category:#{category.slug}",
+        name: "Tag Board",
+        slug: "tag-board",
+        tag_ids: [tag_a.id],
         created_by_id: admin.id,
       )
+    column = board.columns.create!(title: "Alpha", position: 0, tag_id: tag_a.id)
 
-    board.columns.create!(title: "Backlog", position: 0)
+    expect { described_class.sync_topic(tagged_topic) }.to change {
+      DiscourseKanban::Card.count
+    }.by(1)
 
-    card =
-      board.cards.create!(
-        topic_id: topic.id,
-        card_type: :topic,
-        membership_mode: :manual_out,
-        position: 0,
-        created_by_id: admin.id,
-      )
-
-    described_class.sync_topic(topic)
-
-    expect(card.reload.membership_mode).to eq("manual_out")
-    expect(card.column_id).to be_nil
+    card = DiscourseKanban::Card.last
+    expect(card.column_id).to eq(column.id)
   end
 
-  it "treats board base_filter_query as a hard constraint before column filters" do
-    board =
-      DiscourseKanban::Board.create!(
-        name: "Hard Constraint Board",
-        slug: "hard-constraint-board",
-        base_filter_query: "category:another-category",
-        created_by_id: admin.id,
-      )
-
-    board.columns.create!(title: "Backlog", position: 0, filter_query: "category:#{category.slug}")
-
-    expect { described_class.sync_topic(topic) }.not_to change { DiscourseKanban::Card.count }
-  end
-
-  it "auto-adds topics when base_filter_query is blank and a column filter matches" do
-    board =
-      DiscourseKanban::Board.create!(
-        name: "Blank Base Board",
-        slug: "blank-base-board",
-        created_by_id: admin.id,
-      )
-
-    board.columns.create!(title: "Backlog", position: 0, filter_query: "category:#{category.slug}")
-
-    expect { described_class.sync_topic(topic) }.to change { DiscourseKanban::Card.count }.by(1)
-  end
-
-  it "does not auto-add topics when base_filter_query is blank and columns are unfiltered" do
+  it "does not match topics when board has no constraints" do
     board =
       DiscourseKanban::Board.create!(
         name: "No Filter Board",
@@ -94,117 +60,128 @@ RSpec.describe DiscourseKanban::TopicSync do
     expect { described_class.sync_topic(topic) }.not_to change { DiscourseKanban::Card.count }
   end
 
-  it "places a topic in multiple columns when it matches multiple column filters" do
-    tag_a = Fabricate(:tag, name: "design")
-    tag_b = Fabricate(:tag, name: "urgent")
+  it "does not delete existing cards on unconstrained boards" do
+    board =
+      DiscourseKanban::Board.create!(
+        name: "Manual Board",
+        slug: "manual-board",
+        created_by_id: admin.id,
+      )
+    column = board.columns.create!(title: "Backlog", position: 0)
+
+    board.cards.create!(
+      topic_id: topic.id,
+      card_type: :topic,
+      column_id: column.id,
+      position: 0,
+      created_by_id: admin.id,
+    )
+
+    expect { described_class.sync_topic(topic) }.not_to change { DiscourseKanban::Card.count }
+  end
+
+  it "does not match topics in wrong category" do
+    other_category = Fabricate(:category)
+    board =
+      DiscourseKanban::Board.create!(
+        name: "Wrong Cat Board",
+        slug: "wrong-cat-board",
+        category_ids: [other_category.id],
+        created_by_id: admin.id,
+      )
+    board.columns.create!(title: "Backlog", position: 0)
+
+    expect { described_class.sync_topic(topic) }.not_to change { DiscourseKanban::Card.count }
+  end
+
+  it "places a topic in multiple columns when it matches multiple column tags" do
     multi_topic = Fabricate(:topic, category: category, tags: [tag_a, tag_b])
 
     board =
       DiscourseKanban::Board.create!(
         name: "Multi Column Board",
         slug: "multi-column-board",
+        category_ids: [category.id],
         created_by_id: admin.id,
       )
-
-    col_design = board.columns.create!(title: "Design", position: 0, filter_query: "tags:design")
-    col_urgent = board.columns.create!(title: "Urgent", position: 1, filter_query: "tags:urgent")
+    col_a = board.columns.create!(title: "Alpha", position: 0, tag_id: tag_a.id)
+    col_b = board.columns.create!(title: "Beta", position: 1, tag_id: tag_b.id)
 
     expect { described_class.sync_topic(multi_topic) }.to change { DiscourseKanban::Card.count }.by(
       2,
     )
 
     expect(board.cards.where(topic_id: multi_topic.id).pluck(:column_id)).to contain_exactly(
-      col_design.id,
-      col_urgent.id,
+      col_a.id,
+      col_b.id,
     )
   end
 
-  it "removes an auto card when the board base_filter_query no longer matches" do
+  it "removes an auto card when the board category no longer matches" do
     board =
       DiscourseKanban::Board.create!(
         name: "Remove Auto Board",
         slug: "remove-auto-board",
-        base_filter_query: "category:#{category.slug}",
+        category_ids: [category.id],
         created_by_id: admin.id,
       )
-
     board.columns.create!(title: "Backlog", position: 0)
     described_class.sync_topic(topic)
     expect(board.cards.where(topic_id: topic.id).count).to eq(1)
 
-    board.update!(base_filter_query: "category:another-category")
+    other_category = Fabricate(:category)
+    board.update!(category_ids: [other_category.id])
 
     expect { described_class.sync_topic(topic) }.to change {
       board.cards.where(topic_id: topic.id).count
     }.from(1).to(0)
   end
 
-  it "does not remove manual_in cards when filters no longer match" do
+  it "removes cards when board constraints no longer match" do
     board =
       DiscourseKanban::Board.create!(
-        name: "Manual In Board",
-        slug: "manual-in-board",
-        base_filter_query: "category:#{category.slug}",
+        name: "Constraint Board",
+        slug: "constraint-board",
+        category_ids: [category.id],
         created_by_id: admin.id,
       )
     column = board.columns.create!(title: "Backlog", position: 0)
 
-    card =
-      board.cards.create!(
-        topic_id: topic.id,
-        card_type: :topic,
-        membership_mode: :manual_in,
-        column_id: column.id,
-        position: 0,
-        created_by_id: admin.id,
-      )
+    board.cards.create!(
+      topic_id: topic.id,
+      card_type: :topic,
+      column_id: column.id,
+      position: 0,
+      created_by_id: admin.id,
+    )
 
-    board.update!(base_filter_query: "category:another-category")
+    other_category = Fabricate(:category)
+    board.update!(category_ids: [other_category.id])
     described_class.sync_topic(topic)
 
-    expect(card.reload.membership_mode).to eq("manual_in")
-    expect(card.column_id).to eq(column.id)
+    expect(board.cards.where(topic_id: topic.id).count).to eq(0)
   end
 
-  it "removes an auto card when no column matches after board match" do
+  it "removes an auto card when column tag no longer matches topic" do
+    tagged_topic = Fabricate(:topic, category: category, tags: [tag_a])
+
     board =
       DiscourseKanban::Board.create!(
-        name: "Remove On Column Miss Board",
-        slug: "remove-on-column-miss-board",
-        base_filter_query: "category:#{category.slug}",
+        name: "Tag Miss Board",
+        slug: "tag-miss-board",
+        category_ids: [category.id],
         created_by_id: admin.id,
       )
+    col = board.columns.create!(title: "Alpha", position: 0, tag_id: tag_a.id)
 
-    column = board.columns.create!(title: "Backlog", position: 0)
-    described_class.sync_topic(topic)
-    expect(board.cards.where(topic_id: topic.id).count).to eq(1)
+    described_class.sync_topic(tagged_topic)
+    expect(board.cards.where(topic_id: tagged_topic.id, column_id: col.id).count).to eq(1)
 
-    column.update!(filter_query: "status:closed")
+    col.update!(tag_id: tag_b.id)
 
-    expect { described_class.sync_topic(topic) }.to change {
-      board.cards.where(topic_id: topic.id).count
+    expect { described_class.sync_topic(tagged_topic) }.to change {
+      board.cards.where(topic_id: tagged_topic.id).count
     }.from(1).to(0)
-  end
-
-  it "moves an auto card when the first matching column changes" do
-    board =
-      DiscourseKanban::Board.create!(
-        name: "Move Auto Board",
-        slug: "move-auto-board",
-        base_filter_query: "category:#{category.slug}",
-        created_by_id: admin.id,
-      )
-
-    first_column = board.columns.create!(title: "Ready", position: 0, filter_query: "status:closed")
-    second_column = board.columns.create!(title: "Backlog", position: 1)
-
-    described_class.sync_topic(topic)
-    expect(board.cards.find_by(topic_id: topic.id)&.column_id).to eq(second_column.id)
-
-    first_column.update!(filter_query: "")
-    described_class.sync_topic(topic)
-
-    expect(board.cards.find_by(topic_id: topic.id)&.column_id).to eq(first_column.id)
   end
 
   it "rolls back sync changes when apply fails part way through" do
@@ -212,7 +189,7 @@ RSpec.describe DiscourseKanban::TopicSync do
       DiscourseKanban::Board.create!(
         name: "Atomic Board",
         slug: "atomic-board",
-        base_filter_query: "category:#{category.slug}",
+        category_ids: [category.id],
         created_by_id: admin.id,
       )
     board.columns.create!(title: "Backlog", position: 0)
@@ -220,9 +197,10 @@ RSpec.describe DiscourseKanban::TopicSync do
     described_class.sync_topic(topic)
     expect(board.cards.where(topic_id: topic.id).count).to eq(1)
 
-    board.update!(base_filter_query: "category:another-category")
+    other_category = Fabricate(:category)
+    board.update!(category_ids: [other_category.id])
 
-    described_class.stubs(:create_auto_cards).raises(StandardError.new("create boom"))
+    described_class.stubs(:execute_sync_changes).raises(StandardError.new("create boom"))
 
     expect { described_class.sync_topic(topic) }.to raise_error(StandardError, "create boom")
     expect(board.cards.where(topic_id: topic.id).count).to eq(1)
@@ -253,7 +231,6 @@ RSpec.describe DiscourseKanban::TopicSync do
     board.cards.create!(
       topic_id: topic.id,
       card_type: :topic,
-      membership_mode: :manual_in,
       column_id: column.id,
       position: 0,
       created_by_id: admin.id,
@@ -264,29 +241,24 @@ RSpec.describe DiscourseKanban::TopicSync do
     )
   end
 
-  describe "multi-column manual_in and manual_out semantics" do
-    it "creates auto cards in other columns when manual_in exists in one column" do
-      tag_a = Fabricate(:tag, name: "manual-in-design")
-      tag_b = Fabricate(:tag, name: "manual-in-urgent")
+  describe "multi-column card semantics" do
+    it "creates auto cards in other columns when a card exists in one column" do
       multi_topic = Fabricate(:topic, category: category, tags: [tag_a, tag_b])
 
       board =
         DiscourseKanban::Board.create!(
           name: "Manual In Multi Board",
           slug: "manual-in-multi-board",
+          category_ids: [category.id],
           created_by_id: admin.id,
         )
-
-      col_design =
-        board.columns.create!(title: "Design", position: 0, filter_query: "tags:manual-in-design")
-      col_urgent =
-        board.columns.create!(title: "Urgent", position: 1, filter_query: "tags:manual-in-urgent")
+      col_a = board.columns.create!(title: "Alpha", position: 0, tag_id: tag_a.id)
+      col_b = board.columns.create!(title: "Beta", position: 1, tag_id: tag_b.id)
 
       board.cards.create!(
         topic_id: multi_topic.id,
         card_type: :topic,
-        membership_mode: :manual_in,
-        column_id: col_design.id,
+        column_id: col_a.id,
         position: 0,
         created_by_id: admin.id,
       )
@@ -296,64 +268,28 @@ RSpec.describe DiscourseKanban::TopicSync do
       }.by(1)
 
       expect(board.cards.where(topic_id: multi_topic.id).pluck(:column_id)).to contain_exactly(
-        col_design.id,
-        col_urgent.id,
+        col_a.id,
+        col_b.id,
       )
-
-      design_card = board.cards.find_by(topic_id: multi_topic.id, column_id: col_design.id)
-      expect(design_card.membership_mode).to eq("manual_in")
-
-      urgent_card = board.cards.find_by(topic_id: multi_topic.id, column_id: col_urgent.id)
-      expect(urgent_card.membership_mode).to eq("auto")
     end
 
-    it "blocks all auto card creation when manual_out exists" do
-      board =
-        DiscourseKanban::Board.create!(
-          name: "Manual Out Block Board",
-          slug: "manual-out-block-board",
-          base_filter_query: "category:#{category.slug}",
-          created_by_id: admin.id,
-        )
-
-      board.columns.create!(title: "Backlog", position: 0)
-
-      board.cards.create!(
-        topic_id: topic.id,
-        card_type: :topic,
-        membership_mode: :manual_out,
-        position: 0,
-        created_by_id: admin.id,
-      )
-
-      expect { described_class.sync_topic(topic) }.not_to change { DiscourseKanban::Card.count }
-    end
-
-    it "cleans up auto cards while preserving manual_in cards after filter change" do
-      tag = Fabricate(:tag, name: "preserve-manual")
-      tagged_topic = Fabricate(:topic, category: category, tags: [tag])
+    it "cleans up auto cards while preserving manually created cards after tag change" do
+      tagged_topic = Fabricate(:topic, category: category, tags: [tag_a, tag_b])
 
       board =
         DiscourseKanban::Board.create!(
           name: "Preserve Manual Board",
           slug: "preserve-manual-board",
+          category_ids: [category.id],
           created_by_id: admin.id,
         )
-
-      col_tagged =
-        board.columns.create!(title: "Tagged", position: 0, filter_query: "tags:preserve-manual")
-      col_cat =
-        board.columns.create!(
-          title: "Category",
-          position: 1,
-          filter_query: "category:#{category.slug}",
-        )
+      col_a = board.columns.create!(title: "Alpha", position: 0, tag_id: tag_a.id)
+      col_b = board.columns.create!(title: "Beta", position: 1, tag_id: tag_b.id)
 
       board.cards.create!(
         topic_id: tagged_topic.id,
         card_type: :topic,
-        membership_mode: :manual_in,
-        column_id: col_tagged.id,
+        column_id: col_a.id,
         position: 0,
         created_by_id: admin.id,
       )
@@ -361,32 +297,55 @@ RSpec.describe DiscourseKanban::TopicSync do
       described_class.sync_topic(tagged_topic)
       expect(board.cards.where(topic_id: tagged_topic.id).count).to eq(2)
 
-      col_cat.update!(filter_query: "category:nonexistent")
+      other_tag = Fabricate(:tag, name: "sync-other")
+      col_b.update!(tag_id: other_tag.id)
       described_class.sync_topic(tagged_topic)
 
       expect(board.cards.where(topic_id: tagged_topic.id).count).to eq(1)
       remaining = board.cards.find_by(topic_id: tagged_topic.id)
-      expect(remaining.membership_mode).to eq("manual_in")
-      expect(remaining.column_id).to eq(col_tagged.id)
+      expect(remaining.column_id).to eq(col_a.id)
     end
   end
 
-  describe "stable blank-filter column assignment" do
-    it "assigns to the lowest-ID blank-filter column regardless of position order" do
+  describe "sticky catch-all columns" do
+    it "does not relocate a card between catch-all columns on re-sync" do
       board =
         DiscourseKanban::Board.create!(
-          name: "Stable Blank Board",
-          slug: "stable-blank-board",
-          base_filter_query: "category:#{category.slug}",
+          name: "Sticky Board",
+          slug: "sticky-board",
+          category_ids: [category.id],
           created_by_id: admin.id,
         )
 
       col_a = board.columns.create!(title: "Column A", position: 0)
       col_b = board.columns.create!(title: "Column B", position: 1)
 
-      # col_b has higher ID; give it lower position so it comes first in ordering
-      col_b.update_column(:position, 0)
-      col_a.update_column(:position, 1)
+      # Manually place in column B (not the lowest-ID catch-all)
+      board.cards.create!(
+        topic_id: topic.id,
+        card_type: :topic,
+        column_id: col_b.id,
+        position: 0,
+        created_by_id: admin.id,
+      )
+
+      described_class.sync_topic(topic)
+
+      card = board.cards.find_by(topic_id: topic.id)
+      expect(card.column_id).to eq(col_b.id)
+    end
+
+    it "places a new topic in the first catch-all when no tagged column matches" do
+      board =
+        DiscourseKanban::Board.create!(
+          name: "First Catchall Board",
+          slug: "first-catchall-board",
+          category_ids: [category.id],
+          created_by_id: admin.id,
+        )
+
+      col_a = board.columns.create!(title: "Column A", position: 0)
+      board.columns.create!(title: "Column B", position: 1)
 
       described_class.sync_topic(topic)
 
@@ -394,29 +353,53 @@ RSpec.describe DiscourseKanban::TopicSync do
       expect(card.column_id).to eq(col_a.id)
     end
 
-    it "remains stable after reordering blank-filter columns" do
+    it "does not place a tagged topic in a catch-all column" do
+      tagged_topic = Fabricate(:topic, category: category, tags: [tag_a])
+
       board =
         DiscourseKanban::Board.create!(
-          name: "Reorder Stable Board",
-          slug: "reorder-stable-board",
-          base_filter_query: "category:#{category.slug}",
+          name: "No Catchall Board",
+          slug: "no-catchall-for-tagged",
+          category_ids: [category.id],
           created_by_id: admin.id,
         )
+      col_tagged = board.columns.create!(title: "Alpha", position: 0, tag_id: tag_a.id)
+      board.columns.create!(title: "Backlog", position: 1)
 
-      col_a = board.columns.create!(title: "Column A", position: 0)
-      col_b = board.columns.create!(title: "Column B", position: 1)
+      described_class.sync_topic(tagged_topic)
 
-      described_class.sync_topic(topic)
-      card = board.cards.find_by(topic_id: topic.id)
-      expect(card.column_id).to eq(col_a.id)
+      cards = board.cards.where(topic_id: tagged_topic.id)
+      expect(cards.count).to eq(1)
+      expect(cards.first.column_id).to eq(col_tagged.id)
+    end
 
-      # swap positions
-      col_a.update_column(:position, 1)
-      col_b.update_column(:position, 0)
+    it "falls to a catch-all when a topic loses its column tag" do
+      tagged_topic = Fabricate(:topic, category: category, tags: [tag_a])
 
-      described_class.sync_topic(topic)
-      card.reload
-      expect(card.column_id).to eq(col_a.id)
+      board =
+        DiscourseKanban::Board.create!(
+          name: "Fallback Board",
+          slug: "fallback-board",
+          category_ids: [category.id],
+          created_by_id: admin.id,
+        )
+      col_tagged = board.columns.create!(title: "Alpha", position: 0, tag_id: tag_a.id)
+      col_catchall = board.columns.create!(title: "Backlog", position: 1)
+
+      described_class.sync_topic(tagged_topic)
+      cards = board.cards.where(topic_id: tagged_topic.id)
+      expect(cards.count).to eq(1)
+      expect(cards.first.column_id).to eq(col_tagged.id)
+
+      # Remove the tag — topic no longer matches the tagged column
+      tagged_topic.tags = []
+      tagged_topic.save!
+
+      described_class.sync_topic(tagged_topic)
+
+      cards = board.cards.where(topic_id: tagged_topic.id)
+      expect(cards.count).to eq(1)
+      expect(cards.first.column_id).to eq(col_catchall.id)
     end
   end
 
@@ -428,7 +411,7 @@ RSpec.describe DiscourseKanban::TopicSync do
         DiscourseKanban::Board.create!(
           name: "Backfill Board",
           slug: "backfill-board",
-          base_filter_query: "category:#{category.slug}",
+          category_ids: [category.id],
           created_by_id: admin.id,
         )
       column = board.columns.create!(title: "Backlog", position: 0)
@@ -446,7 +429,7 @@ RSpec.describe DiscourseKanban::TopicSync do
         DiscourseKanban::Board.create!(
           name: "No Dup Board",
           slug: "no-dup-board",
-          base_filter_query: "category:#{category.slug}",
+          category_ids: [category.id],
           created_by_id: admin.id,
         )
       column = board.columns.create!(title: "Backlog", position: 0)
@@ -454,7 +437,6 @@ RSpec.describe DiscourseKanban::TopicSync do
       board.cards.create!(
         topic_id: topic.id,
         card_type: :topic,
-        membership_mode: :manual_in,
         column_id: column.id,
         position: 0,
         created_by_id: admin.id,
@@ -465,37 +447,12 @@ RSpec.describe DiscourseKanban::TopicSync do
       }
     end
 
-    it "respects manual_out cards and does not re-add them" do
-      board =
-        DiscourseKanban::Board.create!(
-          name: "Manual Out Board",
-          slug: "manual-out-board",
-          base_filter_query: "category:#{category.slug}",
-          created_by_id: admin.id,
-        )
-      board.columns.create!(title: "Backlog", position: 0)
-
-      board.cards.create!(
-        topic_id: topic.id,
-        card_type: :topic,
-        membership_mode: :manual_out,
-        position: 0,
-        created_by_id: admin.id,
-      )
-
-      described_class.backfill_board(board)
-
-      card = board.cards.find_by(topic_id: topic.id)
-      expect(card.membership_mode).to eq("manual_out")
-      expect(card.column_id).to be_nil
-    end
-
     it "excludes category definition topics" do
       board =
         DiscourseKanban::Board.create!(
           name: "No Defs Board",
           slug: "no-defs-board",
-          base_filter_query: "category:#{category.slug}",
+          category_ids: [category.id],
           created_by_id: admin.id,
         )
       board.columns.create!(title: "Backlog", position: 0)
@@ -507,52 +464,77 @@ RSpec.describe DiscourseKanban::TopicSync do
       expect(carded_topic_ids).not_to include(category.topic_id)
     end
 
-    it "discovers topics using column filter_query when base_filter_query is blank" do
+    it "discovers topics by column tag" do
+      tagged_topic = Fabricate(:topic, tags: [tag_a])
+
       board =
         DiscourseKanban::Board.create!(
-          name: "Column Filter Board",
-          slug: "column-filter-board",
+          name: "Tag Backfill Board",
+          slug: "tag-backfill-board",
+          tag_ids: [tag_a.id],
           created_by_id: admin.id,
         )
-      board.columns.create!(title: "Design", position: 0, filter_query: "category:#{category.slug}")
+      col = board.columns.create!(title: "Alpha", position: 0, tag_id: tag_a.id)
 
-      expect { described_class.backfill_board(board) }.to change { DiscourseKanban::Card.count }.by(
-        1,
-      )
+      described_class.backfill_board(board)
+
+      card = board.cards.find_by(topic_id: tagged_topic.id)
+      expect(card).to be_present
+      expect(card.column_id).to eq(col.id)
     end
 
-    it "limits the number of topics per column to MAX_TOPICS_PER_COLUMN" do
+    it "limits the number of topics per column to MAX_CARDS_PER_COLUMN" do
+      # Create topics before the board so sync_topic doesn't fire
+      4.times { Fabricate(:topic, category: category) }
+
       board =
         DiscourseKanban::Board.create!(
           name: "Limit Board",
           slug: "limit-board",
-          base_filter_query: "category:#{category.slug}",
+          category_ids: [category.id],
           created_by_id: admin.id,
         )
       board.columns.create!(title: "Backlog", position: 0)
 
-      4.times { Fabricate(:topic, category: category) }
-
-      stub_const(DiscourseKanban::TopicSync, :MAX_TOPICS_PER_COLUMN, 3) do
+      stub_const(DiscourseKanban::TopicSync, :MAX_CARDS_PER_COLUMN, 3) do
         described_class.backfill_board(board)
       end
 
       expect(board.cards.count).to be <= 3
     end
 
-    it "assigns to the lowest-ID blank-filter column regardless of position order" do
+    it "evicts oldest topic cards when a column exceeds MAX_CARDS_PER_COLUMN via sync" do
+      board =
+        DiscourseKanban::Board.create!(
+          name: "Eviction Board",
+          slug: "eviction-board",
+          category_ids: [category.id],
+          created_by_id: admin.id,
+        )
+      col = board.columns.create!(title: "Backlog", position: 0)
+
+      stub_const(DiscourseKanban::TopicSync, :MAX_CARDS_PER_COLUMN, 3) do
+        topics = 4.times.map { Fabricate(:topic, category: category) }
+        topics.each { |t| described_class.sync_topic(t) }
+
+        cards = board.cards.where(column_id: col.id).order(:position)
+        expect(cards.count).to eq(3)
+        expect(cards.pluck(:topic_id)).to eq(topics.last(3).map(&:id))
+      end
+    end
+
+    it "assigns to the lowest-ID catch-all column regardless of position order" do
       board =
         DiscourseKanban::Board.create!(
           name: "Backfill Stable Board",
           slug: "backfill-stable-board",
-          base_filter_query: "category:#{category.slug}",
+          category_ids: [category.id],
           created_by_id: admin.id,
         )
 
       col_a = board.columns.create!(title: "Column A", position: 0)
       col_b = board.columns.create!(title: "Column B", position: 1)
 
-      # col_b has higher ID; give it lower position so it comes first
       col_b.update_column(:position, 0)
       col_a.update_column(:position, 1)
 
@@ -562,63 +544,56 @@ RSpec.describe DiscourseKanban::TopicSync do
       expect(card.column_id).to eq(col_a.id)
     end
 
-    it "does not discover topics when base_filter_query is blank and columns are unfiltered" do
+    it "does not discover topics when board has no constraints" do
       board =
         DiscourseKanban::Board.create!(
           name: "No Filter Backfill Board",
           slug: "no-filter-backfill-board",
           created_by_id: admin.id,
         )
-      board.columns.create!(title: "Design", position: 0)
+      board.columns.create!(title: "Backlog", position: 0)
 
       expect { described_class.backfill_board(board) }.not_to change { DiscourseKanban::Card.count }
     end
 
-    it "places a topic in multiple columns when it matches multiple column filters" do
-      tag_a = Fabricate(:tag, name: "backfill-design")
-      tag_b = Fabricate(:tag, name: "backfill-urgent")
+    it "does not delete existing cards on unconstrained boards" do
+      board =
+        DiscourseKanban::Board.create!(
+          name: "No Filter Preserve Board",
+          slug: "no-filter-preserve-board",
+          created_by_id: admin.id,
+        )
+      column = board.columns.create!(title: "Backlog", position: 0)
+
+      board.cards.create!(
+        topic_id: topic.id,
+        card_type: :topic,
+        column_id: column.id,
+        position: 0,
+        created_by_id: admin.id,
+      )
+
+      expect { described_class.backfill_board(board) }.not_to change { DiscourseKanban::Card.count }
+    end
+
+    it "places a topic in multiple columns when it matches multiple column tags" do
       multi_topic = Fabricate(:topic, category: category, tags: [tag_a, tag_b])
 
       board =
         DiscourseKanban::Board.create!(
           name: "Backfill Multi Board",
           slug: "backfill-multi-board",
+          category_ids: [category.id],
           created_by_id: admin.id,
         )
-
-      col_design =
-        board.columns.create!(title: "Design", position: 0, filter_query: "tags:backfill-design")
-      col_urgent =
-        board.columns.create!(title: "Urgent", position: 1, filter_query: "tags:backfill-urgent")
+      col_a = board.columns.create!(title: "Alpha", position: 0, tag_id: tag_a.id)
+      col_b = board.columns.create!(title: "Beta", position: 1, tag_id: tag_b.id)
 
       described_class.backfill_board(board)
 
       cards = board.cards.where(topic_id: multi_topic.id)
       expect(cards.count).to eq(2)
-      expect(cards.pluck(:column_id)).to contain_exactly(col_design.id, col_urgent.id)
-    end
-
-    it "skips topics with manual_out cards during backfill" do
-      board =
-        DiscourseKanban::Board.create!(
-          name: "Backfill Manual Out Board",
-          slug: "backfill-manual-out-board",
-          base_filter_query: "category:#{category.slug}",
-          created_by_id: admin.id,
-        )
-      board.columns.create!(title: "Backlog", position: 0)
-
-      board.cards.create!(
-        topic_id: topic.id,
-        card_type: :topic,
-        membership_mode: :manual_out,
-        position: 0,
-        created_by_id: admin.id,
-      )
-
-      expect { described_class.backfill_board(board) }.not_to change {
-        board.cards.where(topic_id: topic.id).count
-      }
+      expect(cards.pluck(:column_id)).to contain_exactly(col_a.id, col_b.id)
     end
   end
 
@@ -628,7 +603,7 @@ RSpec.describe DiscourseKanban::TopicSync do
         .create!(
           name: "Board",
           slug: "post-creator-board",
-          base_filter_query: "category:#{category.slug}",
+          category_ids: [category.id],
           created_by_id: admin.id,
         )
         .columns

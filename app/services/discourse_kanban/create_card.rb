@@ -58,9 +58,14 @@ module DiscourseKanban
               )
       end
 
+      unless board.topic_will_match_after_mutation?(topic, column)
+        raise Discourse::InvalidParameters.new(
+                I18n.t("discourse_kanban.errors.topic_does_not_match_constraints"),
+              )
+      end
+
       card = board.cards.find_or_initialize_by(topic_id: topic.id, column_id: column.id)
       card.card_type = :topic
-      card.membership_mode = :manual_in
       card.updated_by_id = guardian.user.id
       card.created_by_id ||= guardian.user.id
 
@@ -71,6 +76,7 @@ module DiscourseKanban
       end
 
       card.save!
+      apply_column_mutations!(topic, column, guardian)
       card
     rescue ActiveRecord::RecordNotUnique, ActiveRecord::StatementInvalid => error
       unless unique_topic_card_violation?(error) ||
@@ -79,19 +85,27 @@ module DiscourseKanban
       end
 
       card = board.cards.find_by!(topic_id: topic.id, column_id: column.id)
-      card.membership_mode = :manual_in
       card.updated_by_id = guardian.user.id
       card.created_by_id ||= guardian.user.id
       CardOrdering.place_card!(card, column:, after_card_id: params.after_card_id)
       card.save!
+      apply_column_mutations!(topic, column, guardian)
       card
+    end
+
+    def apply_column_mutations!(topic, column, guardian)
+      if column.tag_id.blank? && column.move_to_category_id.blank? &&
+           column.move_to_assigned.blank? && column.move_to_status.blank?
+        return
+      end
+      return unless guardian.can_edit?(topic)
+      TopicMutator.apply!(topic:, column:, guardian:)
     end
 
     def build_floater_card(board, column, params, guardian)
       card =
         board.cards.build(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: params.title,
           notes: params.notes,
           labels: params.labels || [],

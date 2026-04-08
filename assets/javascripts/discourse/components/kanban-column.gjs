@@ -36,7 +36,7 @@ export default class KanbanColumn extends Component {
 
   get columnTags() {
     const allColumns = this.args.allColumns || [];
-    return allColumns.map((col) => col.move_to_tag).filter(Boolean);
+    return allColumns.map((col) => col.tag_name).filter(Boolean);
   }
 
   get columnIndex() {
@@ -397,7 +397,7 @@ export default class KanbanColumn extends Component {
                 <dropdown.item>
                   <DButton
                     @action={{fn this.clearColumn args.close}}
-                    @icon="eraser"
+                    @icon="xmark"
                     @label="discourse_kanban.board.clear_column"
                     @disabled={{eq this.cardCount 0}}
                     class="btn-transparent"

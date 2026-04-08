@@ -101,7 +101,6 @@ RSpec.describe DiscourseKanban::MoveTopicToColumn do
                                        topic_id: topic.id,
                                        column_id: column.id,
                                        card_type: "topic",
-                                       membership_mode: "manual_in",
                                      )
       end
 
@@ -128,7 +127,6 @@ RSpec.describe DiscourseKanban::MoveTopicToColumn do
       fab!(:existing_card) do
         board.cards.create!(
           card_type: :topic,
-          membership_mode: :auto,
           topic_id: topic.id,
           column_id: column.id,
           position: 0,
@@ -138,13 +136,9 @@ RSpec.describe DiscourseKanban::MoveTopicToColumn do
 
       it { is_expected.to run_successfully }
 
-      it "upgrades the existing card to manual_in" do
+      it "returns the existing card" do
         expect(result[:card]).not_to be_previously_new_record
-        expect(result[:card]).to have_attributes(
-          id: existing_card.id,
-          membership_mode: "manual_in",
-          created_by_id: writer.id,
-        )
+        expect(result[:card]).to have_attributes(id: existing_card.id, created_by_id: writer.id)
       end
 
       it "publishes a card_moved event" do
@@ -154,10 +148,10 @@ RSpec.describe DiscourseKanban::MoveTopicToColumn do
       end
     end
 
-    context "when column has a move_to_tag mutation" do
+    context "when column has a tag_id mutation" do
       fab!(:tag) { Fabricate(:tag, name: "in-progress") }
 
-      before { column.update!(move_to_tag: "in-progress") }
+      before { column.update!(tag_id: tag.id) }
 
       it "applies the tag to the topic" do
         result

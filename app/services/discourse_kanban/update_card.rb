@@ -68,13 +68,13 @@ module DiscourseKanban
               )
       end
 
-      existing =
-        context[:board].cards.find_by(topic_id: topic.id, column_id: column.id) ||
-          context[:board].cards.find_by(
-            topic_id: topic.id,
-            membership_mode: :manual_out,
-            column_id: nil,
-          )
+      unless context[:board].topic_will_match_after_mutation?(topic, column)
+        raise Discourse::InvalidParameters.new(
+                I18n.t("discourse_kanban.errors.topic_does_not_match_constraints"),
+              )
+      end
+
+      existing = context[:board].cards.find_by(topic_id: topic.id, column_id: column.id)
       if existing
         context[:card] = adopt_existing_topic_card!(card, existing, column, params, guardian)
         context[:promoted] = true
@@ -87,7 +87,6 @@ module DiscourseKanban
       card.labels = []
       card.assigned_to_id = nil
       card.assigned_to_type = nil
-      card.membership_mode = :manual_in
       card.updated_by_id = guardian.user.id
       TopicMutator.apply!(topic:, column:, guardian:)
       context[:promoted] = true
@@ -130,13 +129,10 @@ module DiscourseKanban
         column_changed =
           !context[:promoted] && card.topic? && column.id != card.column_id && card.topic.present?
 
-        if card.topic_id.present?
-          card
-            .board
-            .cards
-            .where(topic_id: card.topic_id, column_id: column.id, membership_mode: :manual_out)
-            .where.not(id: card.id)
-            .delete_all
+        if column_changed && !context[:board].topic_will_match_after_mutation?(card.topic, column)
+          raise Discourse::InvalidParameters.new(
+                  I18n.t("discourse_kanban.errors.topic_does_not_match_constraints"),
+                )
         end
 
         CardOrdering.place_card!(
@@ -179,7 +175,6 @@ module DiscourseKanban
       Card.transaction do
         existing = existing.lock!
         context[:original_column_id] = existing.column_id
-        existing.membership_mode = :manual_in
         existing.updated_by_id = guardian.user.id
         topic = existing.topic || Topic.find_by(id: params.topic_id)
         raise Discourse::NotFound if topic.nil?

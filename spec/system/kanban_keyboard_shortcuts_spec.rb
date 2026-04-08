@@ -27,7 +27,6 @@ describe "Kanban Keyboard Shortcuts" do
   def add_floater_card(board, column, title)
     board.cards.create!(
       card_type: :floater,
-      membership_mode: :manual_in,
       title: title,
       column_id: column.id,
       position: column.cards.count,
@@ -54,7 +53,6 @@ describe "Kanban Keyboard Shortcuts" do
       3.times do |i|
         b.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Todo #{i + 1}",
           column_id: col1.id,
           position: i,
@@ -64,7 +62,6 @@ describe "Kanban Keyboard Shortcuts" do
       2.times do |i|
         b.cards.create!(
           card_type: :floater,
-          membership_mode: :manual_in,
           title: "Done #{i + 1}",
           column_id: col2.id,
           position: i,

@@ -100,37 +100,6 @@ module PageObjects
         self
       end
 
-      def has_column_modal_mode?(mode)
-        selector =
-          ".kanban-column-settings-modal input[data-identifier='kanban-column-filter-query']"
-
-        case mode
-        when "advanced"
-          has_css?(selector, wait: 0)
-        else
-          has_no_css?(selector, wait: 0)
-        end
-      end
-
-      def switch_column_modal_mode(mode)
-        current_mode =
-          (
-            if has_css?(
-                 ".kanban-column-settings-modal input[data-identifier='kanban-column-filter-query']",
-                 wait: 0,
-               )
-              "advanced"
-            else
-              "simple"
-            end
-          )
-
-        return self if current_mode == mode
-
-        within(".kanban-column-settings-modal") { find(".show-advanced").click }
-        self
-      end
-
       def select_modal_column_tag(tag_name)
         within(".kanban-column-settings-modal") do
           chooser = PageObjects::Components::SelectKit.new(".mini-tag-chooser")

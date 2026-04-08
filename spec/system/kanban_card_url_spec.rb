@@ -27,7 +27,6 @@ describe "Kanban Card URL" do
     card =
       board.cards.create!(
         card_type: :floater,
-        membership_mode: :manual_in,
         title: "Deep link card",
         column_id: column.id,
         position: 0,

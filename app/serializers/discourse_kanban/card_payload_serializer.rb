@@ -6,7 +6,6 @@ module DiscourseKanban
                :board_id,
                :column_id,
                :card_type,
-               :membership_mode,
                :position,
                :title,
                :notes,

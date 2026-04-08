@@ -36,6 +36,6 @@ RSpec.describe DiscourseKanban::TopicMovesController do
     card = board.cards.find_by(topic_id: topic.id)
     expect(card).to be_present
     expect(card.column_id).to eq(column.id)
-    expect(card.membership_mode).to eq("manual_in")
+    expect(card.card_type).to eq("topic")
   end
 end

@@ -36,12 +36,22 @@ module DiscourseKanban
       true
     end
 
-    def destroy(card:)
-      if card.topic? && card.column_id.present?
-        card.update!(membership_mode: :manual_out)
-      else
-        card.destroy!
-      end
+    def destroy(card:, guardian:)
+      remove_column_tag(card, guardian) if card.topic?
+      card.destroy!
+    end
+
+    def remove_column_tag(card, guardian)
+      column = card.column
+      return if column&.tag_id.blank?
+      topic = card.topic
+      return if topic.blank? || !guardian.can_edit?(topic)
+
+      tag = Tag.find_by(id: column.tag_id)
+      return if tag.blank?
+
+      updated_tags = topic.tags.map(&:name) - [tag.name]
+      DiscourseTagging.tag_topic_by_names(topic, guardian, updated_tags)
     end
   end
 end

@@ -18,7 +18,6 @@ RSpec.describe DiscourseKanban::CardOrdering do
   def create_card(title:, position:, column: nil)
     board.cards.create!(
       card_type: :floater,
-      membership_mode: :manual_in,
       title: title,
       column_id: (column || self.column).id,
       position: position,
