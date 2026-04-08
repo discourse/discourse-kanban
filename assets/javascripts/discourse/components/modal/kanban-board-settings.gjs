@@ -191,14 +191,13 @@ export default class KanbanBoardSettings extends Component {
           @onInput={{this.onNameInput}}
           @onClose={{@closeModal}}
         />
-        <div class="kanban-board-settings-modal__container">
-
-          <Form
-            @data={{this.formData}}
-            @onSubmit={{this.save}}
-            @onRegisterApi={{this.onRegisterApi}}
-            as |form data|
-          >
+        <Form
+          @data={{this.formData}}
+          @onSubmit={{this.save}}
+          @onRegisterApi={{this.onRegisterApi}}
+          as |form data|
+        >
+          <div class="kanban-board-settings-modal__wrapper">
 
             <form.Section>
               <form.Field
@@ -334,19 +333,20 @@ export default class KanbanBoardSettings extends Component {
                 </field.Control>
               </form.Field>
             </form.Section>
+          </div>
 
-            <form.Actions>
-              <form.Submit />
-              {{#unless this.isNew}}
-                <form.Button
-                  class="btn-danger"
-                  @action={{this.onDelete}}
-                  @label="discourse_kanban.board.delete_board"
-                />
-              {{/unless}}
-            </form.Actions>
-          </Form>
-        </div>
+          <form.Actions>
+            <form.Submit />
+            {{#unless this.isNew}}
+              <form.Button
+                class="btn-danger"
+                @action={{this.onDelete}}
+                @label="discourse_kanban.board.delete_board"
+              />
+            {{/unless}}
+          </form.Actions>
+        </Form>
+
       </:body>
     </DModal>
   </template>
