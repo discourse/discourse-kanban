@@ -90,9 +90,10 @@ export default class KanbanBoardSettings extends Component {
   }
 
   @action
-  onTagsChange(field, tags) {
-    field.set(tags || []);
-    this._checkConstraints(null, tags);
+  onTagsChange(tags, { set }) {
+    const names = tags.map((t) => (typeof t === "string" ? t : t.name));
+    set("tag_names", names);
+    this._checkConstraints(null, names);
   }
 
   @action
@@ -188,143 +189,149 @@ export default class KanbanBoardSettings extends Component {
           @onRegisterApi={{this.onRegisterApi}}
           as |form data|
         >
-        <form.Section>
+          <form.Section>
 
-          <form.Field
-            @name="name"
-            @title={{i18n "discourse_kanban.manage.name"}}
-            @format="max"
-            @type="input"
-            as |field|
-          >
-            <field.Control />
-          </form.Field>
+            <form.Field
+              @name="name"
+              @title={{i18n "discourse_kanban.manage.name"}}
+              @format="max"
+              @type="input"
+              as |field|
+            >
+              <field.Control />
+            </form.Field>
 
-          <form.Field
-            @name="slug"
-            @title={{i18n "discourse_kanban.manage.slug"}}
-            @format="max"
-            @type="input"
-            as |field|
-          >
-            <field.Control />
-          </form.Field>
+            <form.Field
+              @name="slug"
+              @title={{i18n "discourse_kanban.manage.slug"}}
+              @format="max"
+              @type="input"
+              as |field|
+            >
+              <field.Control />
+            </form.Field>
 
-          <form.Field
-            @name="category_ids"
-            @title={{i18n "discourse_kanban.manage.board_categories"}}
-            @format="max"
-            @type="custom"
-            as |field|
-          >
-            <field.Control>
-              <CategorySelector
-                @categories={{this.selectedCategories data.category_ids}}
-                @onChange={{fn this.onCategoriesChange field}}
-              />
-            </field.Control>
-          </form.Field>
-
-          <form.Field
-            @name="tag_names"
-            @title={{i18n "discourse_kanban.manage.board_tags"}}
-            @format="max"
-            @type="tag-chooser"
-            as |field|
-          >
-            <field.Control />
-          </form.Field>
-
-          {{#if this.constraintWarning}}
-            <form.Alert @type="warning">
-              {{this.constraintWarning}}
-            </form.Alert>
-          {{/if}}
-          <form.Field
-            @name="card_style"
-            @title={{i18n "discourse_kanban.manage.card_style"}}
-            @format="max"
-            @type="select"
-            as |field|
-          >
-            <field.Control as |select| >
-              {{#each CARD_STYLE_OPTIONS as |option|}}
-                <select.Option @value={{option.id}}>{{option.name}}</select.Option>
-              {{/each}}
+            <form.Field
+              @name="category_ids"
+              @title={{i18n "discourse_kanban.manage.board_categories"}}
+              @format="max"
+              @type="custom"
+              as |field|
+            >
+              <field.Control>
+                <CategorySelector
+                  @categories={{this.selectedCategories data.category_ids}}
+                  @onChange={{fn this.onCategoriesChange field}}
+                />
               </field.Control>
-          </form.Field>
-        </form.Section>
-        <form.Section>
-<form.Field
-            @name="show_tags"
-            @title={{i18n "discourse_kanban.manage.show_tags"}}
-            @type="toggle"
-            as |field|
-          >
-            <field.Control />
-          </form.Field>
+            </form.Field>
 
-          <form.Field
-            @name="show_topic_thumbnail"
-            @title={{i18n "discourse_kanban.manage.show_topic_thumbnail"}}
-            @type="toggle"
-            as |field|
-          >
-            <field.Control />
-          </form.Field>
-
-          <form.Field
-            @name="show_activity_indicators"
-            @title={{i18n "discourse_kanban.manage.show_activity_indicators"}}
-            @type="toggle"
-            as |field|
-          >
-            <field.Control />
-          </form.Field>
-
-          <form.Field
-            @name="require_confirmation"
-            @title={{i18n "discourse_kanban.manage.require_confirmation"}}
-            @type="toggle"
-            as |field|
-          >
-            <field.Control />
-          </form.Field>
-        </form.Section>
-        <form.Section>
-<form.Field
-            @name="allow_read_group_ids"
-            @title={{i18n "discourse_kanban.manage.allow_read_groups"}}
-            @format="max"
-            @type="custom"
-            as |field|
-          >
-            <field.Control>
-              <GroupChooser
-                @content={{this.site.groups}}
-                @value={{data.allow_read_group_ids}}
-                @onChange={{fn this.setGroupIds field}}
+            <form.Field
+              @name="tag_names"
+              @title={{i18n "discourse_kanban.manage.board_tags"}}
+              @format="max"
+              @type="tag-chooser"
+              @onSet={{this.onTagsChange}}
+              as |field|
+            >
+              <field.Control
+                @showAllTags={{true}}
+                @excludeSynonyms={{true}}
+                @allowCreate={{true}}
               />
-            </field.Control>
-          </form.Field>
+            </form.Field>
 
-          <form.Field
-            @name="allow_write_group_ids"
-            @title={{i18n "discourse_kanban.manage.allow_write_groups"}}
-            @format="max"
-            @type="custom"
-            as |field|
-          >
-            <field.Control>
-              <GroupChooser
-                @content={{this.site.groups}}
-                @value={{data.allow_write_group_ids}}
-                @onChange={{fn this.setGroupIds field}}
-              />
-            </field.Control>
-          </form.Field>
-        </form.Section>
-          
+            {{#if this.constraintWarning}}
+              <form.Alert @type="warning">
+                {{this.constraintWarning}}
+              </form.Alert>
+            {{/if}}
+          </form.Section>
+          <form.Section>
+                        <form.Field
+              @name="card_style"
+              @title={{i18n "discourse_kanban.manage.card_style"}}
+              @format="max"
+              @type="select"
+              as |field|
+            >
+              <field.Control as |select|>
+                {{#each CARD_STYLE_OPTIONS as |option|}}
+                  <select.Option
+                    @value={{option.id}}
+                  >{{option.name}}</select.Option>
+                {{/each}}
+              </field.Control>
+            </form.Field>
+            <form.Field
+              @name="show_tags"
+              @title={{i18n "discourse_kanban.manage.show_tags"}}
+              @type="checkbox"
+              as |field|
+            >
+              <field.Control />
+            </form.Field>
+
+            <form.Field
+              @name="show_topic_thumbnail"
+              @title={{i18n "discourse_kanban.manage.show_topic_thumbnail"}}
+              @type="checkbox"
+              as |field|
+            >
+              <field.Control />
+            </form.Field>
+
+            <form.Field
+              @name="show_activity_indicators"
+              @title={{i18n "discourse_kanban.manage.show_activity_indicators"}}
+              @type="checkbox"
+              as |field|
+            >
+              <field.Control />
+            </form.Field>
+
+            <form.Field
+              @name="require_confirmation"
+              @title={{i18n "discourse_kanban.manage.require_confirmation"}}
+              @type="checkbox"
+              as |field|
+            >
+              <field.Control />
+            </form.Field>
+          </form.Section>
+          <form.Section>
+            <form.Field
+              @name="allow_read_group_ids"
+              @title={{i18n "discourse_kanban.manage.allow_read_groups"}}
+              @format="max"
+              @type="custom"
+              as |field|
+            >
+              <field.Control>
+                <GroupChooser
+                  @content={{this.site.groups}}
+                  @value={{data.allow_read_group_ids}}
+                  @onChange={{fn this.setGroupIds field}}
+                />
+              </field.Control>
+            </form.Field>
+
+            <form.Field
+              @name="allow_write_group_ids"
+              @title={{i18n "discourse_kanban.manage.allow_write_groups"}}
+              @format="max"
+              @type="custom"
+              as |field|
+            >
+              <field.Control>
+                <GroupChooser
+                  @content={{this.site.groups}}
+                  @value={{data.allow_write_group_ids}}
+                  @onChange={{fn this.setGroupIds field}}
+                />
+              </field.Control>
+            </form.Field>
+          </form.Section>
 
           <form.Actions>
             <form.Submit />
