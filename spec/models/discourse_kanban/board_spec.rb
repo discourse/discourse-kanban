@@ -129,25 +129,16 @@ RSpec.describe DiscourseKanban::Board do
       expect(board.all_matching_columns(topic2)).to contain_exactly(col_a, col_b)
     end
 
-    it "includes catch-all column for all board-matching topics" do
+    it "does not include unconstrained columns in matching results" do
       board = described_class.create!(name: "B", slug: "b", category_ids: [category.id])
-      catch_all = board.columns.create!(title: "Catch", position: 0, tag_id: nil)
+      board.columns.create!(title: "Catch", position: 0, tag_id: nil)
       col_a = board.columns.create!(title: "A", position: 1, tag_id: tag_a.id)
 
       topic = Fabricate(:topic, category: category, tags: [tag_a])
-      expect(board.all_matching_columns(topic)).to contain_exactly(col_a, catch_all)
+      expect(board.all_matching_columns(topic)).to eq([col_a])
 
       topic2 = Fabricate(:topic, category: category)
-      expect(board.all_matching_columns(topic2)).to eq([catch_all])
-    end
-
-    it "uses lowest-ID catch-all when multiple catch-all columns exist" do
-      board = described_class.create!(name: "B", slug: "b", category_ids: [category.id])
-      catch_1 = board.columns.create!(title: "First", position: 0, tag_id: nil)
-      _catch_2 = board.columns.create!(title: "Second", position: 1, tag_id: nil)
-
-      topic = Fabricate(:topic, category: category)
-      expect(board.all_matching_columns(topic)).to eq([catch_1])
+      expect(board.all_matching_columns(topic2)).to eq([])
     end
   end
 end

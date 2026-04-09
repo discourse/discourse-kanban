@@ -12,7 +12,7 @@ RSpec.describe DiscourseKanban::TopicSync do
     SiteSetting.discourse_kanban_enabled = true
   end
 
-  it "creates an auto topic card when board category matches and column is catch-all" do
+  it "does not auto-create cards in unconstrained columns" do
     board =
       DiscourseKanban::Board.create!(
         name: "Todo Board",
@@ -20,13 +20,9 @@ RSpec.describe DiscourseKanban::TopicSync do
         category_ids: [category.id],
         created_by_id: admin.id,
       )
-    column = board.columns.create!(title: "Backlog", position: 0)
+    board.columns.create!(title: "Backlog", position: 0)
 
-    expect { described_class.sync_topic(topic) }.to change { DiscourseKanban::Card.count }.by(1)
-
-    card = DiscourseKanban::Card.last
-    expect(card.topic_id).to eq(topic.id)
-    expect(card.column_id).to eq(column.id)
+    expect { described_class.sync_topic(topic) }.not_to change { DiscourseKanban::Card.count }
   end
 
   it "creates an auto card when board tag matches and column tag matches" do
@@ -117,7 +113,7 @@ RSpec.describe DiscourseKanban::TopicSync do
     )
   end
 
-  it "removes an auto card when the board category no longer matches" do
+  it "removes a manually-placed card when the board category no longer matches" do
     board =
       DiscourseKanban::Board.create!(
         name: "Remove Auto Board",
@@ -125,9 +121,14 @@ RSpec.describe DiscourseKanban::TopicSync do
         category_ids: [category.id],
         created_by_id: admin.id,
       )
-    board.columns.create!(title: "Backlog", position: 0)
-    described_class.sync_topic(topic)
-    expect(board.cards.where(topic_id: topic.id).count).to eq(1)
+    column = board.columns.create!(title: "Backlog", position: 0)
+    board.cards.create!(
+      topic_id: topic.id,
+      card_type: :topic,
+      column_id: column.id,
+      position: 0,
+      created_by_id: admin.id,
+    )
 
     other_category = Fabricate(:category)
     board.update!(category_ids: [other_category.id])
@@ -185,6 +186,8 @@ RSpec.describe DiscourseKanban::TopicSync do
   end
 
   it "rolls back sync changes when apply fails part way through" do
+    tagged_topic = Fabricate(:topic, category: category, tags: [tag_a])
+
     board =
       DiscourseKanban::Board.create!(
         name: "Atomic Board",
@@ -192,18 +195,18 @@ RSpec.describe DiscourseKanban::TopicSync do
         category_ids: [category.id],
         created_by_id: admin.id,
       )
-    board.columns.create!(title: "Backlog", position: 0)
+    board.columns.create!(title: "Alpha", position: 0, tag_id: tag_a.id)
 
-    described_class.sync_topic(topic)
-    expect(board.cards.where(topic_id: topic.id).count).to eq(1)
+    described_class.sync_topic(tagged_topic)
+    expect(board.cards.where(topic_id: tagged_topic.id).count).to eq(1)
 
     other_category = Fabricate(:category)
     board.update!(category_ids: [other_category.id])
 
     described_class.stubs(:execute_sync_changes).raises(StandardError.new("create boom"))
 
-    expect { described_class.sync_topic(topic) }.to raise_error(StandardError, "create boom")
-    expect(board.cards.where(topic_id: topic.id).count).to eq(1)
+    expect { described_class.sync_topic(tagged_topic) }.to raise_error(StandardError, "create boom")
+    expect(board.cards.where(topic_id: tagged_topic.id).count).to eq(1)
   end
 
   it "retries once when a unique topic-card violation happens" do
@@ -335,7 +338,7 @@ RSpec.describe DiscourseKanban::TopicSync do
       expect(card.column_id).to eq(col_b.id)
     end
 
-    it "places a new topic in the first catch-all when no tagged column matches" do
+    it "does not auto-place a topic in unconstrained columns" do
       board =
         DiscourseKanban::Board.create!(
           name: "First Catchall Board",
@@ -344,13 +347,10 @@ RSpec.describe DiscourseKanban::TopicSync do
           created_by_id: admin.id,
         )
 
-      col_a = board.columns.create!(title: "Column A", position: 0)
+      board.columns.create!(title: "Column A", position: 0)
       board.columns.create!(title: "Column B", position: 1)
 
-      described_class.sync_topic(topic)
-
-      card = board.cards.find_by(topic_id: topic.id)
-      expect(card.column_id).to eq(col_a.id)
+      expect { described_class.sync_topic(topic) }.not_to change { DiscourseKanban::Card.count }
     end
 
     it "does not place a tagged topic in a catch-all column" do
@@ -373,7 +373,7 @@ RSpec.describe DiscourseKanban::TopicSync do
       expect(cards.first.column_id).to eq(col_tagged.id)
     end
 
-    it "falls to a catch-all when a topic loses its column tag" do
+    it "removes a card when a topic loses its column tag instead of falling to unconstrained" do
       tagged_topic = Fabricate(:topic, category: category, tags: [tag_a])
 
       board =
@@ -384,7 +384,7 @@ RSpec.describe DiscourseKanban::TopicSync do
           created_by_id: admin.id,
         )
       col_tagged = board.columns.create!(title: "Alpha", position: 0, tag_id: tag_a.id)
-      col_catchall = board.columns.create!(title: "Backlog", position: 1)
+      board.columns.create!(title: "Backlog", position: 1)
 
       described_class.sync_topic(tagged_topic)
       cards = board.cards.where(topic_id: tagged_topic.id)
@@ -397,15 +397,13 @@ RSpec.describe DiscourseKanban::TopicSync do
 
       described_class.sync_topic(tagged_topic)
 
-      cards = board.cards.where(topic_id: tagged_topic.id)
-      expect(cards.count).to eq(1)
-      expect(cards.first.column_id).to eq(col_catchall.id)
+      expect(board.cards.where(topic_id: tagged_topic.id).count).to eq(0)
     end
   end
 
   describe ".backfill_board" do
-    it "creates cards for matching topics that have no card record" do
-      topic_2 = Fabricate(:topic, category: category)
+    it "creates cards for matching topics in tagged columns" do
+      tagged_topic = Fabricate(:topic, category: category, tags: [tag_a])
 
       board =
         DiscourseKanban::Board.create!(
@@ -414,14 +412,26 @@ RSpec.describe DiscourseKanban::TopicSync do
           category_ids: [category.id],
           created_by_id: admin.id,
         )
-      column = board.columns.create!(title: "Backlog", position: 0)
+      column = board.columns.create!(title: "Alpha", position: 0, tag_id: tag_a.id)
 
       expect { described_class.backfill_board(board) }.to change { DiscourseKanban::Card.count }.by(
-        2,
+        1,
       )
 
-      expect(board.cards.where(topic_id: topic.id).first.column_id).to eq(column.id)
-      expect(board.cards.where(topic_id: topic_2.id).first.column_id).to eq(column.id)
+      expect(board.cards.where(topic_id: tagged_topic.id).first.column_id).to eq(column.id)
+    end
+
+    it "does not auto-create cards in unconstrained columns during backfill" do
+      board =
+        DiscourseKanban::Board.create!(
+          name: "Backfill Catchall Board",
+          slug: "backfill-catchall-board",
+          category_ids: [category.id],
+          created_by_id: admin.id,
+        )
+      board.columns.create!(title: "Backlog", position: 0)
+
+      expect { described_class.backfill_board(board) }.not_to change { DiscourseKanban::Card.count }
     end
 
     it "does not duplicate cards for topics that already have one" do
@@ -448,6 +458,8 @@ RSpec.describe DiscourseKanban::TopicSync do
     end
 
     it "excludes category definition topics" do
+      Fabricate(:topic, category: category, tags: [tag_a])
+
       board =
         DiscourseKanban::Board.create!(
           name: "No Defs Board",
@@ -455,12 +467,11 @@ RSpec.describe DiscourseKanban::TopicSync do
           category_ids: [category.id],
           created_by_id: admin.id,
         )
-      board.columns.create!(title: "Backlog", position: 0)
+      board.columns.create!(title: "Alpha", position: 0, tag_id: tag_a.id)
 
       described_class.backfill_board(board)
 
       carded_topic_ids = board.cards.pluck(:topic_id)
-      expect(carded_topic_ids).to include(topic.id)
       expect(carded_topic_ids).not_to include(category.topic_id)
     end
 
@@ -484,8 +495,7 @@ RSpec.describe DiscourseKanban::TopicSync do
     end
 
     it "limits the number of topics per column to MAX_CARDS_PER_COLUMN" do
-      # Create topics before the board so sync_topic doesn't fire
-      4.times { Fabricate(:topic, category: category) }
+      4.times { Fabricate(:topic, category: category, tags: [tag_a]) }
 
       board =
         DiscourseKanban::Board.create!(
@@ -494,7 +504,7 @@ RSpec.describe DiscourseKanban::TopicSync do
           category_ids: [category.id],
           created_by_id: admin.id,
         )
-      board.columns.create!(title: "Backlog", position: 0)
+      board.columns.create!(title: "Alpha", position: 0, tag_id: tag_a.id)
 
       stub_const(DiscourseKanban::TopicSync, :MAX_CARDS_PER_COLUMN, 3) do
         described_class.backfill_board(board)
@@ -511,37 +521,16 @@ RSpec.describe DiscourseKanban::TopicSync do
           category_ids: [category.id],
           created_by_id: admin.id,
         )
-      col = board.columns.create!(title: "Backlog", position: 0)
+      col = board.columns.create!(title: "Alpha", position: 0, tag_id: tag_a.id)
 
       stub_const(DiscourseKanban::TopicSync, :MAX_CARDS_PER_COLUMN, 3) do
-        topics = 4.times.map { Fabricate(:topic, category: category) }
+        topics = 4.times.map { Fabricate(:topic, category: category, tags: [tag_a]) }
         topics.each { |t| described_class.sync_topic(t) }
 
         cards = board.cards.where(column_id: col.id).order(:position)
         expect(cards.count).to eq(3)
         expect(cards.pluck(:topic_id)).to eq(topics.last(3).map(&:id))
       end
-    end
-
-    it "assigns to the lowest-ID catch-all column regardless of position order" do
-      board =
-        DiscourseKanban::Board.create!(
-          name: "Backfill Stable Board",
-          slug: "backfill-stable-board",
-          category_ids: [category.id],
-          created_by_id: admin.id,
-        )
-
-      col_a = board.columns.create!(title: "Column A", position: 0)
-      col_b = board.columns.create!(title: "Column B", position: 1)
-
-      col_b.update_column(:position, 0)
-      col_a.update_column(:position, 1)
-
-      described_class.backfill_board(board)
-
-      card = board.cards.find_by(topic_id: topic.id)
-      expect(card.column_id).to eq(col_a.id)
     end
 
     it "does not discover topics when board has no constraints" do

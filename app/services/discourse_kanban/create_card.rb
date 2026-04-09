@@ -58,26 +58,32 @@ module DiscourseKanban
               )
       end
 
-      unless board.topic_will_match_after_mutation?(topic, column)
-        raise Discourse::InvalidParameters.new(
-                I18n.t("discourse_kanban.errors.topic_does_not_match_constraints"),
-              )
+      Card.transaction do
+        if context[:constraint_fix].present?
+          ConstraintFixer.apply!(fix: context[:constraint_fix], board:, topic:, guardian:)
+        end
+
+        unless board.topic_will_match_after_mutation?(topic, column)
+          raise Discourse::InvalidParameters.new(
+                  I18n.t("discourse_kanban.errors.topic_does_not_match_constraints"),
+                )
+        end
+
+        card = board.cards.find_or_initialize_by(topic_id: topic.id, column_id: column.id)
+        card.card_type = :topic
+        card.updated_by_id = guardian.user.id
+        card.created_by_id ||= guardian.user.id
+
+        if card.new_record?
+          CardOrdering.append_to_column!(card, column)
+        else
+          CardOrdering.place_card!(card, column:, after_card_id: params.after_card_id)
+        end
+
+        card.save!
+        apply_column_mutations!(topic, column, guardian)
+        card
       end
-
-      card = board.cards.find_or_initialize_by(topic_id: topic.id, column_id: column.id)
-      card.card_type = :topic
-      card.updated_by_id = guardian.user.id
-      card.created_by_id ||= guardian.user.id
-
-      if card.new_record?
-        CardOrdering.append_to_column!(card, column)
-      else
-        CardOrdering.place_card!(card, column:, after_card_id: params.after_card_id)
-      end
-
-      card.save!
-      apply_column_mutations!(topic, column, guardian)
-      card
     rescue ActiveRecord::RecordNotUnique, ActiveRecord::StatementInvalid => error
       unless unique_topic_card_violation?(error) ||
                board.cards.where(topic_id: topic.id, column_id: column.id).exists?

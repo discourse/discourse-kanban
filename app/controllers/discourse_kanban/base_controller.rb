@@ -81,6 +81,10 @@ module DiscourseKanban
       )
     end
 
+    def constraint_fix_params
+      params.permit(constraint_fix: [:category_id, tag_names: []])[:constraint_fix]
+    end
+
     def message_bus_client_id
       params[:client_id]
     end

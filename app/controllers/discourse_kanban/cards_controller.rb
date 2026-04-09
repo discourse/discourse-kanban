@@ -8,6 +8,7 @@ module DiscourseKanban
       DiscourseKanban::CreateCard.call(
         guardian:,
         params: card_mutation_params.to_h.merge("board_id" => params[:board_id]),
+        constraint_fix: constraint_fix_params,
       ) do
         on_success do |card:, board:|
           payload = CardPayloadSerializer.new(card, root: false).as_json
@@ -34,6 +35,7 @@ module DiscourseKanban
         guardian:,
         params: raw_params.merge("board_id" => params[:board_id], "id" => params[:id]),
         raw_card_params: raw_params,
+        constraint_fix: constraint_fix_params,
       ) do
         on_success do |card:, board:, original_column_id:, adopted_floater_id:|
           card.topic&.reload

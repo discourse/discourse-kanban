@@ -21,6 +21,7 @@ import KanbanColumn from "./kanban-column";
 import KanbanBoardSettings from "./modal/kanban-board-settings";
 import KanbanCardDetailModal from "./modal/kanban-card-detail";
 import KanbanColumnSettings from "./modal/kanban-column-settings";
+import KanbanConstraintFix from "./modal/kanban-constraint-fix";
 import KanbanTopicCardDetailModal from "./modal/kanban-topic-card-detail";
 
 const onWindowResize = modifier((element, [callback]) => {
@@ -231,6 +232,7 @@ export default class KanbanBoardViewer extends Component {
       if (result.columns) {
         this.columns = result.columns;
       }
+      Object.assign(this.board, result);
     } catch {
       // Board may have been deleted — no action needed
     }
@@ -308,12 +310,40 @@ export default class KanbanBoardViewer extends Component {
       return;
     }
 
+    const card = fromColumn.cards[cardIndex];
+    const isSameColumn = fromColumnId === toColumnId;
+    let constraintFix = null;
+
+    if (!isSameColumn && card.topic) {
+      const mismatches = this._checkConstraintMismatches(
+        card.topic,
+        toColumn
+      );
+      if (mismatches) {
+        constraintFix = await this._showConstraintFixModal(
+          card,
+          toColumn,
+          mismatches
+        );
+        if (!constraintFix) {
+          return;
+        }
+      }
+    }
+
+    if (!isSameColumn && !constraintFix && this.board.require_confirmation) {
+      const confirmed = await this._confirmMove(card, toColumn);
+      if (!confirmed) {
+        return;
+      }
+    }
+
     const snapshot = this.columns.map((col) => ({
       ...col,
       cards: col.cards.map((c) => ({ ...c })),
     }));
 
-    const [card] = fromColumn.cards.splice(cardIndex, 1);
+    fromColumn.cards.splice(cardIndex, 1);
 
     let insertIndex = toColumn.cards.length;
     if (afterCardId != null) {
@@ -335,19 +365,21 @@ export default class KanbanBoardViewer extends Component {
     });
     this.dragData = null;
 
+    const data = {
+      client_id: this.messageBus.clientId,
+      card: {
+        column_id: toColumnId,
+        after_card_id: afterCardId,
+      },
+    };
+    if (constraintFix) {
+      data.constraint_fix = constraintFix;
+    }
+
     try {
       const result = await ajax(
         `/kanban/boards/${this.board.id}/cards/${card.id}`,
-        {
-          type: "PUT",
-          data: {
-            client_id: this.messageBus.clientId,
-            card: {
-              column_id: toColumnId,
-              after_card_id: afterCardId,
-            },
-          },
-        }
+        { type: "PUT", data }
       );
       if (result?.card) {
         this.columns = this.columns.map((col) => ({
@@ -358,15 +390,82 @@ export default class KanbanBoardViewer extends Component {
         }));
       }
       this._highlightDroppedCard(card.id);
-    } catch {
+    } catch (error) {
       this.columns = snapshot;
-      this.toasts.error({
-        duration: "long",
-        data: {
-          message: i18n("discourse_kanban.board.move_failed"),
+      popupAjaxError(error);
+    }
+  }
+
+  _checkConstraintMismatches(topic, targetColumn) {
+    const board = this.board;
+    const hasCategories = board.category_ids?.length > 0;
+    const hasTags = board.tag_names?.length > 0;
+
+    if (!hasCategories && !hasTags) {
+      return null;
+    }
+
+    const effectiveCategoryId =
+      targetColumn.move_to_category_id || topic.category_id;
+    const needsCategory =
+      hasCategories && !board.category_ids.includes(effectiveCategoryId);
+
+    const effectiveTagNames = [...(topic.tags || [])];
+    if (targetColumn.tag_name) {
+      const siblingTagNames = this.columns
+        .filter((c) => c.tag_name && c.id !== targetColumn.id)
+        .map((c) => c.tag_name);
+      const filtered = effectiveTagNames.filter(
+        (t) => !siblingTagNames.includes(t)
+      );
+      if (!filtered.includes(targetColumn.tag_name)) {
+        filtered.push(targetColumn.tag_name);
+      }
+      effectiveTagNames.length = 0;
+      effectiveTagNames.push(...filtered);
+    }
+    const needsTags =
+      hasTags && !board.tag_names.some((t) => effectiveTagNames.includes(t));
+
+    if (!needsCategory && !needsTags) {
+      return null;
+    }
+
+    return {
+      needsCategory,
+      needsTags,
+      boardCategoryIds: board.category_ids || [],
+      boardTagNames: board.tag_names || [],
+    };
+  }
+
+  _showConstraintFixModal(card, column, mismatches) {
+    return new Promise((resolve) => {
+      this.modal.show(KanbanConstraintFix, {
+        model: {
+          topic: card.topic,
+          board: this.board,
+          column,
+          mismatches,
+          onConfirm: (result) => resolve(result),
+          onCancel: () => resolve(null),
         },
       });
-    }
+    });
+  }
+
+  _confirmMove(card, toColumn) {
+    return new Promise((resolve) => {
+      const cardTitle = card.topic?.title || card.title || "";
+      this.dialog.yesNoConfirm({
+        message: i18n("discourse_kanban.board.move_confirm", {
+          topic_title: cardTitle,
+          column_title: toColumn.title,
+        }),
+        didConfirm: () => resolve(true),
+        didCancel: () => resolve(false),
+      });
+    });
   }
 
   @action
@@ -429,13 +528,26 @@ export default class KanbanBoardViewer extends Component {
   async onAddCard({ topicId, title, columnId }) {
     if (topicId) {
       try {
-        const result = await ajax(`/kanban/boards/${this.board.id}/cards`, {
-          type: "POST",
-          data: {
-            client_id: this.messageBus.clientId,
-            card: { column_id: columnId, topic_id: topicId },
-          },
-        });
+        const constraintFix = await this.#resolveConstraintFixForCreate(
+          topicId,
+          columnId
+        );
+        if (constraintFix === false) {
+          return;
+        }
+
+        const data = {
+          client_id: this.messageBus.clientId,
+          card: { column_id: columnId, topic_id: topicId },
+        };
+        if (constraintFix) {
+          data.constraint_fix = constraintFix;
+        }
+
+        const result = await ajax(
+          `/kanban/boards/${this.board.id}/cards`,
+          { type: "POST", data }
+        );
         this.#appendCardToColumn(result.card, columnId);
         return;
       } catch (error) {
@@ -460,6 +572,38 @@ export default class KanbanBoardViewer extends Component {
     } catch (error) {
       popupAjaxError(error);
     }
+  }
+
+  async #resolveConstraintFixForCreate(topicId, columnId) {
+    const board = this.board;
+    const hasConstraints =
+      board.category_ids?.length > 0 || board.tag_names?.length > 0;
+    if (!hasConstraints) {
+      return null;
+    }
+
+    let topicData;
+    try {
+      topicData = await ajax(`/t/${topicId}.json`);
+    } catch {
+      return null;
+    }
+
+    const topic = {
+      category_id: topicData.category_id,
+      tags: topicData.tags || [],
+    };
+    const column = this.columns.find((c) => c.id === columnId);
+    if (!column) {
+      return null;
+    }
+
+    const mismatches = this._checkConstraintMismatches(topic, column);
+    if (!mismatches) {
+      return null;
+    }
+
+    return this._showConstraintFixModal({ topic: topicData }, column, mismatches);
   }
 
   #isTopicNotFoundError(error) {

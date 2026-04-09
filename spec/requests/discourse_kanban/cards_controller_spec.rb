@@ -266,6 +266,58 @@ RSpec.describe DiscourseKanban::CardsController do
 
       expect(response.status).to eq(400)
     end
+
+    it "applies constraint_fix when creating a topic card" do
+      SiteSetting.tagging_enabled = true
+      allow(DiscourseKanban::TopicSync).to receive(:sync_topic)
+
+      ford_tag = Fabricate(:tag, name: "create-ford")
+      car_cat = Fabricate(:category, name: "CreateCars")
+      board.update!(category_ids: [car_cat.id], tag_ids: [ford_tag.id])
+      col_ford = board.columns.create!(title: "CreateFord", position: 2, tag_id: ford_tag.id)
+
+      other_cat = Fabricate(:category, name: "CreateOther")
+      mismatched_topic = Fabricate(:topic, category: other_cat, user: admin)
+      Fabricate(:post, topic: mismatched_topic, user: admin)
+
+      sign_in(admin)
+
+      post "/kanban/boards/#{board.id}/cards.json",
+           params: {
+             card: { column_id: col_ford.id, topic_id: mismatched_topic.id },
+             constraint_fix: { category_id: car_cat.id, tag_names: %w[create-ford] },
+           }
+
+      expect(response.status).to eq(201)
+      expect(mismatched_topic.reload.category_id).to eq(car_cat.id)
+      expect(mismatched_topic.tags.map(&:name)).to include("create-ford")
+    end
+
+    it "rolls back topic changes when constraint_fix is insufficient and card creation is rejected" do
+      SiteSetting.tagging_enabled = true
+      allow(DiscourseKanban::TopicSync).to receive(:sync_topic)
+
+      car_cat = Fabricate(:category, name: "RollbackCars")
+      other_cat = Fabricate(:category, name: "RollbackOther")
+      rollback_tag = Fabricate(:tag, name: "rollback-tag")
+      rb_tag = Fabricate(:tag, name: "rb-create-#{SecureRandom.hex(4)}")
+      board.update!(category_ids: [car_cat.id], tag_ids: [rb_tag.id])
+
+      mismatched_topic = Fabricate(:topic, category: other_cat, user: admin)
+      Fabricate(:post, topic: mismatched_topic, user: admin)
+
+      sign_in(admin)
+
+      # Fix category but not tags — topic still won't match on an untagged column
+      post "/kanban/boards/#{board.id}/cards.json",
+           params: {
+             card: { column_id: col_todo.id, topic_id: mismatched_topic.id },
+             constraint_fix: { category_id: car_cat.id },
+           }
+
+      expect(response.status).to eq(400)
+      expect(mismatched_topic.reload.category_id).to eq(other_cat.id)
+    end
   end
 
   describe "PUT /kanban/boards/:board_id/cards/:id" do
@@ -822,6 +874,270 @@ RSpec.describe DiscourseKanban::CardsController do
       put "/kanban/boards/#{board.id}/cards/#{card.id}.json", params: { card: { title: "Hacked" } }
 
       expect(response.status).to eq(403)
+    end
+  end
+
+  describe "PUT /kanban/boards/:board_id/cards/:id with constraint_fix" do
+    fab!(:ford_tag) { Fabricate(:tag, name: "ford") }
+    fab!(:chevy_tag) { Fabricate(:tag, name: "chevy") }
+    fab!(:car_category) { Fabricate(:category, name: "Cars") }
+    fab!(:boat_category) { Fabricate(:category, name: "Boats") }
+
+    it "applies category fix and moves the card" do
+      SiteSetting.tagging_enabled = true
+      allow(DiscourseKanban::TopicSync).to receive(:sync_topic)
+
+      board.update!(category_ids: [car_category.id], tag_ids: [ford_tag.id, chevy_tag.id])
+      col_ford = board.columns.create!(title: "Ford", position: 2, tag_id: ford_tag.id)
+
+      boat_topic =
+        Fabricate(:topic, category: boat_category, tags: [ford_tag], user: admin)
+      Fabricate(:post, topic: boat_topic, user: admin)
+      card =
+        board.cards.create!(
+          card_type: :topic,
+          topic_id: boat_topic.id,
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+
+      sign_in(admin)
+
+      put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+          params: {
+            card: { column_id: col_ford.id },
+            constraint_fix: { category_id: car_category.id },
+          }
+      expect(response.status).to eq(200)
+      expect(card.reload.column_id).to eq(col_ford.id)
+      expect(boat_topic.reload.category_id).to eq(car_category.id)
+    end
+
+    it "applies tag fix and moves the card" do
+      SiteSetting.tagging_enabled = true
+      allow(DiscourseKanban::TopicSync).to receive(:sync_topic)
+
+      board.update!(category_ids: [category.id], tag_ids: [ford_tag.id, chevy_tag.id])
+      col_ford = board.columns.create!(title: "Ford", position: 2, tag_id: ford_tag.id)
+
+      car_topic = Fabricate(:topic, category: category, user: admin)
+      card =
+        board.cards.create!(
+          card_type: :topic,
+          topic_id: car_topic.id,
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+
+      sign_in(admin)
+
+      put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+          params: {
+            card: {
+              column_id: col_ford.id,
+            },
+            constraint_fix: {
+              tag_names: %w[ford],
+            },
+          }
+
+      expect(response.status).to eq(200)
+      expect(card.reload.column_id).to eq(col_ford.id)
+      expect(car_topic.reload.tags.map(&:name)).to include("ford")
+    end
+
+    it "applies both category and tag fix" do
+      SiteSetting.tagging_enabled = true
+      allow(DiscourseKanban::TopicSync).to receive(:sync_topic)
+
+      board.update!(category_ids: [car_category.id], tag_ids: [ford_tag.id, chevy_tag.id])
+      col_chevy = board.columns.create!(title: "Chevy", position: 2, tag_id: chevy_tag.id)
+
+      mismatched_topic = Fabricate(:topic, category: boat_category, user: admin)
+      Fabricate(:post, topic: mismatched_topic, user: admin)
+      card =
+        board.cards.create!(
+          card_type: :topic,
+          topic_id: mismatched_topic.id,
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+
+      sign_in(admin)
+
+      put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+          params: {
+            card: {
+              column_id: col_chevy.id,
+            },
+            constraint_fix: {
+              category_id: car_category.id,
+              tag_names: %w[chevy],
+            },
+          }
+
+      expect(response.status).to eq(200)
+      expect(card.reload.column_id).to eq(col_chevy.id)
+      expect(mismatched_topic.reload.category_id).to eq(car_category.id)
+      expect(mismatched_topic.tags.map(&:name)).to include("chevy")
+    end
+
+    it "rejects constraint_fix with a category not in board constraints" do
+      SiteSetting.tagging_enabled = true
+      allow(DiscourseKanban::TopicSync).to receive(:sync_topic)
+
+      board.update!(category_ids: [car_category.id], tag_ids: [ford_tag.id, chevy_tag.id])
+      col_ford = board.columns.create!(title: "Ford", position: 2, tag_id: ford_tag.id)
+
+      other_category = Fabricate(:category, name: "Planes")
+      boat_topic =
+        Fabricate(:topic, category: boat_category, tags: [ford_tag], user: admin)
+      card =
+        board.cards.create!(
+          card_type: :topic,
+          topic_id: boat_topic.id,
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+
+      sign_in(admin)
+
+      put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+          params: {
+            card: {
+              column_id: col_ford.id,
+            },
+            constraint_fix: {
+              category_id: other_category.id,
+            },
+          }
+
+      expect(response.status).to eq(400)
+    end
+
+    it "rejects constraint_fix with tags not in board constraints" do
+      SiteSetting.tagging_enabled = true
+      allow(DiscourseKanban::TopicSync).to receive(:sync_topic)
+
+      board.update!(category_ids: [category.id], tag_ids: [ford_tag.id, chevy_tag.id])
+      col_ford = board.columns.create!(title: "Ford", position: 2, tag_id: ford_tag.id)
+
+      rogue_tag = Fabricate(:tag, name: "rogue")
+      car_topic = Fabricate(:topic, category: category, user: admin)
+      card =
+        board.cards.create!(
+          card_type: :topic,
+          topic_id: car_topic.id,
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+
+      sign_in(admin)
+
+      put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+          params: {
+            card: { column_id: col_ford.id },
+            constraint_fix: { tag_names: [rogue_tag.name] },
+          }
+
+      expect(response.status).to eq(400)
+    end
+
+    it "rejects category fix on a tag-only board" do
+      SiteSetting.tagging_enabled = true
+      allow(DiscourseKanban::TopicSync).to receive(:sync_topic)
+
+      board.update!(category_ids: [], tag_ids: [ford_tag.id, chevy_tag.id])
+      col_ford = board.columns.create!(title: "Ford", position: 2, tag_id: ford_tag.id)
+
+      car_topic = Fabricate(:topic, category: category, user: admin)
+      Fabricate(:post, topic: car_topic, user: admin)
+      card =
+        board.cards.create!(
+          card_type: :topic,
+          topic_id: car_topic.id,
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+
+      sign_in(admin)
+
+      put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+          params: {
+            card: { column_id: col_ford.id },
+            constraint_fix: { category_id: car_category.id },
+          }
+
+      expect(response.status).to eq(400)
+    end
+
+    it "rejects tag fix on a category-only board" do
+      SiteSetting.tagging_enabled = true
+      allow(DiscourseKanban::TopicSync).to receive(:sync_topic)
+
+      board.update!(category_ids: [car_category.id], tag_ids: [])
+
+      car_topic =
+        Fabricate(:topic, category: boat_category, user: admin)
+      Fabricate(:post, topic: car_topic, user: admin)
+      card =
+        board.cards.create!(
+          card_type: :topic,
+          topic_id: car_topic.id,
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+
+      sign_in(admin)
+
+      put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+          params: {
+            card: { column_id: col_done.id },
+            constraint_fix: { tag_names: %w[ford] },
+          }
+
+      expect(response.status).to eq(400)
+    end
+
+    it "rolls back topic changes when move fails after constraint_fix" do
+      SiteSetting.tagging_enabled = true
+      allow(DiscourseKanban::TopicSync).to receive(:sync_topic)
+
+      rb_tag = Fabricate(:tag, name: "rb-update-#{SecureRandom.hex(4)}")
+      board.update!(category_ids: [car_category.id], tag_ids: [rb_tag.id])
+
+      # Topic has wrong category and no board tags
+      boat_topic = Fabricate(:topic, category: boat_category, user: admin)
+      Fabricate(:post, topic: boat_topic, user: admin)
+      card =
+        board.cards.create!(
+          card_type: :topic,
+          topic_id: boat_topic.id,
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+
+      sign_in(admin)
+
+      # Fix category only — col_done adds done_tag (not in board.tag_ids),
+      # and topic has no board tags, so topic_will_match_after_mutation? fails on tags
+      put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+          params: {
+            card: { column_id: col_done.id },
+            constraint_fix: { category_id: car_category.id },
+          }
+
+      expect(response.status).to eq(400)
+      expect(boat_topic.reload.category_id).to eq(boat_category.id)
+      expect(card.reload.column_id).to eq(col_todo.id)
     end
   end
 

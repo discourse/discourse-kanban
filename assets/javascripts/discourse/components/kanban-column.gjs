@@ -3,7 +3,6 @@ import { tracked } from "@glimmer/tracking";
 import { fn } from "@ember/helper";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
-import { service } from "@ember/service";
 import DButton from "discourse/components/d-button";
 import DropdownMenu from "discourse/components/dropdown-menu";
 import DMenu from "discourse/float-kit/components/d-menu";
@@ -25,8 +24,6 @@ export function shouldAnimateDropIndicatorPlacement({
 }
 
 export default class KanbanColumn extends Component {
-  @service dialog;
-
   @tracked isAdding = false;
   @tracked newCardTitle = "";
 
@@ -260,29 +257,12 @@ export default class KanbanColumn extends Component {
 
     this.removeDropIndicator(event.currentTarget, { animate: false });
 
-    const isSameColumn = dragData.fromColumnId === this.args.column.id;
-
-    const performDrop = () => {
-      this.args.onDrop(
-        dragData.cardId,
-        this.args.column.id,
-        afterCardId,
-        dragData.fromColumnId
-      );
-    };
-
-    if (!isSameColumn && this.args.board.require_confirmation) {
-      const cardTitle = this.findCardTitle(dragData);
-      this.dialog.yesNoConfirm({
-        message: i18n("discourse_kanban.board.move_confirm", {
-          topic_title: cardTitle,
-          column_title: this.args.column.title,
-        }),
-        didConfirm: performDrop,
-      });
-    } else {
-      performDrop();
-    }
+    this.args.onDrop(
+      dragData.cardId,
+      this.args.column.id,
+      afterCardId,
+      dragData.fromColumnId
+    );
   }
 
   removeDropIndicator(columnEl, { animate = false } = {}) {
@@ -316,17 +296,6 @@ export default class KanbanColumn extends Component {
         skipCardIds: dragData ? [dragData.cardId] : [],
       });
     }
-  }
-
-  findCardTitle(dragData) {
-    const allColumns = this.args.allColumns || [];
-    for (const col of allColumns) {
-      const card = col.cards?.find((c) => c.id === dragData.cardId);
-      if (card) {
-        return card.topic?.title || card.title || "";
-      }
-    }
-    return "";
   }
 
   #indicatorMatchesPosition(cardsContainer, indicator, insertBefore) {

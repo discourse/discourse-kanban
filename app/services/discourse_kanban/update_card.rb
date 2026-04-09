@@ -68,6 +68,15 @@ module DiscourseKanban
               )
       end
 
+      if context[:constraint_fix].present?
+        ConstraintFixer.apply!(
+          fix: context[:constraint_fix],
+          board: context[:board],
+          topic:,
+          guardian:,
+        )
+      end
+
       unless context[:board].topic_will_match_after_mutation?(topic, column)
         raise Discourse::InvalidParameters.new(
                 I18n.t("discourse_kanban.errors.topic_does_not_match_constraints"),
@@ -129,10 +138,21 @@ module DiscourseKanban
         column_changed =
           !context[:promoted] && card.topic? && column.id != card.column_id && card.topic.present?
 
-        if column_changed && !context[:board].topic_will_match_after_mutation?(card.topic, column)
-          raise Discourse::InvalidParameters.new(
-                  I18n.t("discourse_kanban.errors.topic_does_not_match_constraints"),
-                )
+        if column_changed
+          if context[:constraint_fix].present?
+            ConstraintFixer.apply!(
+              fix: context[:constraint_fix],
+              board: context[:board],
+              topic: card.topic,
+              guardian:,
+            )
+          end
+
+          unless context[:board].topic_will_match_after_mutation?(card.topic, column)
+            raise Discourse::InvalidParameters.new(
+                    I18n.t("discourse_kanban.errors.topic_does_not_match_constraints"),
+                  )
+          end
         end
 
         CardOrdering.place_card!(

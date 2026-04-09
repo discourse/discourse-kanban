@@ -99,11 +99,7 @@ module DiscourseKanban
       return [] unless topic_matches?(topic)
 
       topic_tag_id_set = topic.tag_ids.to_set
-      catch_all = columns.select { |c| c.tag_id.blank? }.min_by(&:id)
-
-      result = columns.select { |c| c.tag_id.present? && topic_tag_id_set.include?(c.tag_id) }
-      result << catch_all if catch_all
-      result
+      columns.select { |c| c.tag_id.present? && topic_tag_id_set.include?(c.tag_id) }
     end
 
     private

@@ -92,6 +92,22 @@ describe "Manage Kanban Boards" do
       expect(boards_page).to have_column("Done")
     end
 
+    it "persists board tag filter when creating a board with a tag" do
+      Fabricate(:tag, name: "a11y")
+
+      boards_page.visit_page
+      boards_page.click_new_board
+      boards_page.fill_modal_board_name("Accessibility Board")
+      boards_page.select_modal_board_tag("a11y")
+      boards_page.save_board_modal
+
+      expect(toasts).to have_success(I18n.t("js.saved"))
+
+      board = DiscourseKanban::Board.find_by(name: "Accessibility Board")
+      expect(board).to be_present
+      expect(board.tag_ids).to contain_exactly(Tag.find_by(name: "a11y").id)
+    end
+
     it "creates a column with a tag" do
       board =
         DiscourseKanban::Board.create!(

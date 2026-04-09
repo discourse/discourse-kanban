@@ -13,20 +13,13 @@ module DiscourseKanban
       # 1. Build topic-to-columns mapping via simple queries
       column_topic_ids = build_column_topic_map(board, columns)
 
-      # 2. Build per-topic target columns (tagged = deterministic, catch-all = sticky)
-      has_constraints = board.has_constraints?
+      # 2. Build per-topic target columns (tagged = deterministic)
       catch_all_column_ids = columns.select { |col| col.tag_id.blank? }.map(&:id).to_set
-      first_catch_all_id = catch_all_column_ids&.min
 
       topic_to_tagged = Hash.new { |h, k| h[k] = Set.new }
-      catch_all_topic_ids = Set.new
       columns.each do |col|
         ids = column_topic_ids[col.id] || next
-        if col.tag_id.present?
-          ids.each { |tid| topic_to_tagged[tid] << col.id }
-        elsif has_constraints
-          ids.each { |tid| catch_all_topic_ids << tid }
-        end
+        ids.each { |tid| topic_to_tagged[tid] << col.id } if col.tag_id.present?
       end
 
       # 3. Load all existing topic cards for this board in one query
@@ -45,8 +38,7 @@ module DiscourseKanban
       to_create = []
       to_delete = []
 
-      all_topic_ids =
-        (topic_to_tagged.keys + catch_all_topic_ids.to_a + existing_by_topic.keys).uniq
+      all_topic_ids = (topic_to_tagged.keys + existing_by_topic.keys).uniq
 
       all_topic_ids.each do |topic_id|
         cards = existing_by_topic[topic_id]
@@ -58,13 +50,10 @@ module DiscourseKanban
           to_create << { topic_id:, column_id: col_id } if existing_column_ids.exclude?(col_id)
         end
 
-        # Catch-alls only apply when topic matches NO tagged column
+        # Unconstrained columns don't auto-receive cards. Manually-placed
+        # cards in them are only preserved when no tagged column matches.
         if tagged_targets.empty?
-          if catch_all_topic_ids.include?(topic_id) &&
-               (existing_column_ids & catch_all_column_ids).empty? && first_catch_all_id
-            to_create << { topic_id:, column_id: first_catch_all_id }
-          end
-          valid_columns = catch_all_column_ids || Set.new
+          valid_columns = catch_all_column_ids
         else
           valid_columns = tagged_targets
         end
@@ -260,12 +249,9 @@ module DiscourseKanban
           create_targets << { board_id:, column_id: col_id } if existing_column_ids.exclude?(col_id)
         end
 
-        # Catch-alls only apply when topic matches NO tagged column
+        # Unconstrained columns don't auto-receive cards. Manually-placed
+        # cards in them are only preserved when no tagged column matches.
         if board_tagged.empty?
-          # Sticky — only create if topic isn't already in any catch-all
-          if board_catch_alls.present? && (existing_column_ids & board_catch_alls).empty?
-            create_targets << { board_id:, column_id: board_catch_alls.min }
-          end
           valid_columns = board_catch_alls
         else
           valid_columns = board_tagged
@@ -407,7 +393,6 @@ module DiscourseKanban
       result = {}
       scope_base =
         TopicQuery.new(Discourse.system_user, limit: false, no_definitions: true).latest_results
-      has_constraints = board.has_constraints?
 
       # Apply board-level category filter
       scope_base = scope_base.where(category_id: board.category_ids) if board.category_ids.present?
@@ -425,9 +410,6 @@ module DiscourseKanban
               .limit(MAX_CARDS_PER_COLUMN)
               .pluck(:id)
               .to_set
-          result[col.id] = ids
-        elsif has_constraints
-          ids = scope_base.limit(MAX_CARDS_PER_COLUMN).pluck(:id).to_set
           result[col.id] = ids
         end
       end

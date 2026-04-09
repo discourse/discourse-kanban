@@ -387,4 +387,30 @@ describe "Kanban Board Viewer" do
       expect(board_viewer).to have_no_controls_menu
     end
   end
+
+  context "when board tag filter excludes topics that match column tag" do
+    fab!(:tag_car, :tag) { Fabricate(:tag, name: "car") }
+    fab!(:tag_animal, :tag) { Fabricate(:tag, name: "animal") }
+    fab!(:tag_fast, :tag) { Fabricate(:tag, name: "fast") }
+
+    it "does not show topics missing the board tag even if they have the column tag" do
+      board =
+        create_board(
+          tag_ids: [tag_car.id],
+          category_ids: [],
+          slug: "car-board",
+          name: "Car Board",
+        )
+      board.columns.create!(title: "Fast", position: 0, tag_id: tag_fast.id)
+
+      Fabricate(:topic, title: "My fast car topic for testing", category: category, tags: [tag_car, tag_fast])
+      Fabricate(:topic, title: "My fast animal topic for testing", category: category, tags: [tag_animal, tag_fast])
+
+      sign_in(user)
+      board_viewer.visit_board(board)
+
+      expect(board_viewer).to have_card_in_column("Fast", "My fast car topic for testing")
+      expect(board_viewer).to have_no_card_in_column("Fast", "My fast animal topic for testing")
+    end
+  end
 end

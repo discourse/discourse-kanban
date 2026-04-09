@@ -12,7 +12,7 @@ module DiscourseKanban
     validates :position, presence: true
 
     def matches_topic?(topic)
-      tag_id.blank? || topic.tag_ids.include?(tag_id)
+      tag_id.present? && topic.tag_ids.include?(tag_id)
     end
   end
 end

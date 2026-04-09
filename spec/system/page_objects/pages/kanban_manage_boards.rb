@@ -56,6 +56,16 @@ module PageObjects
         self
       end
 
+      def select_modal_board_tag(tag_name)
+        within(".kanban-board-settings-modal") do
+          chooser = PageObjects::Components::SelectKit.new(".mini-tag-chooser")
+          chooser.expand
+          chooser.search(tag_name)
+          chooser.select_row_by_name(tag_name)
+        end
+        self
+      end
+
       def save_board_modal
         within(".kanban-board-settings-modal") { find(".btn-primary").click }
         self
