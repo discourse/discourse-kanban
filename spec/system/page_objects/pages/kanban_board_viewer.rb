@@ -92,6 +92,11 @@ module PageObjects
         within(find(".kanban-column", text: /#{Regexp.escape(column_title)}/i)) do
           find(".kanban-column__add-btn").click
         end
+        find(
+          "[data-content][data-identifier='kanban-column-add'] .btn-transparent",
+          text: I18n.t("js.discourse_kanban.board.add_card"),
+        ).click
+        has_css?(".kanban-card-detail-modal")
         self
       end
 
@@ -157,9 +162,8 @@ module PageObjects
       end
 
       def has_card_detail_tag?(tag_name)
-        within(".kanban-card-detail-modal") do
-          has_css?(".mini-tag-chooser .selected-tag", text: tag_name)
-        end
+        tag_chooser = PageObjects::Components::SelectKit.new(".kanban-card-detail-modal .tag-chooser")
+        tag_chooser.has_selected_name?(tag_name)
       end
 
       def save_card_detail
@@ -235,7 +239,7 @@ module PageObjects
 
       def has_card_tag?(card_title, tag_name)
         within(find(".kanban-card--floater", text: card_title)) do
-          has_css?(".kanban-card__label", text: tag_name)
+          has_css?(".discourse-tag", text: tag_name)
         end
       end
 
