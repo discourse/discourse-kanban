@@ -162,7 +162,8 @@ module PageObjects
       end
 
       def has_card_detail_tag?(tag_name)
-        tag_chooser = PageObjects::Components::SelectKit.new(".kanban-card-detail-modal .tag-chooser")
+        tag_chooser =
+          PageObjects::Components::SelectKit.new(".kanban-card-detail-modal .tag-chooser")
         tag_chooser.has_selected_name?(tag_name)
       end
 
