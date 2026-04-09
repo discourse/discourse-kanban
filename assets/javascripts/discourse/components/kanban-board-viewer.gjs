@@ -1029,9 +1029,12 @@ export default class KanbanBoardViewer extends Component {
       : KanbanCardDetailModal;
     let navigatedAway = false;
 
+    const column = this.columns.find((col) => col.id === card.column_id);
     const model = isTopicCard
       ? {
           card,
+          columnTitle: column?.title,
+          columnIcon: column?.icon,
           onNavigateAway: (url) => {
             navigatedAway = true;
             DiscourseURL.routeTo(url);

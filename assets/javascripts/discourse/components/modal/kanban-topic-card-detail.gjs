@@ -63,6 +63,14 @@ export default class KanbanTopicCardDetail extends Component {
     return this.topic?.last_poster;
   }
 
+  get columnData() {
+    const { columnTitle, columnIcon } = this.args.model;
+    if (!columnTitle) {
+      return null;
+    }
+    return { title: columnTitle, icon: columnIcon };
+  }
+
   get tagsHtml() {
     if (!this.topic?.tags?.length) {
       return null;
@@ -91,7 +99,14 @@ export default class KanbanTopicCardDetail extends Component {
     >
       <:body>
         {{! template-lint-disable no-invalid-interactive }}
-        {{#if (or this.category this.tagsHtml this.allAssignedUsers.length)}}
+        {{#if
+          (or
+            this.category
+            this.tagsHtml
+            this.allAssignedUsers.length
+            this.columnData
+          )
+        }}
           <div class="kanban-topic-card-detail__meta">
             {{#if this.category}}
               {{categoryBadge this.category link=true}}
@@ -117,6 +132,12 @@ export default class KanbanTopicCardDetail extends Component {
                 <span
                   class="kanban-topic-card-detail__username"
                 >{{this.assignedGroupName}}</span>
+              </span>
+            {{/if}}
+            {{#if this.columnData}}
+              <span class="kanban-topic-card-detail__column-pill">
+                {{#if this.columnData.icon}}{{icon this.columnData.icon}}{{/if}}
+                {{this.columnData.title}}
               </span>
             {{/if}}
           </div>

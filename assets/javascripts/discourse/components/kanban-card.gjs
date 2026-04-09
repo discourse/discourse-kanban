@@ -232,6 +232,8 @@ export default class KanbanCard extends Component {
       .show(KanbanTopicCardDetailModal, {
         model: {
           card: this.args.card,
+          columnTitle: this.args.columnTitle,
+          columnIcon: this.args.columnIcon,
           onNavigateAway: (url) => {
             navigatedAway = true;
             DiscourseURL.routeTo(url);
