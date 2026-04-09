@@ -115,11 +115,14 @@ export default class KanbanCardDetail extends Component {
     field.set(value || []);
   }
 
+  get isNew() {
+    return !!this.args.model.isNew;
+  }
+
   @action
   async save(data) {
     this.addLabel();
 
-    const card = this.args.model.card;
     const labels = this.formApi?.get("labels") || data.labels;
     const updates = {
       title: this.editTitle.trim(),
@@ -128,10 +131,14 @@ export default class KanbanCardDetail extends Component {
       assigned_to_name: data.assigned_to[0] || null,
     };
     try {
-      await this.args.model.onUpdateCard(card.id, updates);
+      if (this.isNew) {
+        await this.args.model.onCreateCard(updates);
+      } else {
+        await this.args.model.onUpdateCard(this.args.model.card.id, updates);
+      }
       this.args.closeModal();
     } catch {
-      // modal stays open — popupAjaxError already handles the error in onUpdateCard
+      // modal stays open — popupAjaxError already handles the error
     }
   }
 

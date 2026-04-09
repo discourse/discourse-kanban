@@ -96,13 +96,11 @@ module PageObjects
       end
 
       def fill_card_title(title)
-        find(".kanban-column__card-title-input").fill_in(with: title)
-        self
+        fill_card_detail_title(title)
       end
 
       def submit_card
-        find(".kanban-column__add-card-actions .btn-primary").click
-        self
+        save_card_detail
       end
 
       def has_floater_card_in_column?(column_title, card_title)
