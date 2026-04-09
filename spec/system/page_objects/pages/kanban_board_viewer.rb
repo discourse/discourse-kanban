@@ -153,11 +153,11 @@ module PageObjects
       end
 
       def select_card_detail_tag(tag_name)
-        within(".kanban-card-detail-modal") do
-          find(".mini-tag-chooser").click
-          find(".select-kit-filter input").fill_in(with: tag_name)
-          find(".select-kit-row", text: tag_name).click
-        end
+        tag_chooser =
+          PageObjects::Components::SelectKit.new(".kanban-card-detail-modal .tag-chooser")
+        tag_chooser.expand
+        tag_chooser.search(tag_name)
+        tag_chooser.select_row_by_name(tag_name)
         self
       end
 

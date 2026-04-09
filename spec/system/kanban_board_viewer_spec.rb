@@ -264,7 +264,8 @@ describe "Kanban Board Viewer" do
     end
 
     it "adds tags to a card via the tag chooser" do
-      Fabricate(:tag, name: "urgent")
+      SiteSetting.tagging_enabled = true
+      Tag.find_or_create_by!(name: "urgent")
 
       board = create_board(allow_write_group_ids: [write_group.id])
       col_todo = board.columns.create!(title: "To Do", position: 0)
