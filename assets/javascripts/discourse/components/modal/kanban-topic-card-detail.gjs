@@ -72,26 +72,6 @@ export default class KanbanTopicCardDetail extends Component {
     return renderTags(null, { tags: this.topic.tags });
   }
 
-  #navigateAway(url) {
-    this.args.model.onNavigateAway?.(url);
-    this.args.closeModal();
-  }
-
-  @action
-  onMetaLinkClick(event) {
-    const link = event.target.closest("a");
-    if (!link) {
-      return;
-    }
-    event.preventDefault();
-    this.#navigateAway(link.getAttribute("href"));
-  }
-
-  @action
-  viewTopic() {
-    this.#navigateAway(this.topicUrl);
-  }
-
   async loadFirstPost() {
     try {
       const post = await ajax(
@@ -106,18 +86,11 @@ export default class KanbanTopicCardDetail extends Component {
   }
 
   <template>
-    <DModal
-      @closeModal={{@closeModal}}
-      @title={{this.topic.title}}
-      class="kanban-topic-card-detail-modal"
-    >
+    <DModal @title={{this.topic.title}} class="kanban-topic-card-detail-modal">
       <:body>
         {{! template-lint-disable no-invalid-interactive }}
         {{#if (or this.category this.tagsHtml this.allAssignedUsers.length)}}
-          <div
-            class="kanban-topic-card-detail__meta"
-            {{on "click" this.onMetaLinkClick}}
-          >
+          <div class="kanban-topic-card-detail__meta">
             {{#if this.category}}
               {{categoryBadge this.category link=true}}
             {{/if}}
@@ -182,6 +155,7 @@ export default class KanbanTopicCardDetail extends Component {
       </:body>
       <:footer>
         <DButton
+          @href={{this.topicUrl}}
           class="btn-primary"
           @action={{this.viewTopic}}
           @icon="up-right-from-square"
