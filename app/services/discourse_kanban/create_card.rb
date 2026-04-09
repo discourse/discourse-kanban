@@ -12,7 +12,7 @@ module DiscourseKanban
       attribute :notes, :string
       attribute :after_card_id, :integer
       attribute :assigned_to_name, :string
-      attribute :labels, :array
+      attribute :tags, :array
 
       validates :board_id, presence: true
       validates :column_id, presence: true
@@ -114,7 +114,7 @@ module DiscourseKanban
           card_type: :floater,
           title: params.title,
           notes: params.notes,
-          labels: params.labels || [],
+          tags: params.tags || [],
           assigned_to: resolve_assignee(params.assigned_to_name, guardian),
           created_by_id: guardian.user.id,
           updated_by_id: guardian.user.id,

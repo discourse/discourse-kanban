@@ -193,7 +193,7 @@ export default class KanbanCard extends Component {
 
   get hasDetails() {
     const card = this.args.card;
-    return !!(card.notes || card.labels?.length);
+    return !!(card.notes || card.tags?.length);
   }
 
   @action
@@ -507,8 +507,8 @@ export default class KanbanCard extends Component {
       {{#unless this.isTopicCard}}
         {{#if this.hasDetails}}
           <div class="kanban-card__row kanban-card__indicators">
-            {{#each @card.labels as |label|}}
-              <span class="kanban-card__label">{{label}}</span>
+            {{#each @card.tags as |tag|}}
+              <span class="kanban-card__label">{{tag}}</span>
             {{/each}}
             {{#if @card.notes}}
               <span class="kanban-card__notes-indicator" title={{@card.notes}}>

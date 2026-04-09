@@ -544,14 +544,7 @@ export default class KanbanBoardViewer extends Component {
   }
 
   @action
-  async onAddCard({
-    topicId,
-    title,
-    columnId,
-    notes,
-    labels,
-    assigned_to_name,
-  }) {
+  async onAddCard({ topicId, title, columnId, notes, tags, assigned_to_name }) {
     if (topicId) {
       try {
         const constraintFix = await this.#resolveConstraintFixForCreate(
@@ -591,8 +584,8 @@ export default class KanbanBoardViewer extends Component {
       if (notes) {
         cardData.notes = notes;
       }
-      if (labels?.length) {
-        cardData.labels = labels;
+      if (tags?.length) {
+        cardData.tags = tags;
       }
       if (assigned_to_name) {
         cardData.assigned_to_name = assigned_to_name;
@@ -701,8 +694,8 @@ export default class KanbanBoardViewer extends Component {
     if (card.notes) {
       opts.body = card.notes;
     }
-    if (card.labels?.length) {
-      opts.tags = card.labels;
+    if (card.tags?.length) {
+      opts.tags = card.tags;
     }
     const categoryId = column.move_to_category_id;
     if (categoryId) {

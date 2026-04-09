@@ -13,7 +13,7 @@ module DiscourseKanban
       attribute :notes
       attribute :after_card_id, :integer
       attribute :assigned_to_name, :string
-      attribute :labels, :array
+      attribute :tags, :array
 
       validates :board_id, presence: true
       validates :id, presence: true
@@ -93,7 +93,7 @@ module DiscourseKanban
       card.topic_id = topic.id
       card.title = nil
       card.notes = nil
-      card.labels = []
+      card.tags = []
       card.assigned_to_id = nil
       card.assigned_to_type = nil
       card.updated_by_id = guardian.user.id
@@ -106,7 +106,7 @@ module DiscourseKanban
       if card.floater? && !context[:promoted]
         card.title = params.title || card.title
         card.notes = raw.key?("notes") ? raw["notes"] : card.notes
-        card.labels = params.labels || card.labels
+        card.tags = raw.key?("tags") ? Array(params.tags).reject(&:blank?) : card.tags
         card.assigned_to = resolve_assignee(raw["assigned_to_name"], guardian) if raw.key?(
           "assigned_to_name",
         )
@@ -133,6 +133,8 @@ module DiscourseKanban
     def place_and_save(card:, column:, params:, guardian:)
       raw = context[:raw_card_params] || {}
       position_first = raw.key?("after_card_id") && raw["after_card_id"].blank?
+      needs_placement =
+        context[:promoted] || column.id != card.column_id || raw.key?("after_card_id")
 
       Card.transaction do
         column_changed =
@@ -155,12 +157,14 @@ module DiscourseKanban
           end
         end
 
-        CardOrdering.place_card!(
-          card,
-          column:,
-          after_card_id: params.after_card_id,
-          position_first:,
-        )
+        if needs_placement
+          CardOrdering.place_card!(
+            card,
+            column:,
+            after_card_id: params.after_card_id,
+            position_first:,
+          )
+        end
 
         TopicMutator.apply!(topic: card.topic, column:, guardian:) if column_changed
 

@@ -9,7 +9,7 @@ module DiscourseKanban
                :position,
                :title,
                :notes,
-               :labels,
+               :tags,
                :topic_id,
                :created_at,
                :created_by,

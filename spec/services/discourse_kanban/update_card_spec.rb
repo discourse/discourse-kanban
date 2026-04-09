@@ -116,7 +116,7 @@ RSpec.describe DiscourseKanban::UpdateCard do
           card_type: :floater,
           title: "Promote me",
           notes: "Some notes",
-          labels: %w[urgent],
+          tags: %w[urgent],
           column_id: col_todo.id,
           position: 0,
           created_by_id: admin.id,
@@ -135,7 +135,7 @@ RSpec.describe DiscourseKanban::UpdateCard do
         expect(result_card.topic_id).to eq(topic.id)
         expect(result_card.title).to be_nil
         expect(result_card.notes).to be_nil
-        expect(result_card.labels).to eq([])
+        expect(result_card.tags).to eq([])
       end
     end
 

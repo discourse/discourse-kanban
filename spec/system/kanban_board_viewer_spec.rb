@@ -263,12 +263,14 @@ describe "Kanban Board Viewer" do
       board_viewer.cancel_card_detail
     end
 
-    it "adds labels with Enter without closing the card detail modal" do
+    it "adds tags to a card via the tag chooser" do
+      Fabricate(:tag, name: "urgent")
+
       board = create_board(allow_write_group_ids: [write_group.id])
       col_todo = board.columns.create!(title: "To Do", position: 0)
       board.cards.create!(
         card_type: :floater,
-        title: "Label me",
+        title: "Tag me",
         column_id: col_todo.id,
         position: 0,
         created_by_id: admin.id,
@@ -277,19 +279,14 @@ describe "Kanban Board Viewer" do
       sign_in(admin)
       board_viewer.visit_board(board)
 
-      board_viewer.click_floater_card("Label me")
+      board_viewer.click_floater_card("Tag me")
       expect(board_viewer).to have_card_detail_modal
 
-      board_viewer.fill_card_detail_label("urgent,frontend")
-      board_viewer.add_card_detail_label_with_enter
-
-      expect(board_viewer).to have_card_detail_modal
-      expect(board_viewer).to have_card_detail_label("urgent")
-      expect(board_viewer).to have_card_detail_label("frontend")
+      board_viewer.select_card_detail_tag("urgent")
+      expect(board_viewer).to have_card_detail_tag("urgent")
 
       board_viewer.save_card_detail
-      expect(board_viewer).to have_card_label("Label me", "urgent")
-      expect(board_viewer).to have_card_label("Label me", "frontend")
+      expect(board_viewer).to have_card_tag("Tag me", "urgent")
     end
 
     it "does not show add card button for read-only users" do

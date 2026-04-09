@@ -11,7 +11,7 @@ module DiscourseKanban
     belongs_to :updated_by, class_name: "User", optional: true
     belongs_to :assigned_to, polymorphic: true, optional: true
 
-    self.ignored_columns = ["membership_mode"]
+    self.ignored_columns = %w[membership_mode labels]
 
     enum :card_type, { floater: 0, topic: 1 }, default: :floater
 
@@ -52,7 +52,7 @@ end
 #  assigned_to_type :string
 #  card_type        :integer          default("floater"), not null
 #  due_at           :datetime
-#  labels           :text             default([]), not null, is an Array
+#  tags             :text             default([]), not null, is an Array
 #  notes            :text
 #  position         :bigint           default(0), not null
 #  title            :string

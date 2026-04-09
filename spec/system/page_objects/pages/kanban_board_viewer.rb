@@ -147,23 +147,19 @@ module PageObjects
         self
       end
 
-      def fill_card_detail_label(new_label)
+      def select_card_detail_tag(tag_name)
         within(".kanban-card-detail-modal") do
-          find(".kanban-card-detail__label-input").fill_in(with: new_label)
+          tag_chooser = find(".mini-tag-chooser")
+          tag_chooser.click
+          find(".select-kit-filter input").fill_in(with: tag_name)
+          find(".select-kit-row", text: tag_name).click
         end
         self
       end
 
-      def add_card_detail_label_with_enter
+      def has_card_detail_tag?(tag_name)
         within(".kanban-card-detail-modal") do
-          find(".kanban-card-detail__label-input").send_keys(:enter)
-        end
-        self
-      end
-
-      def has_card_detail_label?(label)
-        within(".kanban-card-detail-modal") do
-          has_css?(".kanban-card-detail__label-chip", text: label)
+          has_css?(".mini-tag-chooser .selected-tag", text: tag_name)
         end
       end
 
@@ -238,9 +234,9 @@ module PageObjects
         self
       end
 
-      def has_card_label?(card_title, label)
+      def has_card_tag?(card_title, tag_name)
         within(find(".kanban-card--floater", text: card_title)) do
-          has_css?(".kanban-card__label", text: label)
+          has_css?(".kanban-card__label", text: tag_name)
         end
       end
 
