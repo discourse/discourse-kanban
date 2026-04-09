@@ -84,7 +84,7 @@ export default class KanbanTopicCardDetail extends Component {
   }
 
   <template>
-    <DModal @title={{this.topic.title}} class="kanban-topic-card-detail-modal">
+    <DModal @title={{this.topic.title}} @closeModal={{@closeModal}} class="kanban-topic-card-detail-modal">
       <:body>
         {{! template-lint-disable no-invalid-interactive }}
         {{#if (or this.category this.tagsHtml this.allAssignedUsers.length)}}
