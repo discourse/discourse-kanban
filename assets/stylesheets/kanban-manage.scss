@@ -15,7 +15,7 @@
     border: 1px solid transparent;
     border-radius: var(--d-border-radius);
     line-height: 1.5;
-    height: 36px;
+    height: min-content;
     box-sizing: border-box;
     margin: 0 !important;
   }
