@@ -1,5 +1,5 @@
 import Component from "@glimmer/component";
-import { cached, tracked } from "@glimmer/tracking";
+import { tracked } from "@glimmer/tracking";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
 import { cancel } from "@ember/runloop";
@@ -19,17 +19,13 @@ export default class KanbanAddTopicAsCard extends Component {
   @tracked selectedRow = -1;
   @tracked searchResults = [];
   @tracked searchLoading = false;
+  data = { topicSearch: "" };
   #debounced;
   #activeSearch;
 
   willDestroy() {
     super.willDestroy(...arguments);
     cancel(this.#debounced);
-  }
-
-  @cached
-  get data() {
-    return { topicSearch: "" };
   }
 
   highlightRow(e, direction) {
@@ -147,7 +143,7 @@ export default class KanbanAddTopicAsCard extends Component {
       {{on "keydown" this.keyDown}}
       {{on "mousedown" this.mouseDown}}
       @closeModal={{@closeModal}}
-      @title={{i18n "discourse_kanban.board.add_topic_as_card_title"}}
+      @title={{i18n "discourse_kanban.board.add_topic_as_card"}}
       @bodyClass="insert-link"
       class="kanban-add-topic-as-card-modal"
     >

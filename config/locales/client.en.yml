@@ -9,7 +9,6 @@ en:
         move_failed: "Card could not be moved."
         add_card: "Add card"
         add_topic_as_card: "Add topic as card"
-        add_topic_as_card_title: "Add topic as card"
         topic_search_placeholder: "Search topics..."
         card_title_placeholder: "Card title or topic URL..."
         controls: "Board controls"

@@ -1,5 +1,5 @@
 import Component from "@glimmer/component";
-import { cached, tracked } from "@glimmer/tracking";
+import { tracked } from "@glimmer/tracking";
 import { fn, hash } from "@ember/helper";
 import { action } from "@ember/object";
 import DModal from "discourse/components/d-modal";
@@ -21,7 +21,6 @@ export default class KanbanCardDetail extends Component {
     return this.args.model.canWrite;
   }
 
-  @cached
   get formData() {
     const card = this.args.model.card;
     const assignedTo = card.assigned_to;
@@ -51,14 +50,19 @@ export default class KanbanCardDetail extends Component {
     field.set(value || []);
   }
 
+  #normalizeTags(tags) {
+    if (!tags?.length) {
+      return [""];
+    }
+    return tags.map((t) => t.name ?? t);
+  }
+
   @action
   async save(data) {
     const updates = {
       title: this.editTitle.trim(),
       notes: data.notes,
-      tags: data.tags?.length
-        ? data.tags.map((t) => (typeof t === "object" ? t.name : t))
-        : [""],
+      tags: this.#normalizeTags(data.tags),
       assigned_to_name: data.assigned_to[0] || null,
     };
     try {

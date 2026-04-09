@@ -580,22 +580,11 @@ export default class KanbanBoardViewer extends Component {
     }
 
     try {
-      const cardData = { column_id: columnId, title };
-      if (notes) {
-        cardData.notes = notes;
-      }
-      if (tags?.length) {
-        cardData.tags = tags;
-      }
-      if (assigned_to_name) {
-        cardData.assigned_to_name = assigned_to_name;
-      }
-
       const result = await ajax(`/kanban/boards/${this.board.id}/cards`, {
         type: "POST",
         data: {
           client_id: this.messageBus.clientId,
-          card: cardData,
+          card: { column_id: columnId, title, notes, tags, assigned_to_name },
         },
       });
       this.#appendCardToColumn(result.card, columnId);
