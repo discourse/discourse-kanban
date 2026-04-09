@@ -176,13 +176,11 @@ export default class KanbanCardDetail extends Component {
               @name="notes"
               @title={{i18n "discourse_kanban.board.notes"}}
               @format="max"
-              @type="textarea"
+              @type="composer"
               @disabled={{not this.canWrite}}
               as |field|
             >
-              <field.Control
-                @placeholder={{i18n "discourse_kanban.board.notes_placeholder"}}
-              />
+              <field.Control @height={{300}} />
             </form.Field>
             <form.Field
               @name="labels"

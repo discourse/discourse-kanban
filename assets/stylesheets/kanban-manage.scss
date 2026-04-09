@@ -83,7 +83,8 @@
 .kanban-card-detail-modal {
   --modal-max-width: 50ch;
 
-  .form-kit__field-textarea .form-kit__container-content {
+  .form-kit__field-textarea .form-kit__container-content,
+  .form-kit__field-composer .form-kit__container-content {
     width: 100% !important;
   }
 }
