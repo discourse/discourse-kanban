@@ -16,14 +16,14 @@ module DiscourseKanban
     end
 
     def self.apply_category_fix!(fix, board, topic, guardian)
-      unless board.category_ids.present?
+      if board.category_ids.blank?
         raise Discourse::InvalidParameters.new(
                 I18n.t("discourse_kanban.errors.topic_does_not_match_constraints"),
               )
       end
 
       category_id = fix["category_id"].to_i
-      unless board.category_ids.include?(category_id)
+      if board.category_ids.exclude?(category_id)
         raise Discourse::InvalidParameters.new(
                 I18n.t("discourse_kanban.errors.topic_does_not_match_constraints"),
               )
@@ -45,7 +45,7 @@ module DiscourseKanban
     end
 
     def self.apply_tag_fix!(fix, board, topic, guardian)
-      unless board.tag_ids.present?
+      if board.tag_ids.blank?
         raise Discourse::InvalidParameters.new(
                 I18n.t("discourse_kanban.errors.topic_does_not_match_constraints"),
               )

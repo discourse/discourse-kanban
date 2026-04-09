@@ -315,10 +315,7 @@ export default class KanbanBoardViewer extends Component {
     let constraintFix = null;
 
     if (!isSameColumn && card.topic) {
-      const mismatches = this._checkConstraintMismatches(
-        card.topic,
-        toColumn
-      );
+      const mismatches = this._checkConstraintMismatches(card.topic, toColumn);
       if (mismatches) {
         constraintFix = await this._showConstraintFixModal(
           card,
@@ -544,10 +541,10 @@ export default class KanbanBoardViewer extends Component {
           data.constraint_fix = constraintFix;
         }
 
-        const result = await ajax(
-          `/kanban/boards/${this.board.id}/cards`,
-          { type: "POST", data }
-        );
+        const result = await ajax(`/kanban/boards/${this.board.id}/cards`, {
+          type: "POST",
+          data,
+        });
         this.#appendCardToColumn(result.card, columnId);
         return;
       } catch (error) {
@@ -603,7 +600,11 @@ export default class KanbanBoardViewer extends Component {
       return null;
     }
 
-    return this._showConstraintFixModal({ topic: topicData }, column, mismatches);
+    return this._showConstraintFixModal(
+      { topic: topicData },
+      column,
+      mismatches
+    );
   }
 
   #isTopicNotFoundError(error) {

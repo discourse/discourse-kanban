@@ -108,7 +108,7 @@ export default class KanbanConstraintFix extends Component {
           {{i18n "discourse_kanban.board.constraint_fix_description"}}
         </p>
 
-        {{#if this.args.model.mismatches.needsCategory}}
+        {{#if @model.mismatches.needsCategory}}
           <div class="kanban-constraint-fix__field">
             <label>{{i18n
                 "discourse_kanban.board.constraint_fix_category"
@@ -129,11 +129,9 @@ export default class KanbanConstraintFix extends Component {
           </div>
         {{/if}}
 
-        {{#if this.args.model.mismatches.needsTags}}
+        {{#if @model.mismatches.needsTags}}
           <div class="kanban-constraint-fix__field">
-            <label>{{i18n
-                "discourse_kanban.board.constraint_fix_tags"
-              }}</label>
+            <label>{{i18n "discourse_kanban.board.constraint_fix_tags"}}</label>
             <div class="kanban-constraint-fix__options">
               {{#each this.tagOptions as |tagName|}}
                 <DButton
@@ -154,14 +152,10 @@ export default class KanbanConstraintFix extends Component {
         <DButton
           @action={{this.confirm}}
           @label="discourse_kanban.board.constraint_fix_confirm"
-          @disabled={{(not this.canSave)}}
+          @disabled={{not this.canSave}}
           class="btn-primary"
         />
-        <DButton
-          @action={{this.cancel}}
-          @label="cancel"
-          class="btn-flat"
-        />
+        <DButton @action={{this.cancel}} @label="cancel" class="btn-flat" />
       </:footer>
     </DModal>
   </template>

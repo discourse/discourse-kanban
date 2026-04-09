@@ -395,16 +395,21 @@ describe "Kanban Board Viewer" do
 
     it "does not show topics missing the board tag even if they have the column tag" do
       board =
-        create_board(
-          tag_ids: [tag_car.id],
-          category_ids: [],
-          slug: "car-board",
-          name: "Car Board",
-        )
+        create_board(tag_ids: [tag_car.id], category_ids: [], slug: "car-board", name: "Car Board")
       board.columns.create!(title: "Fast", position: 0, tag_id: tag_fast.id)
 
-      Fabricate(:topic, title: "My fast car topic for testing", category: category, tags: [tag_car, tag_fast])
-      Fabricate(:topic, title: "My fast animal topic for testing", category: category, tags: [tag_animal, tag_fast])
+      Fabricate(
+        :topic,
+        title: "My fast car topic for testing",
+        category: category,
+        tags: [tag_car, tag_fast],
+      )
+      Fabricate(
+        :topic,
+        title: "My fast animal topic for testing",
+        category: category,
+        tags: [tag_animal, tag_fast],
+      )
 
       sign_in(user)
       board_viewer.visit_board(board)

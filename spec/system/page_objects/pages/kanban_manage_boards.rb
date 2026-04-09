@@ -42,7 +42,12 @@ module PageObjects
 
       def fill_modal_board_name(name)
         within(".kanban-board-settings-modal") do
-          all("input[type='text']").first.fill_in(with: name)
+          if has_css?(".kanban-editable-title__input", wait: 0)
+            find(".kanban-editable-title__input").fill_in(with: name)
+          else
+            find(".kanban-editable-title__text").click
+            find(".kanban-editable-title__input").fill_in(with: name)
+          end
         end
         self
       end
@@ -58,7 +63,10 @@ module PageObjects
 
       def select_modal_board_tag(tag_name)
         within(".kanban-board-settings-modal") do
-          chooser = PageObjects::Components::SelectKit.new(".mini-tag-chooser")
+          chooser =
+            PageObjects::Components::SelectKit.new(
+              "[data-name='tag_names'] .form-kit__control-tag-chooser",
+            )
           chooser.expand
           chooser.search(tag_name)
           chooser.select_row_by_name(tag_name)
@@ -67,7 +75,9 @@ module PageObjects
       end
 
       def save_board_modal
-        within(".kanban-board-settings-modal") { find(".btn-primary").click }
+        within(".kanban-board-settings-modal") do
+          find(".form-kit__actions button[type='submit']").click
+        end
         self
       end
 

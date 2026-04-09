@@ -284,8 +284,14 @@ RSpec.describe DiscourseKanban::CardsController do
 
       post "/kanban/boards/#{board.id}/cards.json",
            params: {
-             card: { column_id: col_ford.id, topic_id: mismatched_topic.id },
-             constraint_fix: { category_id: car_cat.id, tag_names: %w[create-ford] },
+             card: {
+               column_id: col_ford.id,
+               topic_id: mismatched_topic.id,
+             },
+             constraint_fix: {
+               category_id: car_cat.id,
+               tag_names: %w[create-ford],
+             },
            }
 
       expect(response.status).to eq(201)
@@ -311,8 +317,13 @@ RSpec.describe DiscourseKanban::CardsController do
       # Fix category but not tags — topic still won't match on an untagged column
       post "/kanban/boards/#{board.id}/cards.json",
            params: {
-             card: { column_id: col_todo.id, topic_id: mismatched_topic.id },
-             constraint_fix: { category_id: car_cat.id },
+             card: {
+               column_id: col_todo.id,
+               topic_id: mismatched_topic.id,
+             },
+             constraint_fix: {
+               category_id: car_cat.id,
+             },
            }
 
       expect(response.status).to eq(400)
@@ -890,8 +901,7 @@ RSpec.describe DiscourseKanban::CardsController do
       board.update!(category_ids: [car_category.id], tag_ids: [ford_tag.id, chevy_tag.id])
       col_ford = board.columns.create!(title: "Ford", position: 2, tag_id: ford_tag.id)
 
-      boat_topic =
-        Fabricate(:topic, category: boat_category, tags: [ford_tag], user: admin)
+      boat_topic = Fabricate(:topic, category: boat_category, tags: [ford_tag], user: admin)
       Fabricate(:post, topic: boat_topic, user: admin)
       card =
         board.cards.create!(
@@ -906,8 +916,12 @@ RSpec.describe DiscourseKanban::CardsController do
 
       put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
           params: {
-            card: { column_id: col_ford.id },
-            constraint_fix: { category_id: car_category.id },
+            card: {
+              column_id: col_ford.id,
+            },
+            constraint_fix: {
+              category_id: car_category.id,
+            },
           }
       expect(response.status).to eq(200)
       expect(card.reload.column_id).to eq(col_ford.id)
@@ -993,8 +1007,7 @@ RSpec.describe DiscourseKanban::CardsController do
       col_ford = board.columns.create!(title: "Ford", position: 2, tag_id: ford_tag.id)
 
       other_category = Fabricate(:category, name: "Planes")
-      boat_topic =
-        Fabricate(:topic, category: boat_category, tags: [ford_tag], user: admin)
+      boat_topic = Fabricate(:topic, category: boat_category, tags: [ford_tag], user: admin)
       card =
         board.cards.create!(
           card_type: :topic,
@@ -1041,8 +1054,12 @@ RSpec.describe DiscourseKanban::CardsController do
 
       put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
           params: {
-            card: { column_id: col_ford.id },
-            constraint_fix: { tag_names: [rogue_tag.name] },
+            card: {
+              column_id: col_ford.id,
+            },
+            constraint_fix: {
+              tag_names: [rogue_tag.name],
+            },
           }
 
       expect(response.status).to eq(400)
@@ -1070,8 +1087,12 @@ RSpec.describe DiscourseKanban::CardsController do
 
       put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
           params: {
-            card: { column_id: col_ford.id },
-            constraint_fix: { category_id: car_category.id },
+            card: {
+              column_id: col_ford.id,
+            },
+            constraint_fix: {
+              category_id: car_category.id,
+            },
           }
 
       expect(response.status).to eq(400)
@@ -1083,8 +1104,7 @@ RSpec.describe DiscourseKanban::CardsController do
 
       board.update!(category_ids: [car_category.id], tag_ids: [])
 
-      car_topic =
-        Fabricate(:topic, category: boat_category, user: admin)
+      car_topic = Fabricate(:topic, category: boat_category, user: admin)
       Fabricate(:post, topic: car_topic, user: admin)
       card =
         board.cards.create!(
@@ -1099,8 +1119,12 @@ RSpec.describe DiscourseKanban::CardsController do
 
       put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
           params: {
-            card: { column_id: col_done.id },
-            constraint_fix: { tag_names: %w[ford] },
+            card: {
+              column_id: col_done.id,
+            },
+            constraint_fix: {
+              tag_names: %w[ford],
+            },
           }
 
       expect(response.status).to eq(400)
@@ -1131,8 +1155,12 @@ RSpec.describe DiscourseKanban::CardsController do
       # and topic has no board tags, so topic_will_match_after_mutation? fails on tags
       put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
           params: {
-            card: { column_id: col_done.id },
-            constraint_fix: { category_id: car_category.id },
+            card: {
+              column_id: col_done.id,
+            },
+            constraint_fix: {
+              category_id: car_category.id,
+            },
           }
 
       expect(response.status).to eq(400)

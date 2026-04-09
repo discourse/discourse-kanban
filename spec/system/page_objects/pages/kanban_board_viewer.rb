@@ -139,7 +139,12 @@ module PageObjects
 
       def fill_card_detail_title(new_title)
         within(".kanban-card-detail-modal") do
-          find(".kanban-card-detail__field input[type='text']", match: :first).set(new_title)
+          if has_css?(".kanban-editable-title__input", wait: 0)
+            find(".kanban-editable-title__input").set(new_title)
+          else
+            find(".kanban-editable-title__text").click
+            find(".kanban-editable-title__input").set(new_title)
+          end
         end
         self
       end
@@ -165,7 +170,9 @@ module PageObjects
       end
 
       def save_card_detail
-        within(".kanban-card-detail-modal") { find(".btn-primary", text: I18n.t("js.save")).click }
+        within(".kanban-card-detail-modal") do
+          find(".form-kit__actions button[type='submit']").click
+        end
         self
       end
 

@@ -92,10 +92,9 @@ module("Discourse Kanban | Unit | Components | kanban drop", function (hooks) {
     );
   });
 
-  test("confirmed drops preserve the source column after drag state has cleared", function (assert) {
+  test("drops preserve the source column after drag state has cleared", function (assert) {
     const onDrop = sinon.spy();
     const removeDropIndicator = sinon.spy();
-    let confirmOptions;
 
     const component = Object.assign(Object.create(KanbanColumn.prototype), {
       args: {
@@ -110,11 +109,6 @@ module("Discourse Kanban | Unit | Components | kanban drop", function (hooks) {
         allColumns: [],
         onDrop,
       },
-      dialog: {
-        yesNoConfirm(options) {
-          confirmOptions = options;
-        },
-      },
       findCardTitle() {
         return "Fix checkout";
       },
@@ -128,12 +122,11 @@ module("Discourse Kanban | Unit | Components | kanban drop", function (hooks) {
     });
 
     component.args.dragData = null;
-    confirmOptions.didConfirm();
 
     assert.true(removeDropIndicator.calledOnce);
     assert.true(
       onDrop.calledOnceWithExactly(101, 20, null, 10),
-      "it passes the original source column into the confirmed drop callback"
+      "it passes the original source column into the drop callback"
     );
   });
 

@@ -221,7 +221,7 @@ RSpec.describe DiscourseKanban::BoardsController do
       expect(card_titles).not_to include(private_topic.title)
     end
 
-    it "backfills cards for topics matching the board filter" do
+    it "does not backfill cards into unconstrained columns even when the board filter matches" do
       topic = Fabricate(:topic, category: category)
       board =
         DiscourseKanban::Board.create!(
@@ -237,8 +237,8 @@ RSpec.describe DiscourseKanban::BoardsController do
 
       expect(response.status).to eq(200)
       cards = response.parsed_body["columns"][0]["cards"]
-      expect(cards.length).to eq(1)
-      expect(cards[0]["topic"]["id"]).to eq(topic.id)
+      expect(cards).to eq([])
+      expect(board.cards.where(topic_id: topic.id)).to be_blank
     end
 
     it "denies access to users without read permission" do
