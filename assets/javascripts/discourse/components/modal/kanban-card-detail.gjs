@@ -50,19 +50,13 @@ export default class KanbanCardDetail extends Component {
     field.set(value || []);
   }
 
-  #normalizeTags(tags) {
-    if (!tags?.length) {
-      return [""];
-    }
-    return tags.map((t) => t.name ?? t);
-  }
-
   @action
   async save(data) {
+    const tags = (data.tags || []).map((t) => t.name ?? t);
     const updates = {
       title: this.editTitle.trim(),
       notes: data.notes,
-      tags: this.#normalizeTags(data.tags),
+      tags: !this.isNew && !tags.length ? [""] : tags,
       assigned_to_name: data.assigned_to[0] || null,
     };
     try {
