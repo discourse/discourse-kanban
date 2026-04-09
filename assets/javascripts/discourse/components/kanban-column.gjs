@@ -11,6 +11,7 @@ import { eq } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
 import { animateCardReorder, captureCardRects } from "../lib/kanban-motion";
 import KanbanCard from "./kanban-card";
+import KanbanAddTopicAsCardModal from "./modal/kanban-add-topic-as-card";
 import KanbanCardDetailModal from "./modal/kanban-card-detail";
 
 export function shouldAnimateDropIndicatorPlacement({
@@ -44,13 +45,25 @@ export default class KanbanColumn extends Component {
   }
 
   @action
-  startAddCard() {
+  async startAddCard(closeMenu) {
+    await closeMenu();
     this.modal.show(KanbanCardDetailModal, {
       model: {
         card: {},
         isNew: true,
         canWrite: true,
         onCreateCard: (data) =>
+          this.args.onAddCard({ ...data, columnId: this.args.column.id }),
+      },
+    });
+  }
+
+  @action
+  async addTopicAsCard(closeMenu) {
+    await closeMenu();
+    this.modal.show(KanbanAddTopicAsCardModal, {
+      model: {
+        onAddTopicAsCard: (data) =>
           this.args.onAddCard({ ...data, columnId: this.args.column.id }),
       },
     });
@@ -364,12 +377,33 @@ export default class KanbanColumn extends Component {
 
       {{#if @canWrite}}
         <div class="kanban-column__footer">
-          <DButton
-            @action={{this.startAddCard}}
+          <DMenu
+            @identifier="kanban-column-add"
             @icon="plus"
-            @label="discourse_kanban.board.add_card"
-            class="kanban-column__add-btn"
-          />
+            @label={{i18n "discourse_kanban.board.add_card"}}
+            @triggerClass="kanban-column__add-btn"
+          >
+            <:content as |args|>
+              <DropdownMenu as |dropdown|>
+                <dropdown.item>
+                  <DButton
+                    @action={{fn this.startAddCard args.close}}
+                    @icon="plus"
+                    @label="discourse_kanban.board.add_card"
+                    class="btn-transparent"
+                  />
+                </dropdown.item>
+                <dropdown.item>
+                  <DButton
+                    @action={{fn this.addTopicAsCard args.close}}
+                    @icon="link"
+                    @label="discourse_kanban.board.add_topic_as_card"
+                    class="btn-transparent"
+                  />
+                </dropdown.item>
+              </DropdownMenu>
+            </:content>
+          </DMenu>
         </div>
       {{/if}}
     </div>

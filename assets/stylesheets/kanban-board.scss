@@ -663,6 +663,61 @@ body.kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
   width: 100%;
 }
 
+.d-modal.kanban-add-topic-as-card-modal {
+  .insert-link {
+    overflow-y: visible;
+
+    input {
+      min-width: 300px;
+    }
+
+    .inputs {
+      position: relative;
+
+      .spinner {
+        position: absolute;
+        right: 8px;
+        top: -15px;
+        width: 10px;
+        height: 10px;
+      }
+
+      .internal-link-results {
+        position: absolute;
+        top: 4rem;
+        padding: 5px 10px;
+        box-shadow: var(--shadow-card);
+        z-index: 5;
+        background-color: var(--secondary);
+        max-height: 10rem;
+        width: 90%;
+        overflow-y: auto;
+
+        > .search-link {
+          padding: 6px;
+          border-bottom: 1px solid var(--content-border-color);
+          cursor: pointer;
+          display: block;
+
+          &:hover,
+          &:focus {
+            background-color: var(--highlight-bg);
+          }
+
+          .search-category {
+            display: flex;
+            align-items: center;
+          }
+
+          .discourse-tags {
+            font-size: var(--font-down-1);
+          }
+        }
+      }
+    }
+  }
+}
+
 .kanban-column-settings-modal {
   .show-advanced {
     margin-left: auto;
