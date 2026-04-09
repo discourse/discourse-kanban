@@ -134,6 +134,7 @@ body.kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
   }
 
   &__title {
+    color: var(--primary);
     text-transform: uppercase;
     font-size: var(--font-down-2);
     font-weight: 500;
@@ -593,17 +594,6 @@ body.kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
         outline: none;
       }
     }
-  }
-
-  .kanban-topic-card-detail__column-pill {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.15em 0.5em;
-    border-radius: var(--d-border-radius);
-    background: var(--primary-low);
-    color: var(--primary-high);
-    font-size: var(--font-down-1);
-    font-weight: 700;
   }
 
   .kanban-topic-card-detail__cooked .cooked {

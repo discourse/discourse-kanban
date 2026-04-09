@@ -135,7 +135,7 @@ export default class KanbanTopicCardDetail extends Component {
               </span>
             {{/if}}
             {{#if this.columnData}}
-              <span class="kanban-topic-card-detail__column-pill">
+              <span class="kanban-column__title">
                 {{#if this.columnData.icon}}{{icon this.columnData.icon}}{{/if}}
                 {{this.columnData.title}}
               </span>
