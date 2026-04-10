@@ -322,7 +322,7 @@ describe "Kanban Board Viewer" do
       find(".kanban-card-detail-modal .kanban-editable-title__input").send_keys(:tab)
       expect(
         page.evaluate_script(
-          "document.activeElement.closest('.kanban-card-detail-modal .form-kit__field-textarea') !== null",
+          "document.activeElement.closest(\".kanban-card-detail-modal .form-kit__field[data-name='notes']\") !== null",
         ),
       ).to eq(true)
 
