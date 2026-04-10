@@ -9,7 +9,6 @@ import { modifier } from "ember-modifier";
 import DButton from "discourse/components/d-button";
 import DropdownMenu from "discourse/components/dropdown-menu";
 import DMenu from "discourse/float-kit/components/d-menu";
-import icon from "discourse/helpers/d-icon";
 import bodyClass from "discourse/helpers/body-class";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
@@ -528,7 +527,7 @@ export default class KanbanBoardViewer extends Component {
     title,
     columnId,
     notes,
-    tag_ids,
+    labels,
     assigned_to_name,
   }) {
     if (topicId) {
@@ -566,17 +565,22 @@ export default class KanbanBoardViewer extends Component {
     }
 
     try {
+      const cardData = { column_id: columnId, title };
+      if (notes) {
+        cardData.notes = notes;
+      }
+      if (labels?.length) {
+        cardData.labels = labels;
+      }
+      if (assigned_to_name) {
+        cardData.assigned_to_name = assigned_to_name;
+      }
+
       const result = await ajax(`/kanban/boards/${this.board.id}/cards`, {
         type: "POST",
         data: {
           client_id: this.messageBus.clientId,
-          card: {
-            column_id: columnId,
-            title,
-            notes,
-            tag_ids,
-            assigned_to_name,
-          },
+          card: cardData,
         },
       });
       this.#appendCardToColumn(result.card, columnId);
@@ -675,8 +679,8 @@ export default class KanbanBoardViewer extends Component {
     if (card.notes) {
       opts.body = card.notes;
     }
-    if (card.tags?.length) {
-      opts.tags = card.tags.map((tag) => tag.name).join(",");
+    if (card.labels?.length) {
+      opts.tags = card.labels;
     }
     const categoryId = column.move_to_category_id;
     if (categoryId) {
@@ -689,7 +693,7 @@ export default class KanbanBoardViewer extends Component {
 
   @action
   openAddColumnModal(closeMenu) {
-    closeMenu?.();
+    closeMenu();
     this.modal.show(KanbanColumnSettings, {
       model: {
         column: null,
@@ -1170,19 +1174,7 @@ export default class KanbanBoardViewer extends Component {
         </div>
       {{else}}
         <div class="kanban-board-viewer__empty">
-          <div class="kanban-board-viewer__empty-column">
-            {{icon "table-columns"}}
-            <h3>{{i18n "discourse_kanban.board.empty_board"}}</h3>
-            <p>{{i18n "discourse_kanban.board.empty_board_description"}}</p>
-            {{#if this.canManage}}
-              <DButton
-                @action={{this.openAddColumnModal}}
-                @icon="plus"
-                @label="discourse_kanban.board.add_column"
-                class="btn-primary"
-              />
-            {{/if}}
-          </div>
+          {{i18n "discourse_kanban.board.empty_board"}}
         </div>
       {{/if}}
     </div>

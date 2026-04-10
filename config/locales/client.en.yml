@@ -2,13 +2,13 @@ en:
   js:
     discourse_kanban:
       board:
-        empty_board: "No Columns Yet"
-        empty_board_description: "Add your first column to get started."
+        empty_board: "This board has no columns yet."
         no_cards: "No cards in this column"
         move_confirm: "Move \"%{topic_title}\" to \"%{column_title}\"?"
         move_failed: "Card could not be moved."
         add_card: "Add card"
         add_topic_as_card: "Add topic as card"
+        add_topic_as_card_title: "Add topic as card"
         topic_search_placeholder: "Search topics..."
         card_title_placeholder: "Card title or topic URL..."
         controls: "Board controls"
@@ -37,7 +37,11 @@ en:
         title_placeholder: "Input card title"
         notes: "Notes"
         notes_placeholder: "Add notes..."
-        tags: "Tags"
+        labels: "Labels"
+        labels_placeholder: "Type labels (comma separated)"
+        labels_help: "Press Enter or click Add. Use commas to add multiple labels."
+        add_label: "Add"
+        remove_label: "Remove label"
         assigned_to: "Assigned To"
         view_topic: "View topic"
         topic_load_error: "Could not load topic content."
