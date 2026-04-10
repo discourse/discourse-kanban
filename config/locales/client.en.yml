@@ -3,6 +3,7 @@ en:
     discourse_kanban:
       board:
         empty_board: "This board has no columns yet."
+        empty_board_cta: "Add your first column to get started."
         no_cards: "No cards in this column"
         move_confirm: "Move \"%{topic_title}\" to \"%{column_title}\"?"
         move_failed: "Card could not be moved."
