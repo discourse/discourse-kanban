@@ -71,9 +71,38 @@ body.kanban-board {
   }
 
   &__empty {
-    padding: 2em;
+    display: flex;
+    align-items: flex-start;
+    padding-inline: var(--space-4);
+    flex: 1;
+    min-height: 0;
+  }
+
+  &__empty-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 16.5rem;
+    padding: 3em 1em;
+    border: 1px dashed var(--primary-300);
+    border-radius: var(--d-border-radius);
     text-align: center;
-    color: var(--primary-medium);
+
+    > .d-icon {
+      font-size: 2.5em;
+      color: var(--primary-medium);
+      margin-bottom: 0.4em;
+    }
+
+    h3 {
+      margin: 0 0 0.25em;
+    }
+
+    p {
+      color: var(--primary-medium);
+      margin: 0 0 1em;
+    }
   }
 
   &.is-fullscreen {
@@ -516,58 +545,6 @@ body.kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
       resize: vertical;
     }
   }
-
-  .kanban-card-detail__labels {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-bottom: 0.5em;
-  }
-
-  .kanban-card-detail__label-composer {
-    display: flex;
-    align-items: center;
-    gap: 0.5em;
-
-    .kanban-card-detail__label-input {
-      flex: 1 1 auto;
-      margin: 0;
-    }
-
-    .kanban-card-detail__add-label {
-      flex-shrink: 0;
-      white-space: nowrap;
-    }
-  }
-
-  .kanban-card-detail__label-help {
-    margin-top: 0.35em;
-    color: var(--primary-medium);
-    font-size: $font-down-2;
-  }
-
-  .kanban-card-detail__label-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
-    background: var(--primary-very-low);
-    border-radius: var(--d-border-radius);
-    font-size: $font-down-1;
-    animation: kanban-label-chip-enter 0.18s ease-out;
-
-    .btn-remove-label {
-      padding: 0;
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: var(--primary-medium);
-
-      &:hover {
-        color: var(--danger);
-      }
-    }
-  }
 }
 
 .kanban-topic-card-detail-modal {
@@ -646,18 +623,6 @@ body.kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
 
 .kanban-card__title--topic {
   cursor: pointer;
-}
-
-@keyframes kanban-label-chip-enter {
-  0% {
-    opacity: 0;
-    transform: translateY(2px) scale(0.98);
-  }
-
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
 }
 
 .select-kit.multi-select.form-kit__control-tag-chooser {
