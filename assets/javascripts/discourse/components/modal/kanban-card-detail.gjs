@@ -2,6 +2,7 @@ import Component from "@glimmer/component";
 import { tracked } from "@glimmer/tracking";
 import { fn, hash } from "@ember/helper";
 import { action } from "@ember/object";
+import DButton from "discourse/components/d-button";
 import DModal from "discourse/components/d-modal";
 import Form from "discourse/components/form";
 import EmailGroupUserChooser from "discourse/select-kit/components/email-group-user-chooser";
@@ -52,11 +53,24 @@ export default class KanbanCardDetail extends Component {
 
   @action
   async save(data) {
-    const tags = (data.tags || []).map((t) => t.name ?? t);
+    const tagIds = (data.tags || [])
+      .map((tag) => {
+        if (typeof tag === "number") {
+          return tag;
+        }
+
+        if (typeof tag === "string") {
+          return Number.parseInt(tag, 10);
+        }
+
+        return tag.id;
+      })
+      .filter((tagId) => Number.isInteger(tagId) && tagId > 0);
+
     const updates = {
       title: this.editTitle.trim(),
       notes: data.notes,
-      tags: !this.isNew && !tags.length ? [""] : tags,
+      tag_ids: !this.isNew && !tagIds.length ? [""] : tagIds,
       assigned_to_name: data.assigned_to[0] || null,
     };
     try {
@@ -83,7 +97,7 @@ export default class KanbanCardDetail extends Component {
           @value={{this.editTitle}}
           @placeholder={{i18n "discourse_kanban.board.title_placeholder"}}
           @onInput={{this.onTitleInput}}
-          @onClose={{@closeModal}}
+          @showClose={{false}}
           @disabled={{not this.canWrite}}
         />
 
@@ -111,7 +125,7 @@ export default class KanbanCardDetail extends Component {
               @type="tag-chooser"
               as |field|
             >
-              <field.Control @allowCreate={{true}} />
+              <field.Control />
             </form.Field>
 
             <form.Field
@@ -143,6 +157,14 @@ export default class KanbanCardDetail extends Component {
             />
           </form.Actions>
         </Form>
+
+        <DButton
+          @action={{@closeModal}}
+          @icon="xmark"
+          @ariaLabel="modal.close"
+          @title="modal.close"
+          class="btn-flat kanban-card-detail-modal__close"
+        />
       </:body>
     </DModal>
   </template>

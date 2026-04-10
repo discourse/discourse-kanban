@@ -15,6 +15,7 @@ RSpec.describe DiscourseKanban::CreateCard do
     fab!(:write_group, :group)
     fab!(:read_group, :group)
     fab!(:category)
+    fab!(:tag)
     fab!(:topic) { Fabricate(:topic, category: category) }
     fab!(:board) do
       DiscourseKanban::Board.create!(
@@ -47,6 +48,18 @@ RSpec.describe DiscourseKanban::CreateCard do
         expect(card.title).to eq("New Task")
         expect(card.column_id).to eq(column.id)
         expect(card.created_by_id).to eq(writer.id)
+      end
+    end
+
+    context "when creating a floater card with tag ids" do
+      let(:params) do
+        { board_id: board.id, column_id: column.id, title: "Tagged", tag_ids: [tag.id] }
+      end
+
+      it { is_expected.to run_successfully }
+
+      it "persists tag ids" do
+        expect(result[:card].tag_ids).to eq([tag.id])
       end
     end
 

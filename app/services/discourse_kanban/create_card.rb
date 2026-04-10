@@ -4,6 +4,8 @@ module DiscourseKanban
   class CreateCard
     include Service::Base
 
+    options { attribute :constraint_fix }
+
     params do
       attribute :board_id, :integer
       attribute :column_id, :integer
@@ -12,7 +14,7 @@ module DiscourseKanban
       attribute :notes, :string
       attribute :after_card_id, :integer
       attribute :assigned_to_name, :string
-      attribute :tags, :array
+      attribute :tag_ids, :array
 
       validates :board_id, presence: true
       validates :column_id, presence: true
@@ -21,7 +23,6 @@ module DiscourseKanban
     model :board
     policy :can_write
     model :column
-
     step :create_card
 
     private
@@ -38,17 +39,15 @@ module DiscourseKanban
       board.columns.find_by(id: params.column_id)
     end
 
-    def create_card(board:, column:, params:, guardian:)
-      card =
-        if params.topic_id.present?
-          build_topic_card(board, column, params, guardian)
-        else
-          build_floater_card(board, column, params, guardian)
-        end
-      context[:card] = card
+    def create_card(board:, column:, params:, guardian:, options:)
+      context[:card] = if params.topic_id.present?
+        build_topic_card(board, column, params, guardian, options:)
+      else
+        build_floater_card(board, column, params, guardian)
+      end
     end
 
-    def build_topic_card(board, column, params, guardian)
+    def build_topic_card(board, column, params, guardian, options:)
       topic = Topic.find_by(id: params.topic_id)
       raise Discourse::NotFound if topic.nil?
       raise Discourse::NotFound unless guardian.can_see?(topic)
@@ -59,8 +58,10 @@ module DiscourseKanban
       end
 
       Card.transaction do
-        if context[:constraint_fix].present?
-          ConstraintFixer.apply!(fix: context[:constraint_fix], board:, topic:, guardian:)
+        constraint_fix = options.constraint_fix.presence || context[:constraint_fix]
+
+        if constraint_fix.present?
+          ConstraintFixer.apply!(fix: constraint_fix, board:, topic:, guardian:)
         end
 
         unless board.topic_will_match_after_mutation?(topic, column)
@@ -114,7 +115,7 @@ module DiscourseKanban
           card_type: :floater,
           title: params.title,
           notes: params.notes,
-          tags: params.tags || [],
+          tag_ids: normalize_tag_ids(params.tag_ids),
           assigned_to: resolve_assignee(params.assigned_to_name, guardian),
           created_by_id: guardian.user.id,
           updated_by_id: guardian.user.id,
@@ -144,6 +145,10 @@ module DiscourseKanban
         candidate.message.include?("idx_kanban_cards_unique_topic_per_column") ||
           topic_card_constraint_name(candidate) == "idx_kanban_cards_unique_topic_per_column"
       end
+    end
+
+    def normalize_tag_ids(values)
+      Card.normalize_tag_ids!(values)
     end
 
     def topic_card_constraint_name(error)

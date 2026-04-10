@@ -27,6 +27,7 @@ module DiscourseKanban
       visible_topic_ids = visible_topic_ids_for(cards)
 
       assignments_by_topic = preload_all_assignments(cards, visible_topic_ids)
+      tags_by_id = preload_floater_card_tags(cards)
 
       tag_name_map = build_tag_name_map(@board)
       columns =
@@ -37,7 +38,7 @@ module DiscourseKanban
         next if card.topic? && !visible_topic_ids.include?(card.topic_id)
 
         columns_by_id[card.column_id]&.[](:cards)&.push(
-          CardPayloadSerializer.new(card, root: false, assignments_by_topic:).as_json,
+          CardPayloadSerializer.new(card, root: false, assignments_by_topic:, tags_by_id:).as_json,
         )
       end
 
@@ -178,6 +179,13 @@ module DiscourseKanban
         .where(topic_id: topic_ids, active: true, assigned_to_type: "User")
         .includes(:assigned_to)
         .group_by(&:topic_id)
+    end
+
+    def preload_floater_card_tags(cards)
+      tag_ids = cards.reject(&:topic?).flat_map(&:tag_ids).uniq
+      return {} if tag_ids.empty?
+
+      Tag.where(id: tag_ids).index_by(&:id)
     end
 
     def visible_topic_ids_for(cards)

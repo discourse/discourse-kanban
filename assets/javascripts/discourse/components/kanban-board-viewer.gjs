@@ -544,7 +544,14 @@ export default class KanbanBoardViewer extends Component {
   }
 
   @action
-  async onAddCard({ topicId, title, columnId, notes, tags, assigned_to_name }) {
+  async onAddCard({
+    topicId,
+    title,
+    columnId,
+    notes,
+    tag_ids,
+    assigned_to_name,
+  }) {
     if (topicId) {
       try {
         const constraintFix = await this.#resolveConstraintFixForCreate(
@@ -584,7 +591,13 @@ export default class KanbanBoardViewer extends Component {
         type: "POST",
         data: {
           client_id: this.messageBus.clientId,
-          card: { column_id: columnId, title, notes, tags, assigned_to_name },
+          card: {
+            column_id: columnId,
+            title,
+            notes,
+            tag_ids,
+            assigned_to_name,
+          },
         },
       });
       this.#appendCardToColumn(result.card, columnId);
@@ -684,7 +697,7 @@ export default class KanbanBoardViewer extends Component {
       opts.body = card.notes;
     }
     if (card.tags?.length) {
-      opts.tags = card.tags;
+      opts.tags = card.tags.map((tag) => tag.name).join(",");
     }
     const categoryId = column.move_to_category_id;
     if (categoryId) {

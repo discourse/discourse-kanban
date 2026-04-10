@@ -84,6 +84,21 @@
 .kanban-card-detail-modal {
   --modal-max-width: 50ch;
 
+  .d-modal__body {
+    position: relative;
+  }
+
+  .kanban-editable-title {
+    padding-right: calc(var(--space-9) + var(--space-2));
+  }
+
+  &__close {
+    position: absolute;
+    top: var(--space-2);
+    right: var(--space-3);
+    z-index: 1;
+  }
+
   .form-kit__field-textarea .form-kit__container-content,
   .form-kit__field-composer .form-kit__container-content {
     width: 100% !important;

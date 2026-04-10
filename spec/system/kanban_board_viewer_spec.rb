@@ -217,6 +217,25 @@ describe "Kanban Board Viewer" do
       expect(DiscourseKanban::Card.find_by(title: "My new task")).to be_present
     end
 
+    it "persists tags when creating a floater card" do
+      SiteSetting.tagging_enabled = true
+
+      board = create_board(allow_write_group_ids: [write_group.id])
+      board.columns.create!(title: "To Do", position: 0)
+
+      sign_in(admin)
+      board_viewer.visit_board(board)
+
+      board_viewer.click_add_card("To Do")
+      board_viewer.fill_card_title("Tagged task")
+      board_viewer.select_card_detail_tag(tag1.name)
+      board_viewer.submit_card
+
+      expect(board_viewer).to have_floater_card_in_column("To Do", "Tagged task")
+      expect(board_viewer).to have_card_tag("Tagged task", tag1.name)
+      expect(DiscourseKanban::Card.find_by!(title: "Tagged task").tag_ids).to eq([tag1.id])
+    end
+
     it "opens the card detail modal when clicking a floater card" do
       board = create_board(allow_write_group_ids: [write_group.id])
       col_todo = board.columns.create!(title: "To Do", position: 0)
@@ -288,6 +307,35 @@ describe "Kanban Board Viewer" do
 
       board_viewer.save_card_detail
       expect(board_viewer).to have_card_tag("Tag me", "urgent")
+    end
+
+    it "tabs from the title to notes and leaves close last" do
+      board = create_board(allow_write_group_ids: [write_group.id])
+      board.columns.create!(title: "To Do", position: 0)
+
+      sign_in(admin)
+      board_viewer.visit_board(board)
+
+      board_viewer.click_add_card("To Do")
+      expect(board_viewer).to have_card_detail_modal
+
+      find(".kanban-card-detail-modal .kanban-editable-title__input").send_keys(:tab)
+      expect(
+        page.evaluate_script(
+          "document.activeElement.closest('.kanban-card-detail-modal .form-kit__field-textarea') !== null",
+        ),
+      ).to eq(true)
+
+      page.execute_script(
+        "document.querySelector('.kanban-card-detail-modal .d-modal-cancel').focus()",
+      )
+      page.send_keys(:tab)
+
+      expect(
+        page.evaluate_script(
+          "document.activeElement.matches('.kanban-card-detail-modal .kanban-card-detail-modal__close')",
+        ),
+      ).to eq(true)
     end
 
     it "does not show add card button for read-only users" do

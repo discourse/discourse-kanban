@@ -9,6 +9,7 @@ module DiscourseKanban
                :position,
                :title,
                :notes,
+               :tag_ids,
                :tags,
                :topic_id,
                :created_at,
@@ -27,6 +28,16 @@ module DiscourseKanban
 
     def include_created_at?
       !object.topic?
+    end
+
+    def tag_ids
+      object.topic? ? [] : object.tag_ids
+    end
+
+    def tags
+      return [] if object.topic?
+
+      ordered_tags.map { |tag| CardTagSerializer.new(tag, root: false, scope: scope).as_json }
     end
 
     def created_by
@@ -52,6 +63,15 @@ module DiscourseKanban
 
     def include_assigned_to?
       !object.topic? && object.assigned_to.present?
+    end
+
+    private
+
+    def ordered_tags
+      tags_by_id = @options[:tags_by_id]
+      return Card.ordered_tags(object.tag_ids) if tags_by_id.blank?
+
+      object.tag_ids.filter_map { |tag_id| tags_by_id[tag_id] }
     end
   end
 end

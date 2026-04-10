@@ -25,6 +25,47 @@ module DiscourseKanban
     scope :with_column, -> { where.not(column_id: nil) }
     scope :ordered, -> { order(:position, :id) }
 
+    def self.normalize_tag_ids!(values)
+      raw_values = Array(values)
+      normalized_tag_ids =
+        raw_values
+          .filter_map do |value|
+            next if value.blank?
+            value.is_a?(String) ? Integer(value, 10) : Integer(value)
+          rescue ArgumentError, TypeError
+            raise Discourse::InvalidParameters.new(
+                    I18n.t(
+                      "discourse_kanban.errors.unknown_tag_ids",
+                      tag_ids: raw_values.join(","),
+                    ),
+                  )
+          end
+          .uniq
+
+      unknown_tag_ids = missing_tag_ids(normalized_tag_ids)
+      return normalized_tag_ids if unknown_tag_ids.empty?
+
+      raise Discourse::InvalidParameters.new(
+              I18n.t("discourse_kanban.errors.unknown_tag_ids", tag_ids: unknown_tag_ids.join(",")),
+            )
+    end
+
+    def self.ordered_tags(tag_ids)
+      normalized_tag_ids = Array(tag_ids).map(&:to_i).reject(&:zero?).uniq
+      return [] if normalized_tag_ids.blank?
+
+      tags_by_id = Tag.where(id: normalized_tag_ids).index_by(&:id)
+      normalized_tag_ids.filter_map { |tag_id| tags_by_id[tag_id] }
+    end
+
+    def self.missing_tag_ids(tag_ids)
+      normalized_tag_ids = Array(tag_ids).map(&:to_i).reject(&:zero?).uniq
+      return [] if normalized_tag_ids.blank?
+
+      existing_tag_ids = Tag.where(id: normalized_tag_ids).pluck(:id)
+      normalized_tag_ids - existing_tag_ids
+    end
+
     private
 
     def normalize_card_type
@@ -52,9 +93,9 @@ end
 #  assigned_to_type :string
 #  card_type        :integer          default("floater"), not null
 #  due_at           :datetime
-#  tags             :text             default([]), not null, is an Array
 #  notes            :text
 #  position         :bigint           default(0), not null
+#  tag_ids          :integer          default([]), not null, is an Array
 #  title            :string
 #  created_at       :datetime         not null
 #  updated_at       :datetime         not null
