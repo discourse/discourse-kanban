@@ -1,6 +1,7 @@
 import Component from "@glimmer/component";
 import { tracked } from "@glimmer/tracking";
 import { fn } from "@ember/helper";
+import { on } from "@ember/modifier";
 import { action } from "@ember/object";
 import didInsert from "@ember/render-modifiers/modifiers/did-insert";
 import { schedule } from "@ember/runloop";
@@ -40,6 +41,26 @@ const onWindowResize = modifier((element, [callback]) => {
       visualViewport.removeEventListener("resize", wrappedCallback);
     }
   };
+});
+
+const matchLastColumnHeight = modifier((element) => {
+  const container = element.parentElement;
+  if (!container) {
+    return;
+  }
+
+  const update = () => {
+    const columns = container.querySelectorAll(":scope > .kanban-column");
+    const last = columns[columns.length - 1];
+    element.style.height = last ? `${last.offsetHeight}px` : "";
+    columns.forEach((col) => ro.observe(col));
+  };
+
+  const ro = new ResizeObserver(update);
+  ro.observe(container);
+  update();
+
+  return () => ro.disconnect();
 });
 
 function calcAvailableHeight(element) {
@@ -694,7 +715,9 @@ export default class KanbanBoardViewer extends Component {
 
   @action
   openAddColumnModal(closeMenu) {
-    closeMenu?.();
+    if (typeof closeMenu === "function") {
+      closeMenu();
+    }
     this.modal.show(KanbanColumnSettings, {
       model: {
         column: null,
@@ -1172,6 +1195,17 @@ export default class KanbanBoardViewer extends Component {
               @allColumns={{this.columns}}
             />
           {{/each}}
+          {{#if this.canManage}}
+            <button
+              type="button"
+              class="kanban-board-container__add-column"
+              title={{i18n "discourse_kanban.board.add_column"}}
+              {{on "click" this.openAddColumnModal}}
+              {{matchLastColumnHeight}}
+            >
+              {{icon "plus"}}
+            </button>
+          {{/if}}
         </div>
       {{else}}
         <div class="kanban-board-viewer__empty">
