@@ -1,10 +1,10 @@
 import Component from "@glimmer/component";
-import { tracked } from "@glimmer/tracking";
-import { hash } from "@ember/helper";
-import { on } from "@ember/modifier";
+import { cached, tracked } from "@glimmer/tracking";
+import { fn, hash } from "@ember/helper";
 import { action } from "@ember/object";
 import DButton from "discourse/components/d-button";
 import DModal from "discourse/components/d-modal";
+import Form from "discourse/components/form";
 import { popupAjaxError } from "discourse/lib/ajax-error";
 import CategoryChooser from "discourse/select-kit/components/category-chooser";
 import ComboBox from "discourse/select-kit/components/combo-box";
@@ -20,45 +20,40 @@ import {
   STATUS_OPTIONS,
   tagToArray,
 } from "../../lib/kanban-column-helpers";
+import KanbanEditableTitle from "../kanban-editable-title";
 
 export default class KanbanColumnSettings extends Component {
   @tracked editTitle;
-  @tracked editIcon;
-  @tracked editTagName;
-  @tracked editMoveToCategoryId;
-  @tracked editMoveToAssigned;
-  @tracked editMoveToStatus;
-  @tracked saving = false;
   @tracked showAdvanced = false;
 
   constructor() {
     super(...arguments);
-    const column = this.args.model.column;
-    if (column) {
-      this.editTitle = column.title || "";
-      this.editIcon = column.icon || null;
-      this.editTagName = column.tag_name || "";
-      this.editMoveToCategoryId = column.move_to_category_id || null;
-      this.editMoveToAssigned = column.move_to_assigned || "";
-      this.editMoveToStatus = column.move_to_status || "";
-    } else {
-      this.editTitle = "";
-      this.editIcon = null;
-      this.editTagName = "";
-      this.editMoveToCategoryId = null;
-      this.editMoveToAssigned = "";
-      this.editMoveToStatus = "";
-    }
+    this.editTitle = this.args.model.column?.title || "";
   }
 
   get isNew() {
     return !this.args.model.column;
   }
 
-  get modalTitle() {
-    return this.isNew
-      ? i18n("discourse_kanban.board.new_column_title")
-      : i18n("discourse_kanban.board.column_settings_title");
+  @cached
+  get formData() {
+    const column = this.args.model.column;
+    if (column) {
+      return {
+        icon: column.icon || null,
+        tag_name: column.tag_name || "",
+        move_to_category_id: column.move_to_category_id || null,
+        move_to_assigned: column.move_to_assigned || "",
+        move_to_status: column.move_to_status || "",
+      };
+    }
+    return {
+      icon: null,
+      tag_name: "",
+      move_to_category_id: null,
+      move_to_assigned: "",
+      move_to_status: "",
+    };
   }
 
   get statusOptions() {
@@ -69,52 +64,40 @@ export default class KanbanColumnSettings extends Component {
     return ASSIGNED_OPTIONS;
   }
 
-  get currentAssignedMode() {
-    return assignedMode(this.editMoveToAssigned);
-  }
-
-  get currentAssignedUserValue() {
-    return assignedUserValue(this.editMoveToAssigned);
-  }
-
-  get currentTagArray() {
-    return tagToArray(this.editTagName);
+  @action
+  onTitleInput(value) {
+    this.editTitle = value;
   }
 
   @action
-  onTitleInput(event) {
-    this.editTitle = event.target.value;
+  onRegisterApi(api) {
+    this.formApi = api;
   }
 
   @action
-  onIconChange(value) {
-    this.editIcon = value;
-  }
-
-  @action
-  onTagChange(tags) {
+  onTagChange(field, tags) {
     const tag = tags?.[0];
-    this.editTagName = typeof tag === "object" ? tag.name : tag || "";
+    field.set(typeof tag === "object" ? tag.name : tag || "");
   }
 
   @action
-  onCategoryChange(value) {
-    this.editMoveToCategoryId = value;
+  onCategoryChange(field, value) {
+    field.set(value);
   }
 
   @action
-  onAssignedModeChange(value) {
-    this.editMoveToAssigned = value || "";
+  onAssignedModeChange(field, value) {
+    field.set(value || "");
   }
 
   @action
-  onAssignedUserChange(users) {
-    this.editMoveToAssigned = users?.[0] || "_user";
+  onAssignedUserChange(field, users) {
+    field.set(users?.[0] || "_user");
   }
 
   @action
-  onStatusChange(value) {
-    this.editMoveToStatus = value;
+  onStatusChange(field, value) {
+    field.set(value);
   }
 
   @action
@@ -123,140 +106,169 @@ export default class KanbanColumnSettings extends Component {
   }
 
   @action
-  async save() {
-    if (this.saving) {
-      return;
-    }
-    this.saving = true;
-
+  async save(data) {
     const columnData = {
-      title: this.editTitle,
-      icon: this.editIcon,
-      tag_name: this.editTagName || null,
-      move_to_category_id: this.editMoveToCategoryId,
-      move_to_assigned: this.editMoveToAssigned,
-      move_to_status: this.editMoveToStatus,
+      title: this.editTitle.trim(),
+      icon: data.icon,
+      tag_name: data.tag_name || null,
+      move_to_category_id: data.move_to_category_id,
+      move_to_assigned: data.move_to_assigned,
+      move_to_status: data.move_to_status,
     };
     try {
       await this.args.model.onSave(columnData);
       this.args.closeModal();
     } catch (error) {
       popupAjaxError(error);
-    } finally {
-      this.saving = false;
     }
   }
 
   <template>
     <DModal
       @closeModal={{@closeModal}}
-      @title={{this.modalTitle}}
+      @hideHeader={{true}}
       class="kanban-column-settings-modal"
     >
       <:body>
-        <div class="kanban-column-settings__field">
-          <label>{{i18n "discourse_kanban.manage.columns.column_title"}}</label>
-          <input
-            type="text"
-            value={{this.editTitle}}
-            {{on "input" this.onTitleInput}}
-          />
-        </div>
-
-        <div class="kanban-column-settings__field">
-          <label>{{i18n "discourse_kanban.manage.columns.icon"}}</label>
-          <IconPicker
-            @value={{this.editIcon}}
-            @onChange={{this.onIconChange}}
-            @options={{hash maximum=1 icons=this.editIcon}}
-          />
-        </div>
-
-        <div class="kanban-column-settings__field">
-          <label>{{i18n "discourse_kanban.manage.columns.tag"}}</label>
-          <MiniTagChooser
-            @value={{this.currentTagArray}}
-            @onChange={{this.onTagChange}}
-            @options={{hash maximum=1 allowCreate=false}}
-          />
-          <p class="kanban-column-settings__help">
-            {{i18n "discourse_kanban.manage.columns.tag_help"}}
-          </p>
-        </div>
-
-        {{#if this.showAdvanced}}
-          <div class="kanban-column-settings__field">
-            <label>{{i18n
-                "discourse_kanban.manage.columns.move_to_category"
-              }}</label>
-            <CategoryChooser
-              @value={{this.editMoveToCategoryId}}
-              @onChange={{this.onCategoryChange}}
-              @options={{hash clearable=true}}
-            />
-          </div>
-
-          <div class="kanban-column-settings__field">
-            <label>{{i18n
-                "discourse_kanban.manage.columns.move_to_assigned"
-              }}</label>
-            <ComboBox
-              @value={{this.currentAssignedMode}}
-              @content={{this.assignedOptions}}
-              @onChange={{this.onAssignedModeChange}}
-              @options={{hash
-                clearable=true
-                none="discourse_kanban.manage.columns.move_to_assigned_none"
-              }}
-            />
-            {{#if (eq this.currentAssignedMode "_user")}}
-              <EmailGroupUserChooser
-                @value={{this.currentAssignedUserValue}}
-                @onChange={{this.onAssignedUserChange}}
-                @options={{hash maximum=1}}
-              />
-            {{/if}}
-          </div>
-
-          <div class="kanban-column-settings__field">
-            <label>{{i18n
-                "discourse_kanban.manage.columns.move_to_status"
-              }}</label>
-            <ComboBox
-              @value={{this.editMoveToStatus}}
-              @content={{this.statusOptions}}
-              @onChange={{this.onStatusChange}}
-              @options={{hash
-                clearable=true
-                none="discourse_kanban.manage.columns.move_to_status_none"
-              }}
-            />
-          </div>
-        {{/if}}
-      </:body>
-      <:footer>
-        <DButton
-          class="btn-primary"
-          @action={{this.save}}
-          @label="save"
-          @isLoading={{this.saving}}
-        />
-        <DButton
-          class="btn-flat d-modal-cancel"
-          @action={{@closeModal}}
-          @label="cancel"
-        />
-        <DButton
-          @action={{this.toggleAdvanced}}
-          @icon="gear"
-          @title={{if
-            this.showAdvanced
-            "discourse_kanban.manage.columns.hide_advanced"
-            "discourse_kanban.manage.columns.show_advanced"
+        <KanbanEditableTitle
+          @value={{this.editTitle}}
+          @placeholder={{i18n
+            "discourse_kanban.manage.columns.column_title_placeholder"
           }}
-          class="btn-default show-advanced"
+          @onInput={{this.onTitleInput}}
+          @onClose={{@closeModal}}
         />
-      </:footer>
+
+        <Form
+          @data={{this.formData}}
+          @onSubmit={{this.save}}
+          @onRegisterApi={{this.onRegisterApi}}
+          as |form data|
+        >
+          <div class="kanban-column-settings-modal__wrapper">
+            <form.Section>
+              <form.Field
+                @name="icon"
+                @title={{i18n "discourse_kanban.manage.columns.icon"}}
+                @format="max"
+                @type="icon"
+                as |field|
+              >
+                <field.Control/>
+              </form.Field>
+
+              <form.Field
+                @name="tag_name"
+                @title={{i18n "discourse_kanban.manage.columns.tag"}}
+                @format="max"
+                @type="custom"
+                as |field|
+              >
+                <field.Control>
+                  <MiniTagChooser
+                    @value={{tagToArray data.tag_name}}
+                    @onChange={{fn this.onTagChange field}}
+                    @options={{hash maximum=1 allowCreate=false}}
+                  />
+                  <p class="kanban-column-settings__help">
+                    {{i18n "discourse_kanban.manage.columns.tag_help"}}
+                  </p>
+                </field.Control>
+              </form.Field>
+
+              {{#if this.showAdvanced}}
+                <form.Field
+                  @name="move_to_category_id"
+                  @title={{i18n
+                    "discourse_kanban.manage.columns.move_to_category"
+                  }}
+                  @format="max"
+                  @type="custom"
+                  as |field|
+                >
+                  <field.Control>
+                    <CategoryChooser
+                      @value={{data.move_to_category_id}}
+                      @onChange={{fn this.onCategoryChange field}}
+                      @options={{hash clearable=true}}
+                    />
+                  </field.Control>
+                </form.Field>
+
+                <form.Field
+                  @name="move_to_assigned"
+                  @title={{i18n
+                    "discourse_kanban.manage.columns.move_to_assigned"
+                  }}
+                  @format="max"
+                  @type="custom"
+                  as |field|
+                >
+                  <field.Control>
+                    <ComboBox
+                      @value={{assignedMode data.move_to_assigned}}
+                      @content={{this.assignedOptions}}
+                      @onChange={{fn this.onAssignedModeChange field}}
+                      @options={{hash
+                        clearable=true
+                        none="discourse_kanban.manage.columns.move_to_assigned_none"
+                      }}
+                    />
+                    {{#if (eq (assignedMode data.move_to_assigned) "_user")}}
+                      <EmailGroupUserChooser
+                        @value={{assignedUserValue data.move_to_assigned}}
+                        @onChange={{fn this.onAssignedUserChange field}}
+                        @options={{hash maximum=1}}
+                      />
+                    {{/if}}
+                  </field.Control>
+                </form.Field>
+
+                <form.Field
+                  @name="move_to_status"
+                  @title={{i18n
+                    "discourse_kanban.manage.columns.move_to_status"
+                  }}
+                  @format="max"
+                  @type="custom"
+                  as |field|
+                >
+                  <field.Control>
+                    <ComboBox
+                      @value={{data.move_to_status}}
+                      @content={{this.statusOptions}}
+                      @onChange={{fn this.onStatusChange field}}
+                      @options={{hash
+                        clearable=true
+                        none="discourse_kanban.manage.columns.move_to_status_none"
+                      }}
+                    />
+                  </field.Control>
+                </form.Field>
+              {{/if}}
+            </form.Section>
+          </div>
+
+          <form.Actions>
+            <form.Submit />
+            <form.Button
+              class="btn-flat d-modal-cancel"
+              @action={{@closeModal}}
+              @label="cancel"
+            />
+            <DButton
+              @action={{this.toggleAdvanced}}
+              @icon="gear"
+              @title={{if
+                this.showAdvanced
+                "discourse_kanban.manage.columns.hide_advanced"
+                "discourse_kanban.manage.columns.show_advanced"
+              }}
+              class="btn-default show-advanced"
+            />
+          </form.Actions>
+        </Form>
+      </:body>
     </DModal>
   </template>
 }

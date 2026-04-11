@@ -47,7 +47,8 @@
 }
 
 .kanban-board-settings-modal,
-.kanban-card-detail-modal {
+.kanban-card-detail-modal,
+.kanban-column-settings-modal {
   .d-modal__body {
     display: flex;
     flex-direction: column;
@@ -87,6 +88,10 @@
   .form-kit__field-composer .form-kit__container-content {
     width: 100% !important;
   }
+}
+
+.kanban-column-settings-modal {
+  --modal-max-width: 50ch;
 }
 
 .discourse-kanban-manage {

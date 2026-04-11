@@ -115,7 +115,12 @@ module PageObjects
 
       def fill_modal_column_title(title)
         within(".kanban-column-settings-modal") do
-          all("input[type='text']").first.fill_in(with: title)
+          input = find(".kanban-editable-title__input", wait: 2) rescue nil
+          unless input
+            find(".kanban-editable-title__text").click
+            input = find(".kanban-editable-title__input")
+          end
+          input.fill_in(with: title)
         end
         self
       end
@@ -143,7 +148,9 @@ module PageObjects
       end
 
       def save_column_modal
-        within(".kanban-column-settings-modal") { find(".btn-primary").click }
+        within(".kanban-column-settings-modal") do
+          find(".form-kit__actions button[type='submit']").click
+        end
         self
       end
 

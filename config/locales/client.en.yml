@@ -103,6 +103,7 @@ en:
           add: "Add Column"
           remove: "Remove"
           column_title: "Title"
+          column_title_placeholder: "Column title..."
           icon: "Icon"
           tag: "Tag"
           tag_help: "Topics with this tag appear in this column. Moving a topic here applies this tag."
