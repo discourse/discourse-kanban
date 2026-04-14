@@ -11,7 +11,7 @@ module DiscourseKanban
     belongs_to :updated_by, class_name: "User", optional: true
     belongs_to :assigned_to, polymorphic: true, optional: true
 
-    self.ignored_columns = ["membership_mode"]
+    self.ignored_columns = %w[membership_mode labels]
 
     enum :card_type, { floater: 0, topic: 1 }, default: :floater
 
@@ -25,7 +25,44 @@ module DiscourseKanban
     scope :with_column, -> { where.not(column_id: nil) }
     scope :ordered, -> { order(:position, :id) }
 
+    def self.normalize_tag_ids!(values)
+      normalized_tag_ids = normalize_tag_id_values!(values)
+
+      unknown_tag_ids = tag_ids_missing_from_database(normalized_tag_ids)
+      return normalized_tag_ids if unknown_tag_ids.empty?
+
+      raise Discourse::InvalidParameters.new(
+              I18n.t("discourse_kanban.errors.unknown_tag_ids", tag_ids: unknown_tag_ids.join(",")),
+            )
+    end
+
+    def self.ordered_tags(tag_ids)
+      normalized_tag_ids = normalize_tag_id_values!(tag_ids)
+      return [] if normalized_tag_ids.blank?
+
+      tags_by_id = Tag.where(id: normalized_tag_ids).index_by(&:id)
+      normalized_tag_ids.filter_map { |tag_id| tags_by_id[tag_id] }
+    end
+
+    def self.tag_ids_missing_from_database(tag_ids)
+      return [] if tag_ids.blank?
+
+      existing_tag_ids = Tag.where(id: tag_ids).pluck(:id)
+      tag_ids - existing_tag_ids
+    end
+
+    def self.normalize_tag_id_values!(values)
+      raw_values = Array(values)
+      raw_values.compact_blank.map { |value| Integer(value) }.reject(&:zero?).uniq
+    rescue ArgumentError, TypeError
+      raise Discourse::InvalidParameters.new(
+              I18n.t("discourse_kanban.errors.unknown_tag_ids", tag_ids: raw_values.join(",")),
+            )
+    end
+
     private
+
+    private_class_method :normalize_tag_id_values!, :tag_ids_missing_from_database
 
     def normalize_card_type
       return if topic_id.blank?
@@ -52,9 +89,9 @@ end
 #  assigned_to_type :string
 #  card_type        :integer          default("floater"), not null
 #  due_at           :datetime
-#  labels           :text             default([]), not null, is an Array
 #  notes            :text
 #  position         :bigint           default(0), not null
+#  tag_ids          :integer          default([]), not null, is an Array
 #  title            :string
 #  created_at       :datetime         not null
 #  updated_at       :datetime         not null

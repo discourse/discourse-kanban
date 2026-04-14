@@ -549,7 +549,7 @@ export default class KanbanBoardViewer extends Component {
     title,
     columnId,
     notes,
-    labels,
+    tag_ids,
     assigned_to_name,
   }) {
     if (topicId) {
@@ -587,22 +587,17 @@ export default class KanbanBoardViewer extends Component {
     }
 
     try {
-      const cardData = { column_id: columnId, title };
-      if (notes) {
-        cardData.notes = notes;
-      }
-      if (labels?.length) {
-        cardData.labels = labels;
-      }
-      if (assigned_to_name) {
-        cardData.assigned_to_name = assigned_to_name;
-      }
-
       const result = await ajax(`/kanban/boards/${this.board.id}/cards`, {
         type: "POST",
         data: {
           client_id: this.messageBus.clientId,
-          card: cardData,
+          card: {
+            column_id: columnId,
+            title,
+            notes,
+            tag_ids,
+            assigned_to_name,
+          },
         },
       });
       this.#appendCardToColumn(result.card, columnId);
@@ -701,8 +696,8 @@ export default class KanbanBoardViewer extends Component {
     if (card.notes) {
       opts.body = card.notes;
     }
-    if (card.labels?.length) {
-      opts.tags = card.labels;
+    if (card.tags?.length) {
+      opts.tags = card.tags.map((tag) => tag.name).join(",");
     }
     const categoryId = column.move_to_category_id;
     if (categoryId) {

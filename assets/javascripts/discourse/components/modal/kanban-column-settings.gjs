@@ -9,7 +9,6 @@ import { popupAjaxError } from "discourse/lib/ajax-error";
 import CategoryChooser from "discourse/select-kit/components/category-chooser";
 import ComboBox from "discourse/select-kit/components/combo-box";
 import EmailGroupUserChooser from "discourse/select-kit/components/email-group-user-chooser";
-import IconPicker from "discourse/select-kit/components/icon-picker";
 import MiniTagChooser from "discourse/select-kit/components/mini-tag-chooser";
 import { eq } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
@@ -154,7 +153,7 @@ export default class KanbanColumnSettings extends Component {
                 @type="icon"
                 as |field|
               >
-                <field.Control/>
+                <field.Control />
               </form.Field>
 
               <form.Field

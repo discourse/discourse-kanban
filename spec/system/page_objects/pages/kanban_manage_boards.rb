@@ -42,12 +42,8 @@ module PageObjects
 
       def fill_modal_board_name(name)
         within(".kanban-board-settings-modal") do
-          if has_css?(".kanban-editable-title__input", wait: 0)
-            find(".kanban-editable-title__input").fill_in(with: name)
-          else
-            find(".kanban-editable-title__text").click
-            find(".kanban-editable-title__input").fill_in(with: name)
-          end
+          find(".kanban-editable-title__input, .kanban-editable-title__text").click
+          find(".kanban-editable-title__input").fill_in(with: name)
         end
         self
       end
@@ -115,12 +111,12 @@ module PageObjects
 
       def fill_modal_column_title(title)
         within(".kanban-column-settings-modal") do
-          input = find(".kanban-editable-title__input", wait: 2) rescue nil
-          unless input
+          if has_css?(".kanban-editable-title__input", wait: 0)
+            find(".kanban-editable-title__input").fill_in(with: title)
+          else
             find(".kanban-editable-title__text").click
-            input = find(".kanban-editable-title__input")
+            find(".kanban-editable-title__input").fill_in(with: title)
           end
-          input.fill_in(with: title)
         end
         self
       end

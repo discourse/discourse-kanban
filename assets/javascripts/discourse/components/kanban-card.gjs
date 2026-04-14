@@ -63,23 +63,24 @@ export default class KanbanCard extends Component {
   }
 
   get tagsHtml() {
-    if (!this.args.board.show_tags || !this.topic?.tags) {
-      return null;
+    if (this.isTopicCard) {
+      if (!this.args.board.show_tags || !this.topic?.tags) {
+        return null;
+      }
+
+      const columnTags = new Set(
+        (this.args.columnTags || []).map((t) => t.toLowerCase())
+      );
+
+      const filtered = this.topic.tags.filter(
+        (t) => !columnTags.has(t.toLowerCase())
+      );
+
+      return filtered.length ? renderTags(null, { tags: filtered }) : null;
     }
 
-    const columnTags = new Set(
-      (this.args.columnTags || []).map((t) => t.toLowerCase())
-    );
-
-    const filtered = this.topic.tags.filter(
-      (t) => !columnTags.has(t.toLowerCase())
-    );
-
-    if (!filtered.length) {
-      return null;
-    }
-
-    return renderTags(null, { tags: filtered });
+    const tags = this.args.card.tags;
+    return tags?.length ? renderTags(null, { tags }) : null;
   }
 
   get category() {
@@ -191,9 +192,12 @@ export default class KanbanCard extends Component {
     return this.allAssignedUsers.length > 0 || !!this.topic?.assigned_to_group;
   }
 
-  get hasDetails() {
-    const card = this.args.card;
-    return !!(card.notes || card.labels?.length);
+  get floaterTagsHtml() {
+    const tags = this.args.card.tags;
+    if (this.isTopicCard || !tags?.length) {
+      return null;
+    }
+    return renderTags(null, { tags });
   }
 
   @action
@@ -505,16 +509,11 @@ export default class KanbanCard extends Component {
       </div>
 
       {{#unless this.isTopicCard}}
-        {{#if this.hasDetails}}
+        {{#if @card.notes}}
           <div class="kanban-card__row kanban-card__indicators">
-            {{#each @card.labels as |label|}}
-              <span class="kanban-card__label">{{label}}</span>
-            {{/each}}
-            {{#if @card.notes}}
-              <span class="kanban-card__notes-indicator" title={{@card.notes}}>
-                {{icon "file-lines"}}
-              </span>
-            {{/if}}
+            <span class="kanban-card__notes-indicator" title={{@card.notes}}>
+              {{icon "file-lines"}}
+            </span>
           </div>
         {{/if}}
       {{/unless}}

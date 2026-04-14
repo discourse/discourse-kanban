@@ -92,6 +92,11 @@ module PageObjects
         within(find(".kanban-column", text: /#{Regexp.escape(column_title)}/i)) do
           find(".kanban-column__add-btn").click
         end
+        find(
+          "[data-content][data-identifier='kanban-column-add'] .btn-transparent",
+          text: I18n.t("js.discourse_kanban.board.add_card"),
+        ).click
+        has_css?(".kanban-card-detail-modal")
         self
       end
 
@@ -147,24 +152,19 @@ module PageObjects
         self
       end
 
-      def fill_card_detail_label(new_label)
-        within(".kanban-card-detail-modal") do
-          find(".kanban-card-detail__label-input").fill_in(with: new_label)
-        end
+      def select_card_detail_tag(tag_name)
+        tag_chooser =
+          PageObjects::Components::SelectKit.new(".kanban-card-detail-modal .tag-chooser")
+        tag_chooser.expand
+        tag_chooser.search(tag_name)
+        tag_chooser.select_row_by_name(tag_name)
         self
       end
 
-      def add_card_detail_label_with_enter
-        within(".kanban-card-detail-modal") do
-          find(".kanban-card-detail__label-input").send_keys(:enter)
-        end
-        self
-      end
-
-      def has_card_detail_label?(label)
-        within(".kanban-card-detail-modal") do
-          has_css?(".kanban-card-detail__label-chip", text: label)
-        end
+      def has_card_detail_tag?(tag_name)
+        tag_chooser =
+          PageObjects::Components::SelectKit.new(".kanban-card-detail-modal .tag-chooser")
+        tag_chooser.has_selected_name?(tag_name)
       end
 
       def save_card_detail
@@ -238,9 +238,9 @@ module PageObjects
         self
       end
 
-      def has_card_label?(card_title, label)
+      def has_card_tag?(card_title, tag_name)
         within(find(".kanban-card--floater", text: card_title)) do
-          has_css?(".kanban-card__label", text: label)
+          has_css?(".discourse-tag", text: tag_name)
         end
       end
 

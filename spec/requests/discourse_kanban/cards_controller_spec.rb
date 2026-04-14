@@ -9,6 +9,7 @@ RSpec.describe DiscourseKanban::CardsController do
   fab!(:read_group, :group)
   fab!(:category) { Fabricate(:category, name: "Todo") }
   fab!(:topic) { Fabricate(:topic, category: category, user: writer) }
+  fab!(:urgent_tag, :tag) { Fabricate(:tag, name: "urgent") }
 
   fab!(:board) do
     DiscourseKanban::Board.create!(
@@ -47,6 +48,40 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(card["card_type"]).to eq("floater")
       expect(card["title"]).to eq("New task")
       expect(card["column_id"]).to eq(col_todo.id)
+    end
+
+    it "creates a floater card with tag ids" do
+      sign_in(writer)
+
+      post "/kanban/boards/#{board.id}/cards.json",
+           params: {
+             card: {
+               column_id: col_todo.id,
+               title: "Tagged task",
+               tag_ids: [urgent_tag.id],
+             },
+           }
+
+      expect(response.status).to eq(201)
+      card = response.parsed_body["card"]
+      expect(card["tag_ids"]).to eq([urgent_tag.id])
+      expect(card["tags"].pluck("name")).to eq([urgent_tag.name])
+      expect(DiscourseKanban::Card.find(card["id"]).tag_ids).to eq([urgent_tag.id])
+    end
+
+    it "rejects unknown floater card tag ids" do
+      sign_in(writer)
+
+      post "/kanban/boards/#{board.id}/cards.json",
+           params: {
+             card: {
+               column_id: col_todo.id,
+               title: "Bad tag",
+               tag_ids: [urgent_tag.id + 1000],
+             },
+           }
+
+      expect(response.status).to eq(400)
     end
 
     it "creates a topic card" do
@@ -379,6 +414,53 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(response.parsed_body["card"]["title"]).to eq("New title")
     end
 
+    it "updates floater card tag ids" do
+      card =
+        board.cards.create!(
+          card_type: :floater,
+          title: "Tag me",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+
+      sign_in(writer)
+
+      put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+          params: {
+            card: {
+              tag_ids: [urgent_tag.id],
+            },
+          }
+
+      expect(response.status).to eq(200)
+      expect(card.reload.tag_ids).to eq([urgent_tag.id])
+      expect(response.parsed_body.dig("card", "tag_ids")).to eq([urgent_tag.id])
+      expect(response.parsed_body.dig("card", "tags").pluck("name")).to eq([urgent_tag.name])
+    end
+
+    it "rejects unknown floater card tag ids on update" do
+      card =
+        board.cards.create!(
+          card_type: :floater,
+          title: "Bad update",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+
+      sign_in(writer)
+
+      put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+          params: {
+            card: {
+              tag_ids: [urgent_tag.id + 1000],
+            },
+          }
+
+      expect(response.status).to eq(400)
+    end
+
     it "preserves notes when omitted from floater updates" do
       card =
         board.cards.create!(
@@ -468,7 +550,7 @@ RSpec.describe DiscourseKanban::CardsController do
           card_type: :floater,
           title: "Promote me",
           notes: "Some notes",
-          labels: %w[urgent],
+          tag_ids: [urgent_tag.id],
           column_id: col_todo.id,
           position: 0,
           created_by_id: admin.id,
@@ -489,14 +571,14 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(result["topic_id"]).to eq(topic.id)
       expect(result["title"]).to be_nil
       expect(result["notes"]).to be_nil
-      expect(result["labels"]).to eq([])
+      expect(result["tags"]).to eq([])
 
       card.reload
       expect(card.topic_id).to eq(topic.id)
       expect(card).to be_topic
       expect(card.title).to be_nil
       expect(card.notes).to be_nil
-      expect(card.labels).to eq([])
+      expect(card.tag_ids).to eq([])
     end
 
     it "adopts the existing topic card when promotion races with topic sync insertion" do

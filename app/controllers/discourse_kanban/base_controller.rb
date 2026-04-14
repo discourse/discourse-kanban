@@ -77,7 +77,7 @@ module DiscourseKanban
         :notes,
         :after_card_id,
         :assigned_to_name,
-        labels: [],
+        tag_ids: [],
       )
     end
 

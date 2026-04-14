@@ -3,6 +3,7 @@
 RSpec.describe DiscourseKanban::Card do
   fab!(:admin)
   fab!(:category)
+  fab!(:tag)
   fab!(:topic) { Fabricate(:topic, category: category) }
 
   before do
@@ -180,6 +181,20 @@ RSpec.describe DiscourseKanban::Card do
         )
 
       expect(described_class.ordered.pluck(:id)).to eq([card_a.id, card_b.id])
+    end
+  end
+
+  describe ".normalize_tag_ids!" do
+    it "rejects malformed tag ids" do
+      expect { described_class.normalize_tag_ids!(["#{tag.id}abc"]) }.to raise_error(
+        Discourse::InvalidParameters,
+      )
+    end
+  end
+
+  describe ".ordered_tags" do
+    it "omits missing tags" do
+      expect(described_class.ordered_tags([tag.id, tag.id + 1000])).to eq([tag])
     end
   end
 end

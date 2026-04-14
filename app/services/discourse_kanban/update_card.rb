@@ -4,6 +4,11 @@ module DiscourseKanban
   class UpdateCard
     include Service::Base
 
+    options do
+      attribute :raw_card_params, default: {}
+      attribute :constraint_fix
+    end
+
     params do
       attribute :board_id, :integer
       attribute :id, :integer
@@ -13,7 +18,7 @@ module DiscourseKanban
       attribute :notes
       attribute :after_card_id, :integer
       attribute :assigned_to_name, :string
-      attribute :labels, :array
+      attribute :tag_ids, :array
 
       validates :board_id, presence: true
       validates :id, presence: true
@@ -56,7 +61,7 @@ module DiscourseKanban
       end
     end
 
-    def resolve_promotion(card:, column:, params:, guardian:)
+    def resolve_promotion(card:, column:, params:, guardian:, options:, board:)
       return unless card.floater? && params.topic_id.present?
 
       topic = Topic.find_by(id: params.topic_id)
@@ -68,24 +73,28 @@ module DiscourseKanban
               )
       end
 
-      if context[:constraint_fix].present?
-        ConstraintFixer.apply!(
-          fix: context[:constraint_fix],
-          board: context[:board],
-          topic:,
-          guardian:,
-        )
+      constraint_fix = options.constraint_fix.presence || context[:constraint_fix]
+
+      if constraint_fix.present?
+        ConstraintFixer.apply!(fix: constraint_fix, board:, topic:, guardian:)
       end
 
-      unless context[:board].topic_will_match_after_mutation?(topic, column)
+      unless board.topic_will_match_after_mutation?(topic, column)
         raise Discourse::InvalidParameters.new(
                 I18n.t("discourse_kanban.errors.topic_does_not_match_constraints"),
               )
       end
 
-      existing = context[:board].cards.find_by(topic_id: topic.id, column_id: column.id)
+      existing = board.cards.find_by(topic_id: topic.id, column_id: column.id)
       if existing
-        context[:card] = adopt_existing_topic_card!(card, existing, column, params, guardian)
+        context[:card] = adopt_existing_topic_card!(
+          card,
+          existing,
+          column,
+          params,
+          guardian,
+          options:,
+        )
         context[:promoted] = true
         return
       end
@@ -93,7 +102,7 @@ module DiscourseKanban
       card.topic_id = topic.id
       card.title = nil
       card.notes = nil
-      card.labels = []
+      card.tag_ids = []
       card.assigned_to_id = nil
       card.assigned_to_type = nil
       card.updated_by_id = guardian.user.id
@@ -101,12 +110,12 @@ module DiscourseKanban
       context[:promoted] = true
     end
 
-    def update_attributes(card:, params:, guardian:)
-      raw = context[:raw_card_params] || {}
+    def update_attributes(card:, params:, guardian:, options:)
+      raw = options.raw_card_params.presence || context[:raw_card_params] || {}
       if card.floater? && !context[:promoted]
         card.title = params.title || card.title
         card.notes = raw.key?("notes") ? raw["notes"] : card.notes
-        card.labels = params.labels || card.labels
+        card.tag_ids = normalize_tag_ids(params.tag_ids) if raw.key?("tag_ids")
         card.assigned_to = resolve_assignee(raw["assigned_to_name"], guardian) if raw.key?(
           "assigned_to_name",
         )
@@ -130,37 +139,38 @@ module DiscourseKanban
             )
     end
 
-    def place_and_save(card:, column:, params:, guardian:)
-      raw = context[:raw_card_params] || {}
+    def place_and_save(card:, column:, params:, guardian:, options:, board:)
+      raw = options.raw_card_params.presence || context[:raw_card_params] || {}
       position_first = raw.key?("after_card_id") && raw["after_card_id"].blank?
+      needs_placement =
+        context[:promoted] || column.id != card.column_id || raw.key?("after_card_id")
 
       Card.transaction do
         column_changed =
           !context[:promoted] && card.topic? && column.id != card.column_id && card.topic.present?
 
         if column_changed
-          if context[:constraint_fix].present?
-            ConstraintFixer.apply!(
-              fix: context[:constraint_fix],
-              board: context[:board],
-              topic: card.topic,
-              guardian:,
-            )
+          constraint_fix = options.constraint_fix.presence || context[:constraint_fix]
+
+          if constraint_fix.present?
+            ConstraintFixer.apply!(fix: constraint_fix, board:, topic: card.topic, guardian:)
           end
 
-          unless context[:board].topic_will_match_after_mutation?(card.topic, column)
+          unless board.topic_will_match_after_mutation?(card.topic, column)
             raise Discourse::InvalidParameters.new(
                     I18n.t("discourse_kanban.errors.topic_does_not_match_constraints"),
                   )
           end
         end
 
-        CardOrdering.place_card!(
-          card,
-          column:,
-          after_card_id: params.after_card_id,
-          position_first:,
-        )
+        if needs_placement
+          CardOrdering.place_card!(
+            card,
+            column:,
+            after_card_id: params.after_card_id,
+            position_first:,
+          )
+        end
 
         TopicMutator.apply!(topic: card.topic, column:, guardian:) if column_changed
 
@@ -170,14 +180,20 @@ module DiscourseKanban
       raise unless unique_topic_card_violation?(error)
 
       if context[:promoted] && params.topic_id.present?
-        board = context[:board]
         existing =
           board
             .cards
             .where(topic_id: params.topic_id, column_id: column.id)
             .where.not(id: card.id)
             .first!
-        context[:card] = adopt_existing_topic_card!(card, existing, column, params, guardian)
+        context[:card] = adopt_existing_topic_card!(
+          card,
+          existing,
+          column,
+          params,
+          guardian,
+          options:,
+        )
       else
         raise Discourse::InvalidParameters.new(
                 I18n.t("discourse_kanban.errors.topic_already_in_column"),
@@ -185,11 +201,11 @@ module DiscourseKanban
       end
     end
 
-    def adopt_existing_topic_card!(floater, existing, column, params, guardian)
+    def adopt_existing_topic_card!(floater, existing, column, params, guardian, options:)
       floater.reload if floater.changed?
       floater_id = floater.id
 
-      raw = context[:raw_card_params] || {}
+      raw = options.raw_card_params.presence || context[:raw_card_params] || {}
       position_first = raw.key?("after_card_id") && raw["after_card_id"].blank?
 
       Card.transaction do
@@ -218,6 +234,10 @@ module DiscourseKanban
         candidate.message.include?("idx_kanban_cards_unique_topic_per_column") ||
           topic_card_constraint_name(candidate) == "idx_kanban_cards_unique_topic_per_column"
       end
+    end
+
+    def normalize_tag_ids(values)
+      Card.normalize_tag_ids!(values)
     end
 
     def topic_card_constraint_name(error)

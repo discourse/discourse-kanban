@@ -6,9 +6,12 @@ module DiscourseKanban
 
     def create
       DiscourseKanban::CreateCard.call(
-        guardian:,
-        params: card_mutation_params.to_h.merge("board_id" => params[:board_id]),
-        constraint_fix: constraint_fix_params,
+        service_params.deep_merge(
+          params: card_mutation_params.to_h.merge(board_id: params[:board_id]),
+          options: {
+            constraint_fix: constraint_fix_params,
+          },
+        ),
       ) do
         on_success do |card:, board:|
           payload = CardPayloadSerializer.new(card, root: false).as_json
@@ -32,10 +35,13 @@ module DiscourseKanban
       raw_params = card_mutation_params.to_h
 
       DiscourseKanban::UpdateCard.call(
-        guardian:,
-        params: raw_params.merge("board_id" => params[:board_id], "id" => params[:id]),
-        raw_card_params: raw_params,
-        constraint_fix: constraint_fix_params,
+        service_params.deep_merge(
+          params: raw_params.merge(board_id: params[:board_id], id: params[:id]),
+          options: {
+            raw_card_params: raw_params,
+            constraint_fix: constraint_fix_params,
+          },
+        ),
       ) do
         on_success do |card:, board:, original_column_id:, adopted_floater_id:|
           card.topic&.reload
@@ -74,11 +80,12 @@ module DiscourseKanban
 
     def clear
       DiscourseKanban::ClearColumn.call(
-        guardian:,
-        params: {
-          board_id: params[:board_id],
-          column_id: params[:column_id],
-        },
+        service_params.deep_merge(
+          params: {
+            board_id: params[:board_id],
+            column_id: params[:column_id],
+          },
+        ),
       ) do
         on_success do |board:, column:|
           Publisher.publish_column_cleared!(board, column.id, client_id: message_bus_client_id)
@@ -99,11 +106,7 @@ module DiscourseKanban
 
     def destroy
       DiscourseKanban::DestroyCard.call(
-        guardian:,
-        params: {
-          board_id: params[:board_id],
-          id: params[:id],
-        },
+        service_params.deep_merge(params: { board_id: params[:board_id], id: params[:id] }),
       ) do
         on_success do |card:, board:|
           Publisher.publish_card_deleted!(board, card.id, client_id: message_bus_client_id)

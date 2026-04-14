@@ -9,13 +9,15 @@ module DiscourseKanban
                :position,
                :title,
                :notes,
-               :labels,
+               :tag_ids,
+               :tags,
                :topic_id,
                :created_at,
                :created_by,
                :assigned_to
 
     has_one :topic, serializer: CardTopicSerializer, embed: :objects
+    has_many :tags, embed: :object, serializer: CardTagSerializer
 
     def include_topic_id?
       object.topic?
@@ -27,6 +29,16 @@ module DiscourseKanban
 
     def include_created_at?
       !object.topic?
+    end
+
+    def tag_ids
+      return [] unless SiteSetting.tagging_enabled
+
+      object.topic? ? [] : object.tag_ids
+    end
+
+    def tags
+      object.topic? ? [] : ordered_tags
     end
 
     def created_by
@@ -52,6 +64,17 @@ module DiscourseKanban
 
     def include_assigned_to?
       !object.topic? && object.assigned_to.present?
+    end
+
+    private
+
+    def ordered_tags
+      return [] unless SiteSetting.tagging_enabled
+
+      tags_by_id = @options[:tags_by_id]
+      return Card.ordered_tags(object.tag_ids) if tags_by_id.blank?
+
+      object.tag_ids.filter_map { |tag_id| tags_by_id[tag_id] }
     end
   end
 end
