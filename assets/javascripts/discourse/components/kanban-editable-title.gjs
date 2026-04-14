@@ -22,10 +22,6 @@ export default class KanbanEditableTitle extends Component {
     return this.args.value || this.args.placeholder;
   }
 
-  get showClose() {
-    return this.args.showClose !== false;
-  }
-
   @action
   startEditing() {
     if (this.args.disabled) {
@@ -78,7 +74,7 @@ export default class KanbanEditableTitle extends Component {
           {{on "click" this.startEditing}}
         >{{this.displayText}}</div>
       {{/if}}
-      {{#if this.showClose}}
+      {{#if @showClose}}
         <DButton
           @action={{@onClose}}
           @icon="xmark"

@@ -54,17 +54,7 @@ export default class KanbanCardDetail extends Component {
   @action
   async save(data) {
     const tagIds = (data.tags || [])
-      .map((tag) => {
-        if (typeof tag === "number") {
-          return tag;
-        }
-
-        if (typeof tag === "string") {
-          return Number.parseInt(tag, 10);
-        }
-
-        return tag.id;
-      })
+      .map((tag) => tag.id)
       .filter((tagId) => Number.isInteger(tagId) && tagId > 0);
 
     const updates = {
@@ -125,7 +115,7 @@ export default class KanbanCardDetail extends Component {
               @type="tag-chooser"
               as |field|
             >
-              <field.Control />
+              <field.Control @allowCreate={{false}} />
             </form.Field>
 
             <form.Field

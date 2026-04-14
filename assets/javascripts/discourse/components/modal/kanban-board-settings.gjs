@@ -190,6 +190,7 @@ export default class KanbanBoardSettings extends Component {
           @placeholder={{i18n "discourse_kanban.manage.name_placeholder"}}
           @onInput={{this.onNameInput}}
           @onClose={{@closeModal}}
+          @showClose={{true}}
         />
         <Form
           @data={{this.formData}}

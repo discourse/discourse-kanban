@@ -182,6 +182,8 @@ module DiscourseKanban
     end
 
     def preload_floater_card_tags(cards)
+      return {} unless SiteSetting.tagging_enabled
+
       tag_ids = cards.reject(&:topic?).flat_map(&:tag_ids).uniq
       return {} if tag_ids.empty?
 

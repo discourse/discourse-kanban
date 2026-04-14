@@ -17,6 +17,7 @@ module DiscourseKanban
                :assigned_to
 
     has_one :topic, serializer: CardTopicSerializer, embed: :objects
+    has_many :tags, embed: :object, serializer: CardTagSerializer
 
     def include_topic_id?
       object.topic?
@@ -31,13 +32,13 @@ module DiscourseKanban
     end
 
     def tag_ids
+      return [] unless SiteSetting.tagging_enabled
+
       object.topic? ? [] : object.tag_ids
     end
 
     def tags
-      return [] if object.topic?
-
-      ordered_tags.map { |tag| CardTagSerializer.new(tag, root: false, scope: scope).as_json }
+      object.topic? ? [] : ordered_tags
     end
 
     def created_by
@@ -68,6 +69,8 @@ module DiscourseKanban
     private
 
     def ordered_tags
+      return [] unless SiteSetting.tagging_enabled
+
       tags_by_id = @options[:tags_by_id]
       return Card.ordered_tags(object.tag_ids) if tags_by_id.blank?
 

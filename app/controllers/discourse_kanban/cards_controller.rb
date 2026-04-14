@@ -6,8 +6,8 @@ module DiscourseKanban
 
     def create
       DiscourseKanban::CreateCard.call(
-        **service_params.deep_merge(
-          params: card_mutation_params.to_h.merge("board_id" => params[:board_id]),
+        service_params.deep_merge(
+          params: card_mutation_params.to_h.merge(board_id: params[:board_id]),
           options: {
             constraint_fix: constraint_fix_params,
           },
@@ -35,8 +35,8 @@ module DiscourseKanban
       raw_params = card_mutation_params.to_h
 
       DiscourseKanban::UpdateCard.call(
-        **service_params.deep_merge(
-          params: raw_params.merge("board_id" => params[:board_id], "id" => params[:id]),
+        service_params.deep_merge(
+          params: raw_params.merge(board_id: params[:board_id], id: params[:id]),
           options: {
             raw_card_params: raw_params,
             constraint_fix: constraint_fix_params,
@@ -80,7 +80,7 @@ module DiscourseKanban
 
     def clear
       DiscourseKanban::ClearColumn.call(
-        **service_params.deep_merge(
+        service_params.deep_merge(
           params: {
             board_id: params[:board_id],
             column_id: params[:column_id],
@@ -106,7 +106,7 @@ module DiscourseKanban
 
     def destroy
       DiscourseKanban::DestroyCard.call(
-        **service_params.deep_merge(params: { board_id: params[:board_id], id: params[:id] }),
+        service_params.deep_merge(params: { board_id: params[:board_id], id: params[:id] }),
       ) do
         on_success do |card:, board:|
           Publisher.publish_card_deleted!(board, card.id, client_id: message_bus_client_id)
