@@ -37,8 +37,9 @@ export default class KanbanEditableTitle extends Component {
 
   @action
   finishEditing() {
-    this.isEditing = false;
-    this.args.onInput?.(this.args.value?.trim() ?? "");
+    const value = this.args.value?.trim() ?? "";
+    this.args.onInput?.(value);
+    this.isEditing = !value;
   }
 
   @action
