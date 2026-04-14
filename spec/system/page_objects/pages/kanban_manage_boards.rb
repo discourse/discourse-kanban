@@ -111,17 +111,12 @@ module PageObjects
 
       def fill_modal_column_title(title)
         within(".kanban-column-settings-modal") do
-          input =
-            begin
-              find(".kanban-editable-title__input", wait: 2)
-            rescue StandardError
-              nil
-            end
-          unless input
+          if has_css?(".kanban-editable-title__input", wait: 0)
+            find(".kanban-editable-title__input").fill_in(with: title)
+          else
             find(".kanban-editable-title__text").click
-            input = find(".kanban-editable-title__input")
+            find(".kanban-editable-title__input").fill_in(with: title)
           end
-          input.fill_in(with: title)
         end
         self
       end
