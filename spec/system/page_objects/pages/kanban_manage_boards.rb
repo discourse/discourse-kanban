@@ -111,7 +111,12 @@ module PageObjects
 
       def fill_modal_column_title(title)
         within(".kanban-column-settings-modal") do
-          input = find(".kanban-editable-title__input", wait: 2) rescue nil
+          input =
+            begin
+              find(".kanban-editable-title__input", wait: 2)
+            rescue StandardError
+              nil
+            end
           unless input
             find(".kanban-editable-title__text").click
             input = find(".kanban-editable-title__input")
