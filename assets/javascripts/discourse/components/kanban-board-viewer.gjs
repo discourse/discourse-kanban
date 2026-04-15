@@ -696,10 +696,23 @@ export default class KanbanBoardViewer extends Component {
     if (card.notes) {
       opts.body = card.notes;
     }
+
+    const tagNames = new Set();
     if (card.tags?.length) {
-      opts.tags = card.tags.map((tag) => tag.name).join(",");
+      card.tags.forEach((tag) => tagNames.add(tag.name));
     }
-    const categoryId = column.move_to_category_id;
+    if (this.board.tag_names?.length) {
+      this.board.tag_names.forEach((name) => tagNames.add(name));
+    }
+    if (column.tag_name) {
+      tagNames.add(column.tag_name);
+    }
+    if (tagNames.size) {
+      opts.tags = [...tagNames].join(",");
+    }
+
+    const categoryId =
+      column.move_to_category_id || this.board.category_ids?.[0];
     if (categoryId) {
       opts.category = Category.findById(categoryId);
     }
@@ -940,6 +953,12 @@ export default class KanbanBoardViewer extends Component {
     });
   }
 
+  @action
+  goToAllBoards(closeMenu) {
+    closeMenu?.();
+    this.router.transitionTo("kanbanBoards");
+  }
+
   async _saveColumnsUpdate(columnsPayload) {
     const payload = {
       board: {
@@ -1109,15 +1128,23 @@ export default class KanbanBoardViewer extends Component {
         <h2 class="kanban-board-viewer__title">{{this.board.name}}</h2>
 
         <div class="kanban-board-viewer__controls">
-          {{#if this.canManage}}
-            <DMenu
-              @identifier="kanban-board-controls"
-              @icon="ellipsis"
-              @title="discourse_kanban.board.controls"
-              @triggerClass="btn-flat"
-            >
-              <:content as |args|>
-                <DropdownMenu as |dropdown|>
+          <DMenu
+            @identifier="kanban-board-controls"
+            @icon="ellipsis"
+            @title="discourse_kanban.board.controls"
+            @triggerClass="btn-flat"
+          >
+            <:content as |args|>
+              <DropdownMenu as |dropdown|>
+                <dropdown.item>
+                  <DButton
+                    @action={{fn this.goToAllBoards args.close}}
+                    @icon="house"
+                    @label="discourse_kanban.board.all_boards"
+                    class="btn-transparent"
+                  />
+                </dropdown.item>
+                {{#if this.canManage}}
                   <dropdown.item>
                     <DButton
                       @action={{fn this.openAddColumnModal args.close}}
@@ -1142,10 +1169,10 @@ export default class KanbanBoardViewer extends Component {
                       class="btn-transparent btn-danger"
                     />
                   </dropdown.item>
-                </DropdownMenu>
-              </:content>
-            </DMenu>
-          {{/if}}
+                {{/if}}
+              </DropdownMenu>
+            </:content>
+          </DMenu>
           {{#if this.fullscreen}}
             <DButton
               @action={{this.exitFullscreen}}

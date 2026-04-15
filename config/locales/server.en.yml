@@ -22,3 +22,5 @@ en:
       topic_does_not_match_constraints: "This topic does not match the board's category and tag constraints."
       unknown_tag_name: "Unknown tag name: '%{tag_name}'"
       unknown_tag_names: "Unknown tag names: %{tag_names}"
+      cannot_assign: "You do not have permission to assign."
+      assignment_carry_over_failed: "Could not carry the card's assignment to the topic."

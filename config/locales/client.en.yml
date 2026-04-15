@@ -12,6 +12,7 @@ en:
         topic_search_placeholder: "Search topics..."
         card_title_placeholder: "Card title or topic URL..."
         controls: "Board controls"
+        all_boards: "All boards"
         fullscreen: "Fullscreen"
         exit_fullscreen: "Exit fullscreen"
         add_column: "Add Column"

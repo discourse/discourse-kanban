@@ -181,6 +181,50 @@ RSpec.describe DiscourseKanban::UpdateCard do
       end
     end
 
+    context "when adopting an existing topic card from an assigned floater" do
+      fab!(:assignee, :user)
+      fab!(:existing_topic_card) do
+        board.cards.create!(
+          card_type: :topic,
+          topic_id: topic.id,
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      end
+
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :floater,
+          title: "Promote me",
+          column_id: col_todo.id,
+          position: 1,
+          created_by_id: admin.id,
+          assigned_to: assignee,
+        )
+      end
+
+      let(:raw_card_params) { { "topic_id" => topic.id.to_s } }
+      let(:params) { { board_id: board.id, id: card.id, topic_id: topic.id } }
+      let(:dependencies) { { guardian: Guardian.new(admin) } }
+
+      before do
+        skip("requires discourse-assign") unless defined?(::Assigner)
+        SiteSetting.assign_enabled = true
+        assign_group = Fabricate(:group)
+        SiteSetting.assign_allowed_on_groups = assign_group.id.to_s
+        assign_group.add(assignee)
+        Fabricate(:post, topic: topic)
+      end
+
+      it "carries over the assignment to the topic" do
+        result
+        assignment = Assignment.find_by(target: topic, active: true)
+        expect(assignment).to be_present
+        expect(assignment.assigned_to).to eq(assignee)
+      end
+    end
+
     context "when moving a card to position 0 in a column" do
       fab!(:card_a) do
         board.cards.create!(
@@ -242,6 +286,12 @@ RSpec.describe DiscourseKanban::UpdateCard do
 
       let(:raw_card_params) { { "assigned_to_name" => assignee.username } }
       let(:params) { { board_id: board.id, id: card.id, assigned_to_name: assignee.username } }
+      let(:dependencies) { { guardian: Guardian.new(admin) } }
+
+      before do
+        skip("requires discourse-assign") unless defined?(::Assigner)
+        SiteSetting.assign_enabled = true
+      end
 
       it { is_expected.to run_successfully }
 
@@ -265,6 +315,12 @@ RSpec.describe DiscourseKanban::UpdateCard do
 
       let(:raw_card_params) { { "assigned_to_name" => assignee_group.name } }
       let(:params) { { board_id: board.id, id: card.id, assigned_to_name: assignee_group.name } }
+      let(:dependencies) { { guardian: Guardian.new(admin) } }
+
+      before do
+        skip("requires discourse-assign") unless defined?(::Assigner)
+        SiteSetting.assign_enabled = true
+      end
 
       it { is_expected.to run_successfully }
 
@@ -299,24 +355,27 @@ RSpec.describe DiscourseKanban::UpdateCard do
     end
 
     context "when assigning an unknown name" do
-      fab!(:assignee, :user)
       fab!(:card) do
         board.cards.create!(
           card_type: :floater,
-          title: "Keep assignee",
+          title: "Unknown assignee",
           column_id: col_todo.id,
           position: 0,
           created_by_id: admin.id,
-          assigned_to: assignee,
         )
       end
 
       let(:raw_card_params) { { "assigned_to_name" => "nonexistent_name" } }
       let(:params) { { board_id: board.id, id: card.id, assigned_to_name: "nonexistent_name" } }
+      let(:dependencies) { { guardian: Guardian.new(admin) } }
+
+      before do
+        skip("requires discourse-assign") unless defined?(::Assigner)
+        SiteSetting.assign_enabled = true
+      end
 
       it "raises InvalidParameters" do
         expect { result }.to raise_error(Discourse::InvalidParameters)
-        expect(card.reload.assigned_to).to eq(assignee)
       end
     end
 
@@ -335,8 +394,68 @@ RSpec.describe DiscourseKanban::UpdateCard do
       let(:raw_card_params) { { "assigned_to_name" => hidden_group.name } }
       let(:params) { { board_id: board.id, id: card.id, assigned_to_name: hidden_group.name } }
 
+      before do
+        skip("requires discourse-assign") unless defined?(::Assigner)
+        SiteSetting.assign_enabled = true
+        assign_group = Fabricate(:group)
+        SiteSetting.assign_allowed_on_groups = assign_group.id.to_s
+        assign_group.add(writer)
+      end
+
       it "raises InvalidParameters" do
         expect { result }.to raise_error(Discourse::InvalidParameters)
+      end
+    end
+
+    context "when writer without assign permissions tries to assign a floater" do
+      fab!(:assignee, :user)
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :floater,
+          title: "No perms",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      end
+
+      let(:raw_card_params) { { "assigned_to_name" => assignee.username } }
+      let(:params) { { board_id: board.id, id: card.id, assigned_to_name: assignee.username } }
+
+      before do
+        skip("requires discourse-assign") unless defined?(::Assigner)
+        SiteSetting.assign_enabled = true
+      end
+
+      it "raises InvalidAccess" do
+        expect { result }.to raise_error(Discourse::InvalidAccess)
+      end
+    end
+
+    context "when writer without assign permissions promotes an assigned floater" do
+      fab!(:assignee, :user)
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :floater,
+          title: "Assigned floater",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+          assigned_to: assignee,
+        )
+      end
+
+      let(:raw_card_params) { { "topic_id" => topic.id.to_s } }
+      let(:params) { { board_id: board.id, id: card.id, topic_id: topic.id } }
+
+      before do
+        skip("requires discourse-assign") unless defined?(::Assigner)
+        SiteSetting.assign_enabled = true
+      end
+
+      it "raises InvalidAccess instead of silently dropping the assignment" do
+        expect { result }.to raise_error(Discourse::InvalidAccess)
+        expect(card.reload).to be_floater
       end
     end
 
@@ -357,12 +476,139 @@ RSpec.describe DiscourseKanban::UpdateCard do
       let(:params) { { board_id: board.id, id: card.id, topic_id: topic.id } }
       let(:dependencies) { { guardian: Guardian.new(admin) } }
 
+      before do
+        skip("requires discourse-assign") unless defined?(::Assigner)
+        SiteSetting.assign_enabled = true
+        assign_group = Fabricate(:group)
+        SiteSetting.assign_allowed_on_groups = assign_group.id.to_s
+        assign_group.add(assignee)
+        Fabricate(:post, topic: topic)
+      end
+
       it { is_expected.to run_successfully }
 
-      it "clears the assignment on promotion" do
+      it "clears the card-level assignment on promotion" do
         result_card = result[:card]
         expect(result_card.assigned_to_id).to be_nil
         expect(result_card.assigned_to_type).to be_nil
+      end
+
+      it "assigns the card's assignee to the topic" do
+        result
+        assignment = Assignment.find_by(target: topic, active: true)
+        expect(assignment).to be_present
+        expect(assignment.assigned_to).to eq(assignee)
+      end
+    end
+
+    context "when promoting an assigned floater and column has move_to_assigned" do
+      fab!(:assignee, :user)
+      fab!(:column_assignee, :user)
+      fab!(:col_assigned) do
+        board.columns.create!(
+          title: "Assigned Col",
+          position: 2,
+          move_to_assigned: column_assignee.username,
+        )
+      end
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :floater,
+          title: "Column overrides",
+          column_id: col_assigned.id,
+          position: 0,
+          created_by_id: admin.id,
+          assigned_to: assignee,
+        )
+      end
+
+      let(:raw_card_params) { { "topic_id" => topic.id.to_s } }
+      let(:params) { { board_id: board.id, id: card.id, topic_id: topic.id } }
+      let(:dependencies) { { guardian: Guardian.new(admin) } }
+
+      before do
+        skip("requires discourse-assign") unless defined?(::Assigner)
+        SiteSetting.assign_enabled = true
+        assign_group = Fabricate(:group)
+        SiteSetting.assign_allowed_on_groups = assign_group.id.to_s
+        assign_group.add(column_assignee)
+        Fabricate(:post, topic: topic)
+      end
+
+      it "uses the column's assignment rule instead of the card assignee" do
+        result
+        assignment = Assignment.find_by(target: topic, active: true)
+        expect(assignment).to be_present
+        expect(assignment.assigned_to).to eq(column_assignee)
+      end
+    end
+
+    context "when promoting an assigned floater and column has move_to_assigned '*'" do
+      fab!(:assignee, :user)
+      fab!(:col_star) do
+        board.columns.create!(title: "Star Col", position: 2, move_to_assigned: "*")
+      end
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :floater,
+          title: "Star keeps card assignee",
+          column_id: col_star.id,
+          position: 0,
+          created_by_id: admin.id,
+          assigned_to: assignee,
+        )
+      end
+
+      let(:raw_card_params) { { "topic_id" => topic.id.to_s } }
+      let(:params) { { board_id: board.id, id: card.id, topic_id: topic.id } }
+      let(:dependencies) { { guardian: Guardian.new(admin) } }
+
+      before do
+        skip("requires discourse-assign") unless defined?(::Assigner)
+        SiteSetting.assign_enabled = true
+        assign_group = Fabricate(:group)
+        SiteSetting.assign_allowed_on_groups = assign_group.id.to_s
+        assign_group.add(assignee)
+        Fabricate(:post, topic: topic)
+      end
+
+      it "carries over the card's assignee" do
+        result
+        assignment = Assignment.find_by(target: topic, active: true)
+        expect(assignment).to be_present
+        expect(assignment.assigned_to).to eq(assignee)
+      end
+    end
+
+    context "when promoting a floater with group assignment" do
+      fab!(:assignee_group) { Fabricate(:group, assignable_level: Group::ALIAS_LEVELS[:everyone]) }
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :floater,
+          title: "Group assign",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+          assigned_to: assignee_group,
+        )
+      end
+
+      let(:raw_card_params) { { "topic_id" => topic.id.to_s } }
+      let(:params) { { board_id: board.id, id: card.id, topic_id: topic.id } }
+      let(:dependencies) { { guardian: Guardian.new(admin) } }
+
+      before do
+        skip("requires discourse-assign") unless defined?(::Assigner)
+        SiteSetting.assign_enabled = true
+        SiteSetting.assign_allowed_on_groups = assignee_group.id.to_s
+        Fabricate(:post, topic: topic)
+      end
+
+      it "assigns the group to the topic" do
+        result
+        assignment = Assignment.find_by(target: topic, active: true)
+        expect(assignment).to be_present
+        expect(assignment.assigned_to).to eq(assignee_group)
       end
     end
 

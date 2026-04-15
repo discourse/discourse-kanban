@@ -15,6 +15,7 @@ module DiscourseKanban
       attribute :after_card_id, :integer
       attribute :assigned_to_name, :string
       attribute :tag_ids, :array
+      attribute :tag_names, :array
 
       validates :board_id, presence: true
       validates :column_id, presence: true
@@ -115,7 +116,7 @@ module DiscourseKanban
           card_type: :floater,
           title: params.title,
           notes: params.notes,
-          tag_ids: normalize_tag_ids(params.tag_ids),
+          tag_ids: resolve_all_tag_ids(params.tag_ids, params.tag_names, guardian),
           assigned_to: resolve_assignee(params.assigned_to_name, guardian),
           created_by_id: guardian.user.id,
           updated_by_id: guardian.user.id,
@@ -128,6 +129,10 @@ module DiscourseKanban
 
     def resolve_assignee(name, guardian)
       return nil if name.blank?
+
+      unless guardian.can_assign?
+        raise Discourse::InvalidAccess.new(I18n.t("discourse_kanban.errors.cannot_assign"))
+      end
 
       user = User.find_by_username(name)
       return user if user&.active
@@ -147,8 +152,14 @@ module DiscourseKanban
       end
     end
 
-    def normalize_tag_ids(values)
-      Card.normalize_tag_ids!(values)
+    def resolve_all_tag_ids(tag_ids, tag_names, guardian)
+      ids = Card.normalize_tag_ids!(tag_ids)
+      names = Array(tag_names).compact_blank
+      if names.present?
+        tags = DiscourseTagging.find_or_create_tags!(names, guardian)
+        ids = (ids + tags.map(&:id)).uniq
+      end
+      ids
     end
 
     def topic_card_constraint_name(error)

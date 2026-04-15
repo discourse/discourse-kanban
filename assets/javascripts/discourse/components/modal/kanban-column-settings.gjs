@@ -99,6 +99,14 @@ export default class KanbanColumnSettings extends Component {
     field.set(value);
   }
 
+  get showMoveToCategoryField() {
+    const boardCategoryCount = this.args.model.board?.category_ids?.length ?? 0;
+    if (boardCategoryCount === 1) {
+      return !!this.args.model.column?.move_to_category_id;
+    }
+    return true;
+  }
+
   @action
   toggleAdvanced() {
     this.showAdvanced = !this.showAdvanced;
@@ -176,23 +184,25 @@ export default class KanbanColumnSettings extends Component {
               </form.Field>
 
               {{#if this.showAdvanced}}
-                <form.Field
-                  @name="move_to_category_id"
-                  @title={{i18n
-                    "discourse_kanban.manage.columns.move_to_category"
-                  }}
-                  @format="max"
-                  @type="custom"
-                  as |field|
-                >
-                  <field.Control>
-                    <CategoryChooser
-                      @value={{data.move_to_category_id}}
-                      @onChange={{fn this.onCategoryChange field}}
-                      @options={{hash clearable=true}}
-                    />
-                  </field.Control>
-                </form.Field>
+                {{#if this.showMoveToCategoryField}}
+                  <form.Field
+                    @name="move_to_category_id"
+                    @title={{i18n
+                      "discourse_kanban.manage.columns.move_to_category"
+                    }}
+                    @format="max"
+                    @type="custom"
+                    as |field|
+                  >
+                    <field.Control>
+                      <CategoryChooser
+                        @value={{data.move_to_category_id}}
+                        @onChange={{fn this.onCategoryChange field}}
+                        @options={{hash clearable=true}}
+                      />
+                    </field.Control>
+                  </form.Field>
+                {{/if}}
 
                 <form.Field
                   @name="move_to_assigned"

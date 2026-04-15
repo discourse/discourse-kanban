@@ -58,10 +58,10 @@ export default class KanbanBoardSettings extends Component {
       category_ids: [],
       tag_names: [],
       card_style: "detailed",
-      show_tags: false,
+      show_tags: true,
       show_topic_thumbnail: false,
       show_activity_indicators: false,
-      require_confirmation: true,
+      require_confirmation: false,
       allow_read_group_ids: [],
       allow_write_group_ids: [],
     };

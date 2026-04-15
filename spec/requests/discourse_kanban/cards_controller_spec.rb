@@ -234,6 +234,12 @@ RSpec.describe DiscourseKanban::CardsController do
     end
 
     it "creates a floater card assigned to a user" do
+      skip("requires discourse-assign") unless defined?(::Assigner)
+      SiteSetting.assign_enabled = true
+      assign_group = Fabricate(:group)
+      SiteSetting.assign_allowed_on_groups = assign_group.id.to_s
+      assign_group.add(writer)
+
       assignee = Fabricate(:user)
       sign_in(writer)
 
@@ -253,6 +259,12 @@ RSpec.describe DiscourseKanban::CardsController do
     end
 
     it "creates a floater card assigned to a group" do
+      skip("requires discourse-assign") unless defined?(::Assigner)
+      SiteSetting.assign_enabled = true
+      assign_group = Fabricate(:group)
+      SiteSetting.assign_allowed_on_groups = assign_group.id.to_s
+      assign_group.add(writer)
+
       group = Fabricate(:group)
       sign_in(writer)
 
@@ -272,6 +284,12 @@ RSpec.describe DiscourseKanban::CardsController do
     end
 
     it "rejects an unknown assignee name" do
+      skip("requires discourse-assign") unless defined?(::Assigner)
+      SiteSetting.assign_enabled = true
+      assign_group = Fabricate(:group)
+      SiteSetting.assign_allowed_on_groups = assign_group.id.to_s
+      assign_group.add(writer)
+
       sign_in(writer)
 
       post "/kanban/boards/#{board.id}/cards.json",
@@ -287,6 +305,12 @@ RSpec.describe DiscourseKanban::CardsController do
     end
 
     it "rejects assigning a group the user cannot see" do
+      skip("requires discourse-assign") unless defined?(::Assigner)
+      SiteSetting.assign_enabled = true
+      assign_group = Fabricate(:group)
+      SiteSetting.assign_allowed_on_groups = assign_group.id.to_s
+      assign_group.add(writer)
+
       hidden_group = Fabricate(:group, visibility_level: Group.visibility_levels[:staff])
       sign_in(writer)
 
@@ -797,6 +821,12 @@ RSpec.describe DiscourseKanban::CardsController do
     end
 
     it "assigns a user to a floater card" do
+      skip("requires discourse-assign") unless defined?(::Assigner)
+      SiteSetting.assign_enabled = true
+      assign_group = Fabricate(:group)
+      SiteSetting.assign_allowed_on_groups = assign_group.id.to_s
+      assign_group.add(writer)
+
       card =
         board.cards.create!(
           card_type: :floater,
@@ -824,6 +854,12 @@ RSpec.describe DiscourseKanban::CardsController do
     end
 
     it "assigns a group to a floater card" do
+      skip("requires discourse-assign") unless defined?(::Assigner)
+      SiteSetting.assign_enabled = true
+      assign_group = Fabricate(:group)
+      SiteSetting.assign_allowed_on_groups = assign_group.id.to_s
+      assign_group.add(writer)
+
       card =
         board.cards.create!(
           card_type: :floater,
@@ -877,6 +913,12 @@ RSpec.describe DiscourseKanban::CardsController do
     end
 
     it "does not silently clear assignment for unknown assignee name" do
+      skip("requires discourse-assign") unless defined?(::Assigner)
+      SiteSetting.assign_enabled = true
+      assign_group = Fabricate(:group)
+      SiteSetting.assign_allowed_on_groups = assign_group.id.to_s
+      assign_group.add(writer)
+
       assignee = Fabricate(:user)
       card =
         board.cards.create!(
@@ -902,6 +944,12 @@ RSpec.describe DiscourseKanban::CardsController do
     end
 
     it "rejects updating assignment to a group the user cannot see" do
+      skip("requires discourse-assign") unless defined?(::Assigner)
+      SiteSetting.assign_enabled = true
+      assign_group = Fabricate(:group)
+      SiteSetting.assign_allowed_on_groups = assign_group.id.to_s
+      assign_group.add(writer)
+
       card =
         board.cards.create!(
           card_type: :floater,
@@ -925,8 +973,16 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(card.reload.assigned_to).to be_nil
     end
 
-    it "clears assignment when promoting a floater to a topic card" do
+    it "clears card-level assignment when promoting a floater to a topic card" do
+      skip("requires discourse-assign") unless defined?(::Assigner)
+      SiteSetting.assign_enabled = true
+      assign_group = Fabricate(:group)
+      SiteSetting.assign_allowed_on_groups = assign_group.id.to_s
+
       assignee = Fabricate(:user)
+      assign_group.add(assignee)
+      Fabricate(:post, topic: topic)
+
       card =
         board.cards.create!(
           card_type: :floater,
@@ -950,6 +1006,41 @@ RSpec.describe DiscourseKanban::CardsController do
       card.reload
       expect(card.assigned_to_id).to be_nil
       expect(card.assigned_to_type).to be_nil
+    end
+
+    it "carries over card assignment to the topic on promotion" do
+      skip("requires discourse-assign") unless defined?(Assignment)
+
+      SiteSetting.assign_enabled = true
+      assign_group = Fabricate(:group)
+      assignee = Fabricate(:user)
+      assign_group.add(assignee)
+      SiteSetting.assign_allowed_on_groups = assign_group.id.to_s
+      Fabricate(:post, topic: topic)
+
+      card =
+        board.cards.create!(
+          card_type: :floater,
+          title: "Promote me",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+          assigned_to: assignee,
+        )
+
+      sign_in(admin)
+
+      put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+          params: {
+            card: {
+              topic_id: topic.id,
+            },
+          }
+
+      expect(response.status).to eq(200)
+      assignment = Assignment.find_by(target: topic, active: true)
+      expect(assignment).to be_present
+      expect(assignment.assigned_to).to eq(assignee)
     end
 
     it "rejects requests from users without write access" do

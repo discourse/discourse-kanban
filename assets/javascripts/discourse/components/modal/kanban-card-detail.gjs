@@ -3,6 +3,7 @@ import { USER_OPTION_COMPOSITION_MODES } from "discourse/lib/constants";
 import { tracked } from "@glimmer/tracking";
 import { fn, hash } from "@ember/helper";
 import { action } from "@ember/object";
+import { service } from "@ember/service";
 import DButton from "discourse/components/d-button";
 import DModal from "discourse/components/d-modal";
 import Form from "discourse/components/form";
@@ -12,6 +13,8 @@ import { i18n } from "discourse-i18n";
 import KanbanEditableTitle from "../kanban-editable-title";
 
 export default class KanbanCardDetail extends Component {
+  @service siteSettings;
+
   @tracked editTitle;
 
   constructor() {
@@ -54,14 +57,22 @@ export default class KanbanCardDetail extends Component {
 
   @action
   async save(data) {
-    const tagIds = (data.tags || [])
-      .map((tag) => tag.id)
-      .filter((tagId) => Number.isInteger(tagId) && tagId > 0);
+    const tagIds = [];
+    const tagNames = [];
+    for (const tag of data.tags || []) {
+      if (Number.isInteger(tag.id) && tag.id > 0) {
+        tagIds.push(tag.id);
+      } else if (typeof tag.id === "string" && tag.id.length > 0) {
+        tagNames.push(tag.id);
+      }
+    }
 
     const updates = {
       title: this.editTitle.trim(),
       notes: data.notes,
-      tag_ids: !this.isNew && !tagIds.length ? [""] : tagIds,
+      tag_ids:
+        !this.isNew && !tagIds.length && !tagNames.length ? [""] : tagIds,
+      tag_names: tagNames,
       assigned_to_name: data.assigned_to[0] || null,
     };
     try {
@@ -119,25 +130,27 @@ export default class KanbanCardDetail extends Component {
               @type="tag-chooser"
               as |field|
             >
-              <field.Control @allowCreate={{false}} />
+              <field.Control @allowCreate={{true}} />
             </form.Field>
 
-            <form.Field
-              @name="assigned_to"
-              @title={{i18n "discourse_kanban.board.assigned_to"}}
-              @format="max"
-              @type="custom"
-              as |field|
-            >
-              <field.Control>
-                <EmailGroupUserChooser
-                  @value={{data.assigned_to}}
-                  @onChange={{fn this.onAssignedChanged field}}
-                  @options={{hash maximum=1 excludeCurrentUser=false}}
-                  @disabled={{not this.canWrite}}
-                />
-              </field.Control>
-            </form.Field>
+            {{#if this.siteSettings.assign_enabled}}
+              <form.Field
+                @name="assigned_to"
+                @title={{i18n "discourse_kanban.board.assigned_to"}}
+                @format="max"
+                @type="custom"
+                as |field|
+              >
+                <field.Control>
+                  <EmailGroupUserChooser
+                    @value={{data.assigned_to}}
+                    @onChange={{fn this.onAssignedChanged field}}
+                    @options={{hash maximum=1 excludeCurrentUser=false}}
+                    @disabled={{not this.canWrite}}
+                  />
+                </field.Control>
+              </form.Field>
+            {{/if}}
           </form.Section>
 
           <form.Actions>

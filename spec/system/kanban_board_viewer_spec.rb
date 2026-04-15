@@ -370,6 +370,42 @@ describe "Kanban Board Viewer" do
       expect(board_viewer).to have_card_tag("Tag me", "urgent")
     end
 
+    it "creates a new tag from the card detail modal" do
+      SiteSetting.tagging_enabled = true
+      SiteSetting.create_tag_allowed_groups = Group::AUTO_GROUPS[:trust_level_0]
+
+      result =
+        create_board(
+          { allow_write_group_ids: [write_group.id] },
+          with_columns: [{ title: "To Do", position: 0 }],
+        )
+      board = result.board
+      board.cards.create!(
+        card_type: :floater,
+        title: "Needs new tag",
+        column_id: result.column("To Do").id,
+        position: 0,
+        created_by_id: admin.id,
+      )
+
+      sign_in(admin)
+      board_viewer.visit_board(board)
+
+      board_viewer.click_floater_card("Needs new tag")
+      expect(board_viewer).to have_card_detail_modal
+
+      board_viewer.create_card_detail_tag("brand-new-tag")
+      expect(board_viewer).to have_card_detail_tag("brand-new-tag")
+
+      board_viewer.save_card_detail
+
+      expect(board_viewer).to have_card_tag("Needs new tag", "brand-new-tag")
+      card = DiscourseKanban::Card.find_by!(title: "Needs new tag")
+      tag = Tag.find_by(name: "brand-new-tag")
+      expect(tag).to be_present
+      expect(card.tag_ids).to include(tag.id)
+    end
+
     it "tabs from the title to notes and leaves close last" do
       result =
         create_board(
@@ -487,7 +523,8 @@ describe "Kanban Board Viewer" do
       sign_in(user)
       board_viewer.visit_board(result.board)
 
-      expect(board_viewer).to have_no_controls_menu
+      board_viewer.open_controls_menu
+      expect(board_viewer).to have_no_board_settings_option
     end
   end
 

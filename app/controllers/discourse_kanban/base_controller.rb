@@ -78,6 +78,7 @@ module DiscourseKanban
         :after_card_id,
         :assigned_to_name,
         tag_ids: [],
+        tag_names: [],
       )
     end
 

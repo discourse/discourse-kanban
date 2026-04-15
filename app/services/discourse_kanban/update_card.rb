@@ -19,6 +19,7 @@ module DiscourseKanban
       attribute :after_card_id, :integer
       attribute :assigned_to_name, :string
       attribute :tag_ids, :array
+      attribute :tag_names, :array
 
       validates :board_id, presence: true
       validates :id, presence: true
@@ -85,6 +86,9 @@ module DiscourseKanban
               )
       end
 
+      card_assignee = card.assigned_to
+      validate_assignment_carry_over!(card_assignee, column, guardian)
+
       existing = board.cards.find_by(topic_id: topic.id, column_id: column.id)
       if existing
         context[:card] = adopt_existing_topic_card!(
@@ -96,6 +100,7 @@ module DiscourseKanban
           options:,
         )
         context[:promoted] = true
+        assign_card_assignee_to_topic(card_assignee, topic, column, guardian)
         return
       end
 
@@ -107,6 +112,7 @@ module DiscourseKanban
       card.assigned_to_type = nil
       card.updated_by_id = guardian.user.id
       TopicMutator.apply!(topic:, column:, guardian:)
+      assign_card_assignee_to_topic(card_assignee, topic, column, guardian)
       context[:promoted] = true
     end
 
@@ -115,7 +121,9 @@ module DiscourseKanban
       if card.floater? && !context[:promoted]
         card.title = params.title || card.title
         card.notes = raw.key?("notes") ? raw["notes"] : card.notes
-        card.tag_ids = normalize_tag_ids(params.tag_ids) if raw.key?("tag_ids")
+        if raw.key?("tag_ids") || raw.key?("tag_names")
+          card.tag_ids = resolve_all_tag_ids(params.tag_ids, params.tag_names, guardian)
+        end
         card.assigned_to = resolve_assignee(raw["assigned_to_name"], guardian) if raw.key?(
           "assigned_to_name",
         )
@@ -127,6 +135,10 @@ module DiscourseKanban
 
     def resolve_assignee(name, guardian)
       return nil if name.blank?
+
+      unless guardian.can_assign?
+        raise Discourse::InvalidAccess.new(I18n.t("discourse_kanban.errors.cannot_assign"))
+      end
 
       user = User.find_by_username(name)
       return user if user&.active
@@ -236,8 +248,38 @@ module DiscourseKanban
       end
     end
 
-    def normalize_tag_ids(values)
-      Card.normalize_tag_ids!(values)
+    def validate_assignment_carry_over!(assignee, column, guardian)
+      return if assignee.blank?
+      return unless defined?(::Assigner)
+      return if column.move_to_assigned.present? && column.move_to_assigned != "*"
+
+      unless guardian.can_assign?
+        raise Discourse::InvalidAccess.new(I18n.t("discourse_kanban.errors.cannot_assign"))
+      end
+    end
+
+    def assign_card_assignee_to_topic(assignee, topic, column, guardian)
+      return if assignee.blank?
+      return unless defined?(::Assigner)
+      return if column.move_to_assigned.present? && column.move_to_assigned != "*"
+
+      result = ::Assigner.new(topic, guardian.user).assign(assignee, skip_small_action_post: true)
+
+      unless result[:success]
+        raise Discourse::InvalidParameters.new(
+                I18n.t("discourse_kanban.errors.assignment_carry_over_failed"),
+              )
+      end
+    end
+
+    def resolve_all_tag_ids(tag_ids, tag_names, guardian)
+      ids = Card.normalize_tag_ids!(tag_ids)
+      names = Array(tag_names).compact_blank
+      if names.present?
+        tags = DiscourseTagging.find_or_create_tags!(names, guardian)
+        ids = (ids + tags.map(&:id)).uniq
+      end
+      ids
     end
 
     def topic_card_constraint_name(error)

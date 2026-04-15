@@ -106,7 +106,11 @@ export default class KanbanCard extends Component {
       return [this.topic.assigned_to_user];
     }
     const floaterAssignment = this.args.card.assigned_to;
-    if (!this.isTopicCard && floaterAssignment?.type === "User") {
+    if (
+      !this.isTopicCard &&
+      this.siteSettings.assign_enabled &&
+      floaterAssignment?.type === "User"
+    ) {
       return [floaterAssignment];
     }
     return [];
@@ -117,6 +121,9 @@ export default class KanbanCard extends Component {
   }
 
   get assignedGroup() {
+    if (!this.siteSettings.assign_enabled) {
+      return null;
+    }
     const floaterAssignment = this.args.card.assigned_to;
     if (!this.isTopicCard && floaterAssignment?.type === "Group") {
       return floaterAssignment;
