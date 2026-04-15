@@ -1,4 +1,5 @@
 import Component from "@glimmer/component";
+import { USER_OPTION_COMPOSITION_MODES } from "discourse/lib/constants";
 import { tracked } from "@glimmer/tracking";
 import { fn, hash } from "@ember/helper";
 import { action } from "@ember/object";
@@ -106,7 +107,10 @@ export default class KanbanCardDetail extends Component {
               @disabled={{not this.canWrite}}
               as |field|
             >
-              <field.Control @height={{300}} />
+              <field.Control
+                @height={{300}}
+                @forceEditorMode={{USER_OPTION_COMPOSITION_MODES.rich}}
+              />
             </form.Field>
             <form.Field
               @name="tags"
