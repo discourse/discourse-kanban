@@ -84,10 +84,7 @@ module DiscourseKanban
 
     def serialize_assignment(assignment)
       assignee = assignment.assigned_to
-      result = {
-        target_type: assignment.target_type,
-        target_id: assignment.target_id,
-      }
+      result = { target_type: assignment.target_type, target_id: assignment.target_id }
 
       if assignee.is_a?(User)
         result[:username] = assignee.username
@@ -96,9 +93,7 @@ module DiscourseKanban
         result[:group_name] = assignee.name
       end
 
-      if assignment.target_type == "Post"
-        result[:post_number] = assignment.target&.post_number
-      end
+      result[:post_number] = assignment.target&.post_number if assignment.target_type == "Post"
 
       result
     end
