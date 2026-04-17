@@ -47,6 +47,7 @@ en:
           other: "%{count} replies"
         topic_last_reply: "last by %{username}"
         assign: "Assign"
+        assign_card: "Assign Card"
         reassign: "Reassign"
         unassign: "Unassign"
         unassign_from_topic: "Unassign @%{username} from topic"
