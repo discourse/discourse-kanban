@@ -448,6 +448,20 @@ body.kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
 
   &__assignments {
     text-align: right;
+
+    &.is-clickable {
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+    }
+  }
+
+  &__assignments-avatars.is-clickable {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
   }
 
   &__assigned-to {

@@ -199,6 +199,10 @@ export default class KanbanCard extends Component {
     return this.allAssignedUsers.length > 0 || !!this.topic?.assigned_to_group;
   }
 
+  get showAssignButton() {
+    return this.canAssign && !this.isTopicAssigned;
+  }
+
   get floaterTagsHtml() {
     const tags = this.args.card.tags;
     if (this.isTopicCard || !tags?.length) {
@@ -259,7 +263,8 @@ export default class KanbanCard extends Component {
   }
 
   @action
-  assignTopic() {
+  assignTopic(event) {
+    event?.stopPropagation();
     const taskActions = getOwner(this).lookup("service:task-actions");
     taskActions.showAssignModal(this.topic, {
       isAssigned: this.isTopicAssigned,
@@ -540,20 +545,46 @@ export default class KanbanCard extends Component {
 
         {{#unless this.isDetailed}}
           {{#if this.allAssignedUsers.length}}
-            <div class="kanban-card__assignments">
-              {{#each this.allAssignedUsers as |user|}}
-                <div class="kanban-card__assigned-to">
-                  {{icon "user-plus"}}{{user.username}}
-                </div>
-              {{/each}}
-            </div>
+            {{#if this.canAssign}}
+              <button
+                type="button"
+                class="kanban-card__assignments is-clickable"
+                {{on "click" this.assignTopic}}
+              >
+                {{#each this.allAssignedUsers as |user|}}
+                  <div class="kanban-card__assigned-to">
+                    {{icon "user-plus"}}{{user.username}}
+                  </div>
+                {{/each}}
+              </button>
+            {{else}}
+              <div class="kanban-card__assignments">
+                {{#each this.allAssignedUsers as |user|}}
+                  <div class="kanban-card__assigned-to">
+                    {{icon "user-plus"}}{{user.username}}
+                  </div>
+                {{/each}}
+              </div>
+            {{/if}}
           {{/if}}
           {{#if this.assignedGroup}}
-            <div class="kanban-card__assignments">
-              <div class="kanban-card__assigned-to">
-                {{icon "group"}}{{this.assignedGroup.name}}
+            {{#if this.canAssign}}
+              <button
+                type="button"
+                class="kanban-card__assignments is-clickable"
+                {{on "click" this.assignTopic}}
+              >
+                <div class="kanban-card__assigned-to">
+                  {{icon "group"}}{{this.assignedGroup.name}}
+                </div>
+              </button>
+            {{else}}
+              <div class="kanban-card__assignments">
+                <div class="kanban-card__assigned-to">
+                  {{icon "group"}}{{this.assignedGroup.name}}
+                </div>
               </div>
-            </div>
+            {{/if}}
           {{/if}}
         {{/unless}}
       </div>
@@ -570,15 +601,37 @@ export default class KanbanCard extends Component {
           </div>
 
           {{#if this.assignedAvatarHtml}}
-            <div class="kanban-card__assignments-avatars">
-              {{trustHTML this.assignedAvatarHtml}}
-            </div>
-          {{else if this.assignedGroup}}
-            <div class="kanban-card__assignments">
-              <div class="kanban-card__assigned-to">
-                {{icon "group"}}{{this.assignedGroup.name}}
+            {{#if this.canAssign}}
+              <button
+                type="button"
+                class="kanban-card__assignments-avatars is-clickable"
+                {{on "click" this.assignTopic}}
+              >
+                {{trustHTML this.assignedAvatarHtml}}
+              </button>
+            {{else}}
+              <div class="kanban-card__assignments-avatars">
+                {{trustHTML this.assignedAvatarHtml}}
               </div>
-            </div>
+            {{/if}}
+          {{else if this.assignedGroup}}
+            {{#if this.canAssign}}
+              <button
+                type="button"
+                class="kanban-card__assignments is-clickable"
+                {{on "click" this.assignTopic}}
+              >
+                <div class="kanban-card__assigned-to">
+                  {{icon "group"}}{{this.assignedGroup.name}}
+                </div>
+              </button>
+            {{else}}
+              <div class="kanban-card__assignments">
+                <div class="kanban-card__assigned-to">
+                  {{icon "group"}}{{this.assignedGroup.name}}
+                </div>
+              </div>
+            {{/if}}
           {{/if}}
         </div>
       {{/if}}
@@ -589,15 +642,11 @@ export default class KanbanCard extends Component {
         </div>
       {{/if}}
 
-      {{#if this.canAssign}}
+      {{#if this.showAssignButton}}
         <DButton
           @action={{this.assignTopic}}
           @icon="user-plus"
-          @title={{if
-            this.isTopicAssigned
-            "discourse_kanban.board.reassign"
-            "discourse_kanban.board.assign"
-          }}
+          @title="discourse_kanban.board.assign"
           class="btn-flat kanban-card__assign-btn"
         />
       {{/if}}
