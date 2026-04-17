@@ -422,9 +422,8 @@ describe "Kanban Board Viewer" do
 
       find(".kanban-card-detail-modal .kanban-editable-title__input").send_keys(:tab)
       expect(page.active_element).to eq(
-        first(
-          ".kanban-card-detail-modal .form-kit__field[data-name='notes'] .d-editor-button-bar button",
-          minimum: 1,
+        find(
+          ".kanban-card-detail-modal .form-kit__field[data-name='notes'] .ProseMirror",
         ),
       )
 
