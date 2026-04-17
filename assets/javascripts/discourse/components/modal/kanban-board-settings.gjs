@@ -11,8 +11,34 @@ import { popupAjaxError } from "discourse/lib/ajax-error";
 import discourseDebounce from "discourse/lib/debounce";
 import CategorySelector from "discourse/select-kit/components/category-selector";
 import GroupChooser from "discourse/select-kit/components/group-chooser";
+import { eq, or } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
 import KanbanEditableTitle from "../kanban-editable-title";
+
+const CONSTRAINT_TYPE_OPTIONS = [
+  {
+    id: "categories",
+    name: i18n("discourse_kanban.manage.constraint_categories"),
+  },
+  { id: "tags", name: i18n("discourse_kanban.manage.constraint_tags") },
+  {
+    id: "categories_and_tags",
+    name: i18n("discourse_kanban.manage.constraint_categories_and_tags"),
+  },
+];
+
+function inferConstraintType(categoryIds, tagNames) {
+  const hasCats = categoryIds?.length > 0;
+  const hasTags = tagNames?.length > 0;
+  if (hasCats && hasTags) {
+    return "categories_and_tags";
+  } else if (hasCats) {
+    return "categories";
+  } else if (hasTags) {
+    return "tags";
+  }
+  return null;
+}
 
 const CARD_STYLE_OPTIONS = [
   {
@@ -41,6 +67,10 @@ export default class KanbanBoardSettings extends Component {
       return {
         name: board.name || "",
         slug: board.slug || "",
+        constraint_type: inferConstraintType(
+          board.category_ids,
+          board.tag_names
+        ),
         category_ids: board.category_ids || [],
         tag_names: board.tag_names || [],
         card_style: board.card_style || "detailed",
@@ -55,6 +85,7 @@ export default class KanbanBoardSettings extends Component {
     return {
       name: "",
       slug: "",
+      constraint_type: null,
       category_ids: [],
       tag_names: [],
       card_style: "detailed",
@@ -71,6 +102,7 @@ export default class KanbanBoardSettings extends Component {
     return this.args.model.isNew;
   }
 
+
   @action
   onNameInput(value) {
     this.editingName = value;
@@ -82,6 +114,23 @@ export default class KanbanBoardSettings extends Component {
     return (categoryIds || [])
       .map((id) => this.site.categories?.find((c) => c.id === id))
       .filter(Boolean);
+  }
+
+  @action
+  onConstraintTypeChange(type, { set }) {
+    set("constraint_type", type);
+    if (!type) {
+      set("category_ids", []);
+      set("tag_names", []);
+    } else if (type === "categories") {
+      set("tag_names", []);
+    } else if (type === "tags") {
+      set("category_ids", []);
+    }
+    this._checkConstraints(
+      type === "tags" || !type ? [] : null,
+      type === "categories" || !type ? [] : null
+    );
   }
 
   @action
@@ -152,6 +201,9 @@ export default class KanbanBoardSettings extends Component {
 
   @action
   async save(data) {
+    const { constraint_type, ...saveData } = data;
+    data = saveData;
+
     if (this.constraintWarning) {
       this.dialog.confirm({
         message: this.constraintWarning,
@@ -212,34 +264,70 @@ export default class KanbanBoardSettings extends Component {
               </form.Field>
 
               <form.Field
-                @name="category_ids"
-                @title={{i18n "discourse_kanban.manage.board_categories"}}
+                @name="constraint_type"
+                @title={{i18n "discourse_kanban.manage.constrain_board_by"}}
+                @description={{if
+                  data.constraint_type
+                  (i18n "discourse_kanban.manage.constraint_help")
+                }}
                 @format="max"
-                @type="custom"
+                @type="select"
+                @onSet={{this.onConstraintTypeChange}}
                 as |field|
               >
-                <field.Control>
-                  <CategorySelector
-                    @categories={{this.selectedCategories data.category_ids}}
-                    @onChange={{fn this.onCategoriesChange field}}
-                  />
+                <field.Control as |select|>
+                  {{#each CONSTRAINT_TYPE_OPTIONS as |option|}}
+                    <select.Option
+                      @value={{option.id}}
+                    >{{option.name}}</select.Option>
+                  {{/each}}
                 </field.Control>
               </form.Field>
 
-              <form.Field
-                @name="tag_names"
-                @title={{i18n "discourse_kanban.manage.board_tags"}}
-                @format="max"
-                @type="tag-chooser"
-                @onSet={{this.onTagsChange}}
-                as |field|
-              >
-                <field.Control
-                  @showAllTags={{true}}
-                  @excludeSynonyms={{true}}
-                  @allowCreate={{true}}
-                />
-              </form.Field>
+              {{#if
+                (or
+                  (eq data.constraint_type "categories")
+                  (eq data.constraint_type "categories_and_tags")
+                )
+              }}
+                <form.Field
+                  @name="category_ids"
+                  @title={{i18n "discourse_kanban.manage.board_categories"}}
+                  @format="max"
+                  @type="custom"
+                  as |field|
+                >
+                  <field.Control>
+                    <CategorySelector
+                      @categories={{this.selectedCategories data.category_ids}}
+                      @onChange={{fn this.onCategoriesChange field}}
+                    />
+                  </field.Control>
+                </form.Field>
+              {{/if}}
+
+              {{#if
+                (or
+                  (eq data.constraint_type "tags")
+                  (eq data.constraint_type "categories_and_tags")
+                )
+              }}
+                <form.Field
+                  @name="tag_names"
+                  @title={{i18n "discourse_kanban.manage.board_tags"}}
+                  @format="max"
+                  @type="tag-chooser"
+                  @onSet={{this.onTagsChange}}
+                  as |field|
+                >
+                  <field.Control
+                    @showAllTags={{true}}
+                    @excludeSynonyms={{true}}
+                    @allowCreate={{true}}
+                  />
+                </form.Field>
+              {{/if}}
+
 
               {{#if this.constraintWarning}}
                 <form.Alert @type="warning">
