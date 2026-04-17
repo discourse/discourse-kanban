@@ -9,7 +9,6 @@ describe "Kanban Keyboard Shortcuts" do
 
   before do
     enable_current_plugin
-    SiteSetting.discourse_kanban_enabled = true
     write_group.add(user)
   end
 

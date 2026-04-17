@@ -9,7 +9,6 @@ RSpec.describe DiscourseKanban::TopicMovesController do
 
   before do
     enable_current_plugin
-    SiteSetting.discourse_kanban_enabled = true
     write_group.add(writer)
   end
 

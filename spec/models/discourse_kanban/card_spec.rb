@@ -6,10 +6,7 @@ RSpec.describe DiscourseKanban::Card do
   fab!(:tag)
   fab!(:topic) { Fabricate(:topic, category: category) }
 
-  before do
-    enable_current_plugin
-    SiteSetting.discourse_kanban_enabled = true
-  end
+  before { enable_current_plugin }
 
   fab!(:board) do
     DiscourseKanban::Board.create!(name: "Test", slug: "test-card", created_by_id: admin.id)

@@ -7,10 +7,7 @@ RSpec.describe DiscourseKanban::TopicSync do
   fab!(:tag_b) { Fabricate(:tag, name: "sync-beta") }
   fab!(:topic) { Fabricate(:topic, category: category) }
 
-  before do
-    enable_current_plugin
-    SiteSetting.discourse_kanban_enabled = true
-  end
+  before { enable_current_plugin }
 
   it "does not auto-create cards in unconstrained columns" do
     board =

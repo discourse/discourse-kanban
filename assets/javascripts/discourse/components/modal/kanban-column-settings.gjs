@@ -22,13 +22,7 @@ import {
 import KanbanEditableTitle from "../kanban-editable-title";
 
 export default class KanbanColumnSettings extends Component {
-  @tracked editTitle;
   @tracked showAdvanced = false;
-
-  constructor() {
-    super(...arguments);
-    this.editTitle = this.args.model.column?.title || "";
-  }
 
   get isNew() {
     return !this.args.model.column;
@@ -39,6 +33,7 @@ export default class KanbanColumnSettings extends Component {
     const column = this.args.model.column;
     if (column) {
       return {
+        title: column.title || "",
         icon: column.icon || null,
         tag_name: column.tag_name || "",
         move_to_category_id: column.move_to_category_id || null,
@@ -47,6 +42,7 @@ export default class KanbanColumnSettings extends Component {
       };
     }
     return {
+      title: "",
       icon: null,
       tag_name: "",
       move_to_category_id: null,
@@ -61,16 +57,6 @@ export default class KanbanColumnSettings extends Component {
 
   get assignedOptions() {
     return ASSIGNED_OPTIONS;
-  }
-
-  @action
-  onTitleInput(value) {
-    this.editTitle = value;
-  }
-
-  @action
-  onRegisterApi(api) {
-    this.formApi = api;
   }
 
   @action
@@ -115,7 +101,7 @@ export default class KanbanColumnSettings extends Component {
   @action
   async save(data) {
     const columnData = {
-      title: this.editTitle.trim(),
+      title: data.title.trim(),
       icon: data.icon,
       tag_name: data.tag_name || null,
       move_to_category_id: data.move_to_category_id,
@@ -137,21 +123,16 @@ export default class KanbanColumnSettings extends Component {
       class="kanban-column-settings-modal"
     >
       <:body>
-        <KanbanEditableTitle
-          @value={{this.editTitle}}
-          @placeholder={{i18n
-            "discourse_kanban.manage.columns.column_title_placeholder"
-          }}
-          @onInput={{this.onTitleInput}}
-          @onClose={{@closeModal}}
-        />
-
-        <Form
-          @data={{this.formData}}
-          @onSubmit={{this.save}}
-          @onRegisterApi={{this.onRegisterApi}}
-          as |form data|
-        >
+        <Form @data={{this.formData}} @onSubmit={{this.save}} as |form data|>
+          <KanbanEditableTitle
+            @form={{form}}
+            @name="title"
+            @title={{i18n "discourse_kanban.manage.columns.column_title"}}
+            @placeholder={{i18n
+              "discourse_kanban.manage.columns.column_title_placeholder"
+            }}
+            @onClose={{@closeModal}}
+          />
           <div class="kanban-column-settings-modal__wrapper">
             <form.Section>
               <form.Field

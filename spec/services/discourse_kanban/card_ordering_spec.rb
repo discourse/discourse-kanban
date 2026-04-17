@@ -3,10 +3,7 @@
 RSpec.describe DiscourseKanban::CardOrdering do
   fab!(:admin)
 
-  before do
-    enable_current_plugin
-    SiteSetting.discourse_kanban_enabled = true
-  end
+  before { enable_current_plugin }
 
   fab!(:board) do
     DiscourseKanban::Board.create!(name: "Test", slug: "test-ordering", created_by_id: admin.id)

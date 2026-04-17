@@ -28,12 +28,9 @@ RSpec.describe DiscourseKanban::MoveColumn do
     fab!(:col_done) { board.columns.create!(title: "Done", position: 2) }
 
     let(:params) { { board_id: board.id, column_id: col_progress.id, direction: 1 } }
-    let(:dependencies) { { guardian: Guardian.new(admin) } }
+    let(:dependencies) { { guardian: admin.guardian } }
 
-    before do
-      enable_current_plugin
-      SiteSetting.discourse_kanban_enabled = true
-    end
+    before { enable_current_plugin }
 
     context "when moving a column right" do
       it { is_expected.to run_successfully }
@@ -95,7 +92,7 @@ RSpec.describe DiscourseKanban::MoveColumn do
     end
 
     context "when user cannot manage boards" do
-      let(:dependencies) { { guardian: Guardian.new(user) } }
+      let(:dependencies) { { guardian: user.guardian } }
 
       it { is_expected.to fail_a_policy(:can_manage) }
     end

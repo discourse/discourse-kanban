@@ -8,6 +8,10 @@ module PageObjects
         self
       end
 
+      def board_form
+        PageObjects::Components::FormKit.new(".kanban-board-settings-modal .form-kit")
+      end
+
       def click_new_board
         find(".discourse-kanban-manage__header .btn-primary").click
         self

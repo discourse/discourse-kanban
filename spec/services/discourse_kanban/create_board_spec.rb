@@ -14,11 +14,10 @@ RSpec.describe DiscourseKanban::CreateBoard do
 
     let(:raw) { { "name" => "New Board", "slug" => "new-board" } }
     let(:params) { raw }
-    let(:dependencies) { { guardian: Guardian.new(manager) } }
+    let(:dependencies) { { guardian: manager.guardian } }
 
     before do
       enable_current_plugin
-      SiteSetting.discourse_kanban_enabled = true
       SiteSetting.discourse_kanban_manage_board_allowed_groups = manage_group.id.to_s
       manage_group.add(manager)
     end
@@ -30,7 +29,7 @@ RSpec.describe DiscourseKanban::CreateBoard do
     end
 
     context "when user cannot manage boards" do
-      let(:dependencies) { { guardian: Guardian.new(outsider) } }
+      let(:dependencies) { { guardian: outsider.guardian } }
 
       it { is_expected.to fail_a_policy(:can_manage) }
     end

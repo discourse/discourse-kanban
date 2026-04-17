@@ -29,12 +29,11 @@ RSpec.describe DiscourseKanban::ClearColumn do
     fab!(:column) { board.columns.create!(title: "Col", position: 0) }
     fab!(:other_column) { board.columns.create!(title: "Other", position: 1) }
 
-    let(:dependencies) { { guardian: Guardian.new(writer) } }
+    let(:dependencies) { { guardian: writer.guardian } }
     let(:params) { { board_id: board.id, column_id: column.id } }
 
     before do
       enable_current_plugin
-      SiteSetting.discourse_kanban_enabled = true
       write_group.add(writer)
       read_group.add(reader)
     end
@@ -113,7 +112,7 @@ RSpec.describe DiscourseKanban::ClearColumn do
     end
 
     context "when user cannot write" do
-      let(:dependencies) { { guardian: Guardian.new(reader) } }
+      let(:dependencies) { { guardian: reader.guardian } }
 
       it { is_expected.to fail_a_policy(:can_write) }
     end

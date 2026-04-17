@@ -26,7 +26,6 @@ RSpec.describe DiscourseKanban::CardsController do
 
   before do
     enable_current_plugin
-    SiteSetting.discourse_kanban_enabled = true
     write_group.add(writer)
     read_group.add(reader)
   end

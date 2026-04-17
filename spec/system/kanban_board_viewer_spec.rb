@@ -15,7 +15,6 @@ describe "Kanban Board Viewer" do
 
   before do
     enable_current_plugin
-    SiteSetting.discourse_kanban_enabled = true
     SiteSetting.discourse_kanban_manage_board_allowed_groups = manage_group.id.to_s
     manage_group.add(manager)
     write_group.add(user)
