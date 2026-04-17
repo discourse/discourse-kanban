@@ -328,7 +328,6 @@ export default class KanbanBoardSettings extends Component {
                 </form.Field>
               {{/if}}
 
-
               {{#if this.constraintWarning}}
                 <form.Alert @type="warning">
                   {{this.constraintWarning}}
