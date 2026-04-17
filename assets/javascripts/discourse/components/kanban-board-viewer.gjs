@@ -14,6 +14,7 @@ import DTooltip from "discourse/float-kit/components/d-tooltip";
 import bodyClass from "discourse/helpers/body-class";
 import boundCategoryLink from "discourse/helpers/bound-category-link";
 import icon from "discourse/helpers/d-icon";
+import discourseTags from "discourse/helpers/discourse-tags";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
 import { bind } from "discourse/lib/decorators";
@@ -288,17 +289,6 @@ export default class KanbanBoardViewer extends Component {
 
   get hasBoardFilters() {
     return this.boardCategories.length > 0 || this.boardTagNames.length > 0;
-  }
-
-  get constraintLabelKey() {
-    const hasCats = this.boardCategories.length > 0;
-    const hasTags = this.boardTagNames.length > 0;
-    if (hasCats && hasTags) {
-      return "discourse_kanban.board.constraint_label_category_and_tag";
-    } else if (hasCats) {
-      return "discourse_kanban.board.constraint_label_category";
-    }
-    return "discourse_kanban.board.constraint_label_tag";
   }
 
   get allSameCategory() {
@@ -1157,41 +1147,22 @@ export default class KanbanBoardViewer extends Component {
           <h2 class="kanban-board-viewer__title">{{this.board.name}}</h2>
           {{#if this.hasBoardFilters}}
             <div class="kanban-board-viewer__constraint">
-              <span class="kanban-board-viewer__constraint-label">{{i18n
-                  this.constraintLabelKey
-                }}</span>
-              <DTooltip @interactive={{true}}>
+              {{#each this.boardCategories as |category|}}
+                {{boundCategoryLink category link=false}}
+              {{/each}}
+              {{#if this.boardTagNames.length}}
+                <div class="list-tags">
+                  {{discourseTags null tags=this.boardTagNames}}
+                </div>
+              {{/if}}
+              <DTooltip>
                 <:trigger>
                   {{icon "circle-info"}}
                 </:trigger>
                 <:content>
-                  <div class="kanban-board-viewer__constraint-details">
-                    <span>{{i18n
-                        "discourse_kanban.board.constraint_only_topics"
-                      }}</span>
-                    {{#if this.boardCategories.length}}
-                      <span>{{i18n
-                          "discourse_kanban.board.constraint_in"
-                        }}</span>
-                      {{#each this.boardCategories as |category|}}
-                        {{boundCategoryLink category link=false}}
-                      {{/each}}
-                    {{/if}}
-                    {{#if this.boardTagNames.length}}
-                      <span>{{i18n
-                          "discourse_kanban.board.constraint_tagged_with"
-                        }}</span>
-                      {{#each this.boardTagNames as |tag|}}
-                        <span class="kanban-board-viewer__constraint-tag">
-                          {{icon "tag"}}
-                          {{tag}}
-                        </span>
-                      {{/each}}
-                    {{/if}}
-                    <span>{{i18n
-                        "discourse_kanban.board.constraint_suffix"
-                      }}</span>
-                  </div>
+                  <span>{{i18n
+                      "discourse_kanban.board.constraint_tooltip"
+                    }}</span>
                 </:content>
               </DTooltip>
             </div>
