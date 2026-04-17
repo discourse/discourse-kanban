@@ -64,6 +64,25 @@ body.kanban-board {
     margin: 0;
   }
 
+  &__constraint {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25em;
+    font-size: var(--font-down-1);
+
+    .fk-d-tooltip__trigger {
+      display: inline-flex;
+      align-items: center;
+      cursor: pointer;
+      color: var(--primary-medium);
+
+      .d-icon {
+        font-size: var(--font-down-1);
+      }
+    }
+  }
+
   &__controls {
     display: flex;
     align-items: center;
