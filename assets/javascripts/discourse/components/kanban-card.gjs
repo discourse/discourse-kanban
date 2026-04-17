@@ -588,6 +588,19 @@ export default class KanbanCard extends Component {
           <img class="kanban-card__thumbnail" src={{this.topic.image_url}} />
         </div>
       {{/if}}
+
+      {{#if this.canAssign}}
+        <DButton
+          @action={{this.assignTopic}}
+          @icon="user-plus"
+          @title={{if
+            this.isTopicAssigned
+            "discourse_kanban.board.reassign"
+            "discourse_kanban.board.assign"
+          }}
+          class="btn-flat kanban-card__assign-btn"
+        />
+      {{/if}}
     </div>
   </template>
 }

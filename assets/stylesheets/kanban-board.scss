@@ -339,6 +339,7 @@ body.kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
 
 .kanban-card {
   display: block;
+  position: relative;
   color: var(--primary);
   background: var(--secondary);
   border: 1px solid var(--primary-low);
@@ -519,6 +520,25 @@ body.kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     margin-left: auto;
     color: var(--primary-medium);
     font-size: $font-down-2;
+  }
+
+  &__assign-btn {
+    position: absolute;
+    bottom: var(--space-1);
+    right: var(--space-1);
+    width: 1.75em;
+    height: 1.75em;
+    padding: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-medium);
+
+    .d-icon {
+      margin: 0;
+      font-size: var(--font-down-1);
+    }
   }
 }
 
