@@ -46,7 +46,7 @@ export default class KanbanBoardSettings extends Component {
         show_tags: board.show_tags ?? false,
         show_topic_thumbnail: board.show_topic_thumbnail ?? false,
         show_activity_indicators: board.show_activity_indicators ?? false,
-        require_confirmation: board.require_confirmation ?? true,
+        require_confirmation: board.require_confirmation ?? false,
         allow_read_group_ids: board.allow_read_group_ids || [],
         allow_write_group_ids: board.allow_write_group_ids || [],
       };

@@ -34,7 +34,7 @@ describe "Manage Kanban Boards" do
 
       board = DiscourseKanban::Board.last
       expect(board.name).to eq("Sprint Board")
-      expect(board.require_confirmation).to eq(false)
+      expect(board.require_confirmation).to eq(true)
 
       boards_page.visit_page
       expect(boards_page).to have_board_listed("Sprint Board")
