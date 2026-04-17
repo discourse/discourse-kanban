@@ -37,11 +37,7 @@ export default class KanbanFloaterAssign extends Component {
         />
       </:body>
       <:footer>
-        <DButton
-          @action={{this.save}}
-          @label="save"
-          class="btn-primary"
-        />
+        <DButton @action={{this.save}} @label="save" class="btn-primary" />
       </:footer>
     </DModal>
   </template>
