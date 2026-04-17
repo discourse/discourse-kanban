@@ -10,7 +10,9 @@ import { modifier } from "ember-modifier";
 import DButton from "discourse/components/d-button";
 import DropdownMenu from "discourse/components/dropdown-menu";
 import DMenu from "discourse/float-kit/components/d-menu";
+import DTooltip from "discourse/float-kit/components/d-tooltip";
 import bodyClass from "discourse/helpers/body-class";
+import boundCategoryLink from "discourse/helpers/bound-category-link";
 import icon from "discourse/helpers/d-icon";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
@@ -84,6 +86,7 @@ export default class KanbanBoardViewer extends Component {
   @service messageBus;
   @service modal;
   @service router;
+  @service siteSettings;
   @service toasts;
 
   @tracked board;
@@ -271,6 +274,31 @@ export default class KanbanBoardViewer extends Component {
 
   get canManage() {
     return this.board.can_manage;
+  }
+
+  get boardCategories() {
+    return (this.board.category_ids || [])
+      .map((id) => Category.findById(id))
+      .filter(Boolean);
+  }
+
+  get boardTagNames() {
+    return this.board.tag_names || [];
+  }
+
+  get hasBoardFilters() {
+    return this.boardCategories.length > 0 || this.boardTagNames.length > 0;
+  }
+
+  get constraintLabelKey() {
+    const hasCats = this.boardCategories.length > 0;
+    const hasTags = this.boardTagNames.length > 0;
+    if (hasCats && hasTags) {
+      return "discourse_kanban.board.constraint_label_category_and_tag";
+    } else if (hasCats) {
+      return "discourse_kanban.board.constraint_label_category";
+    }
+    return "discourse_kanban.board.constraint_label_tag";
   }
 
   get allSameCategory() {
@@ -1125,7 +1153,50 @@ export default class KanbanBoardViewer extends Component {
       {{didInsert calcAvailableHeight}}
     >
       <div class="kanban-board-viewer__header">
-        <h2 class="kanban-board-viewer__title">{{this.board.name}}</h2>
+        <div class="kanban-board-viewer__title-wrapper">
+          <h2 class="kanban-board-viewer__title">{{this.board.name}}</h2>
+          {{#if this.hasBoardFilters}}
+            <div class="kanban-board-viewer__constraint">
+              <span class="kanban-board-viewer__constraint-label">{{i18n
+                  this.constraintLabelKey
+                }}</span>
+              <DTooltip @interactive={{true}}>
+                <:trigger>
+                  {{icon "circle-info"}}
+                </:trigger>
+                <:content>
+                  <div class="kanban-board-viewer__constraint-details">
+                    <span>{{i18n
+                        "discourse_kanban.board.constraint_only_topics"
+                      }}</span>
+                    {{#if this.boardCategories.length}}
+                      <span>{{i18n
+                          "discourse_kanban.board.constraint_in"
+                        }}</span>
+                      {{#each this.boardCategories as |category|}}
+                        {{boundCategoryLink category link=false}}
+                      {{/each}}
+                    {{/if}}
+                    {{#if this.boardTagNames.length}}
+                      <span>{{i18n
+                          "discourse_kanban.board.constraint_tagged_with"
+                        }}</span>
+                      {{#each this.boardTagNames as |tag|}}
+                        <span class="kanban-board-viewer__constraint-tag">
+                          {{icon "tag"}}
+                          {{tag}}
+                        </span>
+                      {{/each}}
+                    {{/if}}
+                    <span>{{i18n
+                        "discourse_kanban.board.constraint_suffix"
+                      }}</span>
+                  </div>
+                </:content>
+              </DTooltip>
+            </div>
+          {{/if}}
+        </div>
 
         <div class="kanban-board-viewer__controls">
           <DMenu

@@ -64,6 +64,64 @@ body.kanban-board {
     margin: 0;
   }
 
+  &__constraint {
+    display: flex;
+    align-items: center;
+    gap: 0.35em;
+    font-size: var(--font-down-1);
+    color: var(--primary-medium);
+
+    .fk-d-tooltip__trigger {
+      display: inline-flex;
+      align-items: center;
+      cursor: pointer;
+      color: var(--primary-medium);
+
+      .d-icon {
+        font-size: var(--font-down-1);
+      }
+    }
+  }
+
+  &__constraint-details {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25em;
+    padding: 0.25em;
+    font-size: var(--font-down-1);
+
+    .badge-category__wrapper {
+      display: inline-block;
+      font-size: 0.93em;
+      font-weight: normal;
+      color: var(--primary);
+      padding: 0.2em 0.34em;
+      background: var(--mention-background-color);
+      border-radius: 0.6em;
+      text-decoration: none;
+      text-wrap: nowrap;
+      line-height: 1;
+    }
+  }
+
+  &__constraint-tag {
+    display: inline-block;
+    font-size: 0.93em;
+    font-weight: normal;
+    color: var(--primary);
+    padding: 0.2em 0.34em;
+    background: var(--mention-background-color);
+    border-radius: 0.6em;
+    text-decoration: none;
+    text-wrap: nowrap;
+    line-height: 1;
+
+    .d-icon {
+      margin-right: 0.15em;
+    }
+  }
+
   &__controls {
     display: flex;
     align-items: center;

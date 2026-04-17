@@ -54,6 +54,13 @@ en:
         constraint_fix_category: "Change category to"
         constraint_fix_tags: "Add a board tag"
         constraint_fix_confirm: "Move and update"
+        constraint_label_category: "This board has category constraints."
+        constraint_label_tag: "This board has tag constraints."
+        constraint_label_category_and_tag: "This board has category and tag constraints."
+        constraint_only_topics: "Only topics"
+        constraint_in: "in"
+        constraint_tagged_with: "tagged with any"
+        constraint_suffix: "are allowed on this board."
       keyboard_shortcuts:
         navigate_columns: "Navigate between columns"
         navigate_cards: "Navigate between cards"
