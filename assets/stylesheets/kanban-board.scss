@@ -448,20 +448,6 @@ body.kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
 
   &__assignments {
     text-align: right;
-
-    &.is-clickable {
-      background: none;
-      border: none;
-      padding: 0;
-      cursor: pointer;
-    }
-  }
-
-  &__assignments-avatars.is-clickable {
-    background: none;
-    border: none;
-    padding: 0;
-    cursor: pointer;
   }
 
   &__assigned-to {
@@ -482,6 +468,8 @@ body.kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     min-height: 24px;
     align-items: center;
     margin-top: 5px;
+    display: flex;
+    flex-direction: row;
   }
 
   &__last-post-by {
@@ -493,17 +481,28 @@ body.kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     overflow: hidden;
   }
 
-  &__assignments-avatars {
-    text-align: right;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
+  &__assign-btn {
+    display: block;
+    margin-left: auto;
 
-    .d-icon {
-      margin-right: 0.25em;
-      font-size: $font-down-2;
-      color: var(--primary-medium);
+    .avatar {
+      height: var(--font-down-1-rem);
+      width: var(--font-down-1-rem);
     }
+  }
+
+  &__assign-btn .avatar {
+    height: var(--font-down-1-rem);
+    width: var(--font-down-1-rem);
+  }
+
+  &__assign-btn .avatar + .avatar {
+    margin-left: calc(var(--space-half) * -1);
+    outline: 2px solid var(--secondary);
+  }
+
+  &__assign-btn:hover .avatar + .avatar {
+    outline-color: var(--d-button-flat-bg-color--hover);
   }
 
   &__thumbnail-row {
@@ -534,25 +533,6 @@ body.kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     margin-left: auto;
     color: var(--primary-medium);
     font-size: $font-down-2;
-  }
-
-  &__assign-btn {
-    position: absolute;
-    bottom: var(--space-1);
-    right: var(--space-1);
-    width: 1.75em;
-    height: 1.75em;
-    padding: 0;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--primary-medium);
-
-    .d-icon {
-      margin: 0;
-      font-size: var(--font-down-1);
-    }
   }
 }
 

@@ -1,5 +1,6 @@
 import Component from "@glimmer/component";
 import { tracked } from "@glimmer/tracking";
+import { fn } from "@ember/helper";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
 import { getOwner } from "@ember/owner";
@@ -17,6 +18,7 @@ import { renderAvatar } from "discourse/helpers/user-avatar";
 import renderTags from "discourse/lib/render-tags";
 import DiscourseURL from "discourse/lib/url";
 import Category from "discourse/models/category";
+import { i18n } from "discourse-i18n";
 import { kanbanBoardUrl, kanbanCardUrl } from "../lib/kanban-urls";
 import AutoLinkedText from "./auto-linked-text";
 import KanbanCardDetailModal from "./modal/kanban-card-detail";
@@ -199,8 +201,22 @@ export default class KanbanCard extends Component {
     return this.allAssignedUsers.length > 0 || !!this.topic?.assigned_to_group;
   }
 
-  get showAssignButton() {
-    return this.canAssign && !this.isTopicAssigned;
+  get topicAssignments() {
+    return (this.topic?.assignments || []).map((a) => ({
+      ...a,
+      unassignLabel: a.username
+        ? a.target_type === "Post"
+          ? i18n("discourse_kanban.board.unassign_from_post", {
+              username: a.username,
+              post_number: a.post_number,
+            })
+          : i18n("discourse_kanban.board.unassign_from_topic", {
+              username: a.username,
+            })
+        : i18n("discourse_kanban.board.unassign_group_from_topic", {
+            group_name: a.group_name,
+          }),
+    }));
   }
 
   get floaterTagsHtml() {
@@ -281,9 +297,37 @@ export default class KanbanCard extends Component {
   }
 
   @action
+  editAssignments(close) {
+    close?.();
+    const taskActions = getOwner(this).lookup("service:task-actions");
+    taskActions.showAssignModal(this.topic, {
+      isAssigned: this.isTopicAssigned,
+      targetType: "Topic",
+      onSuccess: () => this.args.onRefreshBoard?.(),
+    });
+  }
+
+  @action
+  async unassignFromMenu(close) {
+    close?.();
+    const taskActions = getOwner(this).lookup("service:task-actions");
+    await taskActions.unassign(this.topic.id, "Topic");
+    this.args.onRefreshBoard?.();
+  }
+
+  @action
+  async unassignTarget(assignment, close) {
+    close?.();
+    const taskActions = getOwner(this).lookup("service:task-actions");
+    await taskActions.unassign(assignment.target_id, assignment.target_type);
+    this.args.onRefreshBoard?.();
+  }
+
+  @action
   onCardClick(event) {
     if (
       event.target.closest(".kanban-card__actions-trigger") ||
+      event.target.closest(".kanban-card__assign-btn") ||
       event.target.closest("[data-content]") ||
       event.target.closest("a")
     ) {
@@ -475,30 +519,6 @@ export default class KanbanCard extends Component {
                     />
                   </dropdown.item>
                 {{/unless}}
-                {{#if this.canAssign}}
-                  {{#if this.isTopicAssigned}}
-                    <dropdown.item>
-                      <DButton
-                        @action={{this.unassignTopic}}
-                        @icon="user-xmark"
-                        @label="discourse_kanban.board.unassign"
-                        class="btn-transparent"
-                      />
-                    </dropdown.item>
-                  {{/if}}
-                  <dropdown.item>
-                    <DButton
-                      @action={{this.assignTopic}}
-                      @icon="user-plus"
-                      @label={{if
-                        this.isTopicAssigned
-                        "discourse_kanban.board.reassign"
-                        "discourse_kanban.board.assign"
-                      }}
-                      class="btn-transparent"
-                    />
-                  </dropdown.item>
-                {{/if}}
                 <dropdown.item>
                   <DButton
                     @action={{this.removeCard}}
@@ -543,50 +563,6 @@ export default class KanbanCard extends Component {
           </div>
         {{/if}}
 
-        {{#unless this.isDetailed}}
-          {{#if this.allAssignedUsers.length}}
-            {{#if this.canAssign}}
-              <button
-                type="button"
-                class="kanban-card__assignments is-clickable"
-                {{on "click" this.assignTopic}}
-              >
-                {{#each this.allAssignedUsers as |user|}}
-                  <div class="kanban-card__assigned-to">
-                    {{icon "user-plus"}}{{user.username}}
-                  </div>
-                {{/each}}
-              </button>
-            {{else}}
-              <div class="kanban-card__assignments">
-                {{#each this.allAssignedUsers as |user|}}
-                  <div class="kanban-card__assigned-to">
-                    {{icon "user-plus"}}{{user.username}}
-                  </div>
-                {{/each}}
-              </div>
-            {{/if}}
-          {{/if}}
-          {{#if this.assignedGroup}}
-            {{#if this.canAssign}}
-              <button
-                type="button"
-                class="kanban-card__assignments is-clickable"
-                {{on "click" this.assignTopic}}
-              >
-                <div class="kanban-card__assigned-to">
-                  {{icon "group"}}{{this.assignedGroup.name}}
-                </div>
-              </button>
-            {{else}}
-              <div class="kanban-card__assignments">
-                <div class="kanban-card__assigned-to">
-                  {{icon "group"}}{{this.assignedGroup.name}}
-                </div>
-              </div>
-            {{/if}}
-          {{/if}}
-        {{/unless}}
       </div>
 
       {{#if this.isDetailed}}
@@ -600,39 +576,6 @@ export default class KanbanCard extends Component {
             {{/if}}
           </div>
 
-          {{#if this.assignedAvatarHtml}}
-            {{#if this.canAssign}}
-              <button
-                type="button"
-                class="kanban-card__assignments-avatars is-clickable"
-                {{on "click" this.assignTopic}}
-              >
-                {{trustHTML this.assignedAvatarHtml}}
-              </button>
-            {{else}}
-              <div class="kanban-card__assignments-avatars">
-                {{trustHTML this.assignedAvatarHtml}}
-              </div>
-            {{/if}}
-          {{else if this.assignedGroup}}
-            {{#if this.canAssign}}
-              <button
-                type="button"
-                class="kanban-card__assignments is-clickable"
-                {{on "click" this.assignTopic}}
-              >
-                <div class="kanban-card__assigned-to">
-                  {{icon "group"}}{{this.assignedGroup.name}}
-                </div>
-              </button>
-            {{else}}
-              <div class="kanban-card__assignments">
-                <div class="kanban-card__assigned-to">
-                  {{icon "group"}}{{this.assignedGroup.name}}
-                </div>
-              </div>
-            {{/if}}
-          {{/if}}
         </div>
       {{/if}}
 
@@ -642,14 +585,53 @@ export default class KanbanCard extends Component {
         </div>
       {{/if}}
 
-      {{#if this.showAssignButton}}
-        <DButton
-          @action={{this.assignTopic}}
-          @icon="user-plus"
-          @title="discourse_kanban.board.assign"
-          class="btn-flat kanban-card__assign-btn"
-        />
+      {{#if this.canAssign}}
+        {{#if this.isTopicAssigned}}
+          <DMenu
+            @identifier="kanban-card-assignment"
+            @triggerClass="kanban-card__assign-btn"
+            @class="btn-small btn-flat"
+          >
+            <:trigger>
+              {{#if this.assignedAvatarHtml}}
+                {{trustHTML this.assignedAvatarHtml}}
+              {{else if this.assignedGroup}}
+                {{icon "group"}}
+              {{/if}}
+            </:trigger>
+            <:content as |args|>
+              <DropdownMenu as |dropdown|>
+                {{#each this.topicAssignments as |assignment|}}
+                  <dropdown.item>
+                    <DButton
+                      @action={{fn this.unassignTarget assignment args.close}}
+                      @translatedLabel={{assignment.unassignLabel}}
+                      @icon="user-xmark"
+                      class="btn-transparent"
+                    />
+                  </dropdown.item>
+                {{/each}}
+                <dropdown.item>
+                  <DButton
+                    @action={{fn this.editAssignments args.close}}
+                    @icon="pencil"
+                    @label="discourse_kanban.board.edit_assignments"
+                    class="btn-transparent"
+                  />
+                </dropdown.item>
+              </DropdownMenu>
+            </:content>
+          </DMenu>
+        {{else}}
+          <DButton
+            @action={{this.assignTopic}}
+            @icon="user-plus"
+            @title="discourse_kanban.board.assign"
+            class="btn-flat btn-small kanban-card__assign-btn"
+          />
+        {{/if}}
       {{/if}}
+
     </div>
   </template>
 }
