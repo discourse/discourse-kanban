@@ -1,5 +1,5 @@
 import Component from "@glimmer/component";
-import { cached, tracked } from "@glimmer/tracking";
+import { cached } from "@glimmer/tracking";
 import { fn } from "@ember/helper";
 import { action } from "@ember/object";
 import { cancel } from "@ember/runloop";
@@ -52,7 +52,6 @@ export default class KanbanBoardSettings extends Component {
   @service dialog;
   @service site;
 
-  @tracked editingName = this.args.model.board?.name || "";
   constraintWarning = null;
 
   willDestroy() {
@@ -77,7 +76,7 @@ export default class KanbanBoardSettings extends Component {
         show_tags: board.show_tags ?? false,
         show_topic_thumbnail: board.show_topic_thumbnail ?? false,
         show_activity_indicators: board.show_activity_indicators ?? false,
-        require_confirmation: board.require_confirmation ?? true,
+        require_confirmation: board.require_confirmation ?? false,
         allow_read_group_ids: board.allow_read_group_ids || [],
         allow_write_group_ids: board.allow_write_group_ids || [],
       };
@@ -100,13 +99,6 @@ export default class KanbanBoardSettings extends Component {
 
   get isNew() {
     return this.args.model.isNew;
-  }
-
-
-  @action
-  onNameInput(value) {
-    this.editingName = value;
-    this.formApi?.set("name", value);
   }
 
   @action
@@ -201,9 +193,6 @@ export default class KanbanBoardSettings extends Component {
 
   @action
   async save(data) {
-    const { constraint_type, ...saveData } = data;
-    data = saveData;
-
     if (this.constraintWarning) {
       this.dialog.confirm({
         message: this.constraintWarning,
@@ -237,19 +226,20 @@ export default class KanbanBoardSettings extends Component {
       class="kanban-board-settings-modal"
     >
       <:body>
-        <KanbanEditableTitle
-          @value={{this.editingName}}
-          @placeholder={{i18n "discourse_kanban.manage.name_placeholder"}}
-          @onInput={{this.onNameInput}}
-          @onClose={{@closeModal}}
-          @showClose={{true}}
-        />
         <Form
           @data={{this.formData}}
           @onSubmit={{this.save}}
           @onRegisterApi={{this.onRegisterApi}}
           as |form data|
         >
+          <KanbanEditableTitle
+            @form={{form}}
+            @name="name"
+            @title={{i18n "discourse_kanban.manage.name"}}
+            @placeholder={{i18n "discourse_kanban.manage.name_placeholder"}}
+            @onClose={{@closeModal}}
+            @showClose={{true}}
+          />
           <div class="kanban-board-settings-modal__wrapper">
 
             <form.Section>

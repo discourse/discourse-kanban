@@ -14,7 +14,6 @@ describe "Manage Kanban Boards" do
 
   before do
     enable_current_plugin
-    SiteSetting.discourse_kanban_enabled = true
     SiteSetting.discourse_kanban_manage_board_allowed_groups = manage_group.id.to_s
     manage_group.add(manager)
   end
@@ -60,6 +59,11 @@ describe "Manage Kanban Boards" do
 
       expect(boards_page).to have_empty_state
       expect(DiscourseKanban::Board.count).to eq(0)
+
+      boards_page.visit_page
+      boards_page.click_new_board
+      boards_page.save_board_modal
+      expect(boards_page.board_form.field("name")).to have_errors("Required")
     end
 
     it "can add columns to a board" do
@@ -98,6 +102,7 @@ describe "Manage Kanban Boards" do
       boards_page.visit_page
       boards_page.click_new_board
       boards_page.fill_modal_board_name("Accessibility Board")
+      boards_page.board_form.field("constraint_type").select("tags")
       boards_page.select_modal_board_tag("a11y")
       boards_page.save_board_modal
 

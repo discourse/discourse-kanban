@@ -9,7 +9,6 @@ describe "Kanban Card URL" do
 
   before do
     enable_current_plugin
-    SiteSetting.discourse_kanban_enabled = true
     SiteSetting.discourse_kanban_manage_board_allowed_groups = manage_group.id.to_s
     write_group.add(admin)
     manage_group.add(admin)

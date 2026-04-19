@@ -1,12 +1,11 @@
 import Component from "@glimmer/component";
-import { USER_OPTION_COMPOSITION_MODES } from "discourse/lib/constants";
-import { tracked } from "@glimmer/tracking";
 import { fn, hash } from "@ember/helper";
 import { action } from "@ember/object";
 import { service } from "@ember/service";
 import DButton from "discourse/components/d-button";
 import DModal from "discourse/components/d-modal";
 import Form from "discourse/components/form";
+import { USER_OPTION_COMPOSITION_MODES } from "discourse/lib/constants";
 import EmailGroupUserChooser from "discourse/select-kit/components/email-group-user-chooser";
 import { not } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
@@ -14,13 +13,6 @@ import KanbanEditableTitle from "../kanban-editable-title";
 
 export default class KanbanCardDetail extends Component {
   @service siteSettings;
-
-  @tracked editTitle;
-
-  constructor() {
-    super(...arguments);
-    this.editTitle = this.args.model.card.title || "";
-  }
 
   get canWrite() {
     return this.args.model.canWrite;
@@ -30,6 +22,7 @@ export default class KanbanCardDetail extends Component {
     const card = this.args.model.card;
     const assignedTo = card.assigned_to;
     return {
+      title: card.title || "",
       notes: card.notes || "",
       tags: [...(card.tags || [])],
       assigned_to: assignedTo ? [assignedTo.username || assignedTo.name] : [],
@@ -38,16 +31,6 @@ export default class KanbanCardDetail extends Component {
 
   get isNew() {
     return !!this.args.model.isNew;
-  }
-
-  @action
-  onTitleInput(value) {
-    this.editTitle = value;
-  }
-
-  @action
-  onRegisterApi(api) {
-    this.formApi = api;
   }
 
   @action
@@ -68,7 +51,7 @@ export default class KanbanCardDetail extends Component {
     }
 
     const updates = {
-      title: this.editTitle.trim(),
+      title: data.title.trim(),
       notes: data.notes,
       tag_ids:
         !this.isNew && !tagIds.length && !tagNames.length ? [""] : tagIds,
@@ -95,20 +78,15 @@ export default class KanbanCardDetail extends Component {
       class="kanban-card-detail-modal"
     >
       <:body>
-        <KanbanEditableTitle
-          @value={{this.editTitle}}
-          @placeholder={{i18n "discourse_kanban.board.title_placeholder"}}
-          @onInput={{this.onTitleInput}}
-          @showClose={{false}}
-          @disabled={{not this.canWrite}}
-        />
-
-        <Form
-          @data={{this.formData}}
-          @onSubmit={{this.save}}
-          @onRegisterApi={{this.onRegisterApi}}
-          as |form data|
-        >
+        <Form @data={{this.formData}} @onSubmit={{this.save}} as |form data|>
+          <KanbanEditableTitle
+            @form={{form}}
+            @name="title"
+            @title={{i18n "discourse_kanban.board.title"}}
+            @placeholder={{i18n "discourse_kanban.board.title_placeholder"}}
+            @disabled={{not this.canWrite}}
+            @showClose={{false}}
+          />
           <form.Section>
             <form.Field
               @name="notes"
