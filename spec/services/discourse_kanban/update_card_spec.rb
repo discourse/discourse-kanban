@@ -32,11 +32,10 @@ RSpec.describe DiscourseKanban::UpdateCard do
     fab!(:col_done) { board.columns.create!(title: "Done", position: 1) }
 
     let(:raw_card_params) { {} }
-    let(:dependencies) { { guardian: Guardian.new(writer) } }
+    let(:dependencies) { { guardian: writer.guardian } }
 
     before do
       enable_current_plugin
-      SiteSetting.discourse_kanban_enabled = true
       write_group.add(writer)
       read_group.add(reader)
     end
@@ -126,7 +125,7 @@ RSpec.describe DiscourseKanban::UpdateCard do
 
       let(:raw_card_params) { { "topic_id" => topic.id.to_s } }
       let(:params) { { board_id: board.id, id: card.id, topic_id: topic.id } }
-      let(:dependencies) { { guardian: Guardian.new(admin) } }
+      let(:dependencies) { { guardian: admin.guardian } }
 
       it { is_expected.to run_successfully }
 
@@ -163,7 +162,7 @@ RSpec.describe DiscourseKanban::UpdateCard do
 
       let(:raw_card_params) { { "topic_id" => topic.id.to_s } }
       let(:params) { { board_id: board.id, id: card.id, topic_id: topic.id } }
-      let(:dependencies) { { guardian: Guardian.new(admin) } }
+      let(:dependencies) { { guardian: admin.guardian } }
 
       it { is_expected.to run_successfully }
 
@@ -206,7 +205,7 @@ RSpec.describe DiscourseKanban::UpdateCard do
 
       let(:raw_card_params) { { "topic_id" => topic.id.to_s } }
       let(:params) { { board_id: board.id, id: card.id, topic_id: topic.id } }
-      let(:dependencies) { { guardian: Guardian.new(admin) } }
+      let(:dependencies) { { guardian: admin.guardian } }
 
       before do
         skip("requires discourse-assign") unless defined?(::Assigner)
@@ -286,7 +285,7 @@ RSpec.describe DiscourseKanban::UpdateCard do
 
       let(:raw_card_params) { { "assigned_to_name" => assignee.username } }
       let(:params) { { board_id: board.id, id: card.id, assigned_to_name: assignee.username } }
-      let(:dependencies) { { guardian: Guardian.new(admin) } }
+      let(:dependencies) { { guardian: admin.guardian } }
 
       before do
         skip("requires discourse-assign") unless defined?(::Assigner)
@@ -315,7 +314,7 @@ RSpec.describe DiscourseKanban::UpdateCard do
 
       let(:raw_card_params) { { "assigned_to_name" => assignee_group.name } }
       let(:params) { { board_id: board.id, id: card.id, assigned_to_name: assignee_group.name } }
-      let(:dependencies) { { guardian: Guardian.new(admin) } }
+      let(:dependencies) { { guardian: admin.guardian } }
 
       before do
         skip("requires discourse-assign") unless defined?(::Assigner)
@@ -367,7 +366,7 @@ RSpec.describe DiscourseKanban::UpdateCard do
 
       let(:raw_card_params) { { "assigned_to_name" => "nonexistent_name" } }
       let(:params) { { board_id: board.id, id: card.id, assigned_to_name: "nonexistent_name" } }
-      let(:dependencies) { { guardian: Guardian.new(admin) } }
+      let(:dependencies) { { guardian: admin.guardian } }
 
       before do
         skip("requires discourse-assign") unless defined?(::Assigner)
@@ -474,7 +473,7 @@ RSpec.describe DiscourseKanban::UpdateCard do
 
       let(:raw_card_params) { { "topic_id" => topic.id.to_s } }
       let(:params) { { board_id: board.id, id: card.id, topic_id: topic.id } }
-      let(:dependencies) { { guardian: Guardian.new(admin) } }
+      let(:dependencies) { { guardian: admin.guardian } }
 
       before do
         skip("requires discourse-assign") unless defined?(::Assigner)
@@ -524,7 +523,7 @@ RSpec.describe DiscourseKanban::UpdateCard do
 
       let(:raw_card_params) { { "topic_id" => topic.id.to_s } }
       let(:params) { { board_id: board.id, id: card.id, topic_id: topic.id } }
-      let(:dependencies) { { guardian: Guardian.new(admin) } }
+      let(:dependencies) { { guardian: admin.guardian } }
 
       before do
         skip("requires discourse-assign") unless defined?(::Assigner)
@@ -561,7 +560,7 @@ RSpec.describe DiscourseKanban::UpdateCard do
 
       let(:raw_card_params) { { "topic_id" => topic.id.to_s } }
       let(:params) { { board_id: board.id, id: card.id, topic_id: topic.id } }
-      let(:dependencies) { { guardian: Guardian.new(admin) } }
+      let(:dependencies) { { guardian: admin.guardian } }
 
       before do
         skip("requires discourse-assign") unless defined?(::Assigner)
@@ -595,7 +594,7 @@ RSpec.describe DiscourseKanban::UpdateCard do
 
       let(:raw_card_params) { { "topic_id" => topic.id.to_s } }
       let(:params) { { board_id: board.id, id: card.id, topic_id: topic.id } }
-      let(:dependencies) { { guardian: Guardian.new(admin) } }
+      let(:dependencies) { { guardian: admin.guardian } }
 
       before do
         skip("requires discourse-assign") unless defined?(::Assigner)
@@ -636,7 +635,7 @@ RSpec.describe DiscourseKanban::UpdateCard do
       end
 
       let(:params) { { board_id: board.id, id: card.id } }
-      let(:dependencies) { { guardian: Guardian.new(reader) } }
+      let(:dependencies) { { guardian: reader.guardian } }
 
       it { is_expected.to fail_a_policy(:can_write) }
     end

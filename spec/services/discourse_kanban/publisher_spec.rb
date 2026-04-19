@@ -5,10 +5,7 @@ RSpec.describe DiscourseKanban::Publisher do
   fab!(:write_group, :group)
   fab!(:read_group, :group)
 
-  before do
-    enable_current_plugin
-    SiteSetting.discourse_kanban_enabled = true
-  end
+  before { enable_current_plugin }
 
   fab!(:board) do
     DiscourseKanban::Board.create!(

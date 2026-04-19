@@ -1,9 +1,32 @@
 .kanban-editable-title {
   display: flex;
   align-items: center;
-  padding: var(--space-2) var(--space-3);
+  box-sizing: border-box;
+  padding: var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--primary-low);
   gap: var(--space-1);
+  width: 100%;
+
+  .form-kit__field-custom.--full {
+    width: 100% !important;
+  }
+
+  .form-kit__field-custom .form-kit__control-custom {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-1);
+    min-width: 0;
+    width: 100%;
+
+    > * {
+      width: auto !important;
+    }
+  }
+
+  &__text {
+    height: min-content !important;
+  }
 
   &__text,
   &__input {
@@ -15,7 +38,6 @@
     border: 1px solid transparent;
     border-radius: var(--d-border-radius);
     line-height: 1.5;
-    height: min-content !important;
     box-sizing: border-box;
     margin: 0 !important;
   }
@@ -52,9 +74,14 @@
   .d-modal__body {
     display: flex;
     flex-direction: column;
-    overflow: hidden;
     padding: 0;
     min-height: 0;
+
+    .form-kit__errors-summary {
+      width: 95%;
+      max-width: var(--form-kit-max-input);
+      margin: var(--space-4) auto;
+    }
   }
 
   .form-kit__section {
@@ -78,6 +105,12 @@
     flex: 1;
     width: 100%;
     overflow-y: auto;
+  }
+}
+
+.kanban-board-settings-modal {
+  .kanban-editable-title {
+    padding-right: var(--space-9);
   }
 }
 
@@ -173,7 +206,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.75em;
+    margin-bottom: 0.25em;
   }
 
   &__name {
@@ -188,6 +221,15 @@
     &:hover {
       color: var(--tertiary);
     }
+  }
+
+  &__constraints {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25em;
+    margin-bottom: 0.75em;
+    font-size: var(--font-down-1);
   }
 
   &__columns {

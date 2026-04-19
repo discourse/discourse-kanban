@@ -4,11 +4,20 @@ import { action } from "@ember/object";
 import { LinkTo } from "@ember/routing";
 import { service } from "@ember/service";
 import DButton from "discourse/components/d-button";
+import boundCategoryLink from "discourse/helpers/bound-category-link";
 import icon from "discourse/helpers/d-icon";
+import discourseTags from "discourse/helpers/discourse-tags";
 import { ajax } from "discourse/lib/ajax";
-import { eq } from "discourse/truth-helpers";
+import Category from "discourse/models/category";
+import { eq, or } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
 import KanbanBoardSettings from "./modal/kanban-board-settings";
+
+function boardCategories(board) {
+  return (board.category_ids || [])
+    .map((id) => Category.findById(id))
+    .filter(Boolean);
+}
 
 export default class KanbanBoardsPage extends Component {
   @service modal;
@@ -81,6 +90,19 @@ export default class KanbanBoardsPage extends Component {
                   {{board.name}}
                 </LinkTo>
               </div>
+
+              {{#if (or board.category_ids.length board.tag_names.length)}}
+                <div class="kanban-board-card__constraints">
+                  {{#each (boardCategories board) as |category|}}
+                    {{boundCategoryLink category link=false}}
+                  {{/each}}
+                  {{#if board.tag_names.length}}
+                    <div class="list-tags">
+                      {{discourseTags null tags=board.tag_names}}
+                    </div>
+                  {{/if}}
+                </div>
+              {{/if}}
 
               <div class="kanban-board-card__columns">
                 {{#if board.columns.length}}

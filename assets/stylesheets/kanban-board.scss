@@ -64,6 +64,25 @@ body.kanban-board {
     margin: 0;
   }
 
+  &__constraint {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25em;
+    font-size: var(--font-down-1);
+
+    .fk-d-tooltip__trigger {
+      display: inline-flex;
+      align-items: center;
+      cursor: pointer;
+      color: var(--primary-medium);
+
+      .d-icon {
+        font-size: var(--font-down-1);
+      }
+    }
+  }
+
   &__controls {
     display: flex;
     align-items: center;
@@ -339,6 +358,7 @@ body.kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
 
 .kanban-card {
   display: block;
+  position: relative;
   color: var(--primary);
   background: var(--secondary);
   border: 1px solid var(--primary-low);
@@ -467,6 +487,8 @@ body.kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     min-height: 24px;
     align-items: center;
     margin-top: 5px;
+    display: flex;
+    flex-direction: row;
   }
 
   &__last-post-by {
@@ -478,17 +500,28 @@ body.kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     overflow: hidden;
   }
 
-  &__assignments-avatars {
-    text-align: right;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
+  &__assign-btn {
+    display: block;
+    margin-left: auto;
 
-    .d-icon {
-      margin-right: 0.25em;
-      font-size: $font-down-2;
-      color: var(--primary-medium);
+    .avatar {
+      height: var(--font-down-1-rem);
+      width: var(--font-down-1-rem);
     }
+  }
+
+  &__assign-btn .avatar {
+    height: var(--font-down-1-rem);
+    width: var(--font-down-1-rem);
+  }
+
+  &__assign-btn .avatar + .avatar {
+    margin-left: calc(var(--space-half) * -1);
+    outline: 2px solid var(--secondary);
+  }
+
+  &__assign-btn:hover .avatar + .avatar {
+    outline-color: var(--d-button-flat-bg-color--hover);
   }
 
   &__thumbnail-row {

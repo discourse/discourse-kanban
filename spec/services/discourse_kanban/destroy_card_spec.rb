@@ -27,11 +27,10 @@ RSpec.describe DiscourseKanban::DestroyCard do
     end
     fab!(:column) { board.columns.create!(title: "Col", position: 0) }
 
-    let(:dependencies) { { guardian: Guardian.new(writer) } }
+    let(:dependencies) { { guardian: writer.guardian } }
 
     before do
       enable_current_plugin
-      SiteSetting.discourse_kanban_enabled = true
       write_group.add(writer)
       read_group.add(reader)
     end
@@ -114,7 +113,7 @@ RSpec.describe DiscourseKanban::DestroyCard do
       end
 
       let(:params) { { board_id: board.id, id: card.id } }
-      let(:dependencies) { { guardian: Guardian.new(reader) } }
+      let(:dependencies) { { guardian: reader.guardian } }
 
       it { is_expected.to fail_a_policy(:can_write) }
     end

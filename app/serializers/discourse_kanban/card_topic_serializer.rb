@@ -16,6 +16,7 @@ module DiscourseKanban
     attribute :assigned_to_user
     attribute :assigned_to_group
     attribute :all_assigned_users
+    attribute :assignments
 
     def tags
       object.tags.map(&:name)
@@ -57,6 +58,14 @@ module DiscourseKanban
       all_assigned_users.present?
     end
 
+    def assignments
+      topic_assignments.filter_map { |a| serialize_assignment(a) }
+    end
+
+    def include_assignments?
+      assignments.present?
+    end
+
     private
 
     def topic_assignments
@@ -71,6 +80,22 @@ module DiscourseKanban
     def serialize_user(user)
       return unless user.is_a?(User)
       { username: user.username, avatar_template: user.avatar_template }
+    end
+
+    def serialize_assignment(assignment)
+      assignee = assignment.assigned_to
+      result = { target_type: assignment.target_type, target_id: assignment.target_id }
+
+      if assignee.is_a?(User)
+        result[:username] = assignee.username
+        result[:avatar_template] = assignee.avatar_template
+      elsif assignee.is_a?(Group)
+        result[:group_name] = assignee.name
+      end
+
+      result[:post_number] = assignment.target&.post_number if assignment.target_type == "Post"
+
+      result
     end
   end
 end

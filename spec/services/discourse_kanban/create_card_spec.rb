@@ -28,11 +28,10 @@ RSpec.describe DiscourseKanban::CreateCard do
     end
     fab!(:column) { board.columns.create!(title: "To Do", position: 0) }
 
-    let(:dependencies) { { guardian: Guardian.new(writer) } }
+    let(:dependencies) { { guardian: writer.guardian } }
 
     before do
       enable_current_plugin
-      SiteSetting.discourse_kanban_enabled = true
       write_group.add(writer)
       read_group.add(reader)
     end
@@ -65,7 +64,7 @@ RSpec.describe DiscourseKanban::CreateCard do
 
     context "when creating a topic card" do
       let(:params) { { board_id: board.id, column_id: column.id, topic_id: topic.id } }
-      let(:dependencies) { { guardian: Guardian.new(admin) } }
+      let(:dependencies) { { guardian: admin.guardian } }
 
       it { is_expected.to run_successfully }
 
@@ -91,14 +90,14 @@ RSpec.describe DiscourseKanban::CreateCard do
 
     context "when user cannot write" do
       let(:params) { { board_id: board.id, column_id: column.id, title: "Test" } }
-      let(:dependencies) { { guardian: Guardian.new(reader) } }
+      let(:dependencies) { { guardian: reader.guardian } }
 
       it { is_expected.to fail_a_policy(:can_write) }
     end
 
     context "when topic does not exist" do
       let(:params) { { board_id: board.id, column_id: column.id, topic_id: -1 } }
-      let(:dependencies) { { guardian: Guardian.new(admin) } }
+      let(:dependencies) { { guardian: admin.guardian } }
 
       it "raises NotFound" do
         expect { result }.to raise_error(Discourse::NotFound)
@@ -120,7 +119,7 @@ RSpec.describe DiscourseKanban::CreateCard do
       let(:params) do
         { board_id: board.id, column_id: column.id, topic_id: category_with_def.topic_id }
       end
-      let(:dependencies) { { guardian: Guardian.new(admin) } }
+      let(:dependencies) { { guardian: admin.guardian } }
 
       it "raises an error" do
         expect { result }.to raise_error(Discourse::InvalidParameters)

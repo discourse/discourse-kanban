@@ -8,10 +8,7 @@ RSpec.describe DiscourseKanban::TopicMutator do
   fab!(:post) { Fabricate(:post, topic: Fabricate(:topic, category: category, user: user)) }
   fab!(:topic) { post.topic }
 
-  before do
-    enable_current_plugin
-    SiteSetting.discourse_kanban_enabled = true
-  end
+  before { enable_current_plugin }
 
   fab!(:board) do
     DiscourseKanban::Board.create!(name: "Test", slug: "test-mutator", created_by_id: admin.id)
@@ -33,7 +30,7 @@ RSpec.describe DiscourseKanban::TopicMutator do
       topic.update!(category: Fabricate(:private_category, group: Fabricate(:group)))
 
       expect {
-        described_class.apply!(topic: topic, column: column, guardian: Guardian.new(other_user))
+        described_class.apply!(topic: topic, column: column, guardian: other_user.guardian)
       }.to raise_error(Discourse::InvalidAccess)
     end
 
@@ -44,7 +41,7 @@ RSpec.describe DiscourseKanban::TopicMutator do
         tag = Fabricate(:tag, name: "in-progress")
         column = board.columns.create!(title: "In Progress", position: 0, tag_id: tag.id)
 
-        described_class.apply!(topic: topic, column: column, guardian: Guardian.new(admin))
+        described_class.apply!(topic: topic, column: column, guardian: admin.guardian)
 
         expect(topic.reload.tags.map(&:name)).to include("in-progress")
       end
@@ -56,7 +53,7 @@ RSpec.describe DiscourseKanban::TopicMutator do
 
         column = board.columns.create!(title: "Col", position: 0, tag_id: new_tag.id)
 
-        described_class.apply!(topic: topic, column: column, guardian: Guardian.new(admin))
+        described_class.apply!(topic: topic, column: column, guardian: admin.guardian)
 
         tag_names = topic.reload.tags.map(&:name)
         expect(tag_names).to include("existing")
@@ -75,7 +72,7 @@ RSpec.describe DiscourseKanban::TopicMutator do
 
         topic.tags = [todo_tag, unrelated_tag]
 
-        described_class.apply!(topic: topic, column: doing_column, guardian: Guardian.new(admin))
+        described_class.apply!(topic: topic, column: doing_column, guardian: admin.guardian)
 
         tag_names = topic.reload.tags.map(&:name)
         expect(tag_names).to contain_exactly("doing", "unrelated")
@@ -85,7 +82,7 @@ RSpec.describe DiscourseKanban::TopicMutator do
         column = board.columns.create!(title: "Col", position: 0, tag_id: nil)
 
         expect {
-          described_class.apply!(topic: topic, column: column, guardian: Guardian.new(admin))
+          described_class.apply!(topic: topic, column: column, guardian: admin.guardian)
         }.not_to change { topic.reload.tags.count }
       end
 
@@ -96,7 +93,7 @@ RSpec.describe DiscourseKanban::TopicMutator do
 
         topic.tags = [ford_tag]
 
-        described_class.apply!(topic: topic, column: catchall_column, guardian: Guardian.new(admin))
+        described_class.apply!(topic: topic, column: catchall_column, guardian: admin.guardian)
 
         expect(topic.reload.tags.map(&:name)).not_to include("ford")
       end
@@ -112,7 +109,7 @@ RSpec.describe DiscourseKanban::TopicMutator do
 
         topic.tags = [ford_tag, unrelated_tag]
 
-        described_class.apply!(topic: topic, column: catchall_column, guardian: Guardian.new(admin))
+        described_class.apply!(topic: topic, column: catchall_column, guardian: admin.guardian)
 
         expect(topic.reload.tags.map(&:name)).to contain_exactly("unrelated-tag")
       end
@@ -123,7 +120,7 @@ RSpec.describe DiscourseKanban::TopicMutator do
         column =
           board.columns.create!(title: "Done", position: 0, move_to_category_id: target_category.id)
 
-        described_class.apply!(topic: topic, column: column, guardian: Guardian.new(admin))
+        described_class.apply!(topic: topic, column: column, guardian: admin.guardian)
 
         expect(topic.reload.category_id).to eq(target_category.id)
       end
@@ -135,7 +132,7 @@ RSpec.describe DiscourseKanban::TopicMutator do
         doomed_category.destroy!
 
         expect {
-          described_class.apply!(topic: topic, column: column, guardian: Guardian.new(admin))
+          described_class.apply!(topic: topic, column: column, guardian: admin.guardian)
         }.to raise_error(Discourse::NotFound)
       end
 
@@ -143,7 +140,7 @@ RSpec.describe DiscourseKanban::TopicMutator do
         column = board.columns.create!(title: "Col", position: 0, move_to_category_id: nil)
 
         expect {
-          described_class.apply!(topic: topic, column: column, guardian: Guardian.new(admin))
+          described_class.apply!(topic: topic, column: column, guardian: admin.guardian)
         }.not_to change { topic.reload.category_id }
       end
     end
@@ -152,7 +149,7 @@ RSpec.describe DiscourseKanban::TopicMutator do
       it "closes the topic when status is 'closed'" do
         column = board.columns.create!(title: "Closed", position: 0, move_to_status: "closed")
 
-        described_class.apply!(topic: topic, column: column, guardian: Guardian.new(admin))
+        described_class.apply!(topic: topic, column: column, guardian: admin.guardian)
 
         expect(topic.reload.closed).to eq(true)
       end
@@ -163,7 +160,7 @@ RSpec.describe DiscourseKanban::TopicMutator do
 
         column = board.columns.create!(title: "Open", position: 0, move_to_status: "open")
 
-        described_class.apply!(topic: topic, column: column, guardian: Guardian.new(admin))
+        described_class.apply!(topic: topic, column: column, guardian: admin.guardian)
 
         expect(topic.reload.closed).to eq(false)
       end
@@ -172,7 +169,7 @@ RSpec.describe DiscourseKanban::TopicMutator do
         column = board.columns.create!(title: "Col", position: 0, move_to_status: "")
 
         expect {
-          described_class.apply!(topic: topic, column: column, guardian: Guardian.new(admin))
+          described_class.apply!(topic: topic, column: column, guardian: admin.guardian)
         }.not_to change { topic.reload.closed }
       end
     end
@@ -182,7 +179,7 @@ RSpec.describe DiscourseKanban::TopicMutator do
         column = board.columns.create!(title: "Col", position: 0, move_to_assigned: "someone")
 
         expect {
-          described_class.apply!(topic: topic, column: column, guardian: Guardian.new(admin))
+          described_class.apply!(topic: topic, column: column, guardian: admin.guardian)
         }.not_to raise_error
       end
 
@@ -190,7 +187,7 @@ RSpec.describe DiscourseKanban::TopicMutator do
         column = board.columns.create!(title: "Col", position: 0, move_to_assigned: "")
 
         expect {
-          described_class.apply!(topic: topic, column: column, guardian: Guardian.new(admin))
+          described_class.apply!(topic: topic, column: column, guardian: admin.guardian)
         }.not_to raise_error
       end
 
@@ -198,7 +195,7 @@ RSpec.describe DiscourseKanban::TopicMutator do
         column = board.columns.create!(title: "Col", position: 0, move_to_assigned: "*")
 
         expect {
-          described_class.apply!(topic: topic, column: column, guardian: Guardian.new(admin))
+          described_class.apply!(topic: topic, column: column, guardian: admin.guardian)
         }.not_to raise_error
       end
     end

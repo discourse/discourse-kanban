@@ -6,10 +6,7 @@ RSpec.describe DiscourseKanban::ColumnsReplacer do
     DiscourseKanban::Board.create!(name: "Test", slug: "test", created_by_id: admin.id)
   end
 
-  before do
-    enable_current_plugin
-    SiteSetting.discourse_kanban_enabled = true
-  end
+  before { enable_current_plugin }
 
   describe ".replace!" do
     it "creates new columns from payload" do

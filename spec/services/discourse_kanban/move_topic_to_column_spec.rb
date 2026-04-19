@@ -34,11 +34,10 @@ RSpec.describe DiscourseKanban::MoveTopicToColumn do
     let(:params) do
       { board_id: board.id, topic_id: topic.id, to_column_id: column.id, client_id: client_id }
     end
-    let(:dependencies) { { guardian: Guardian.new(admin) } }
+    let(:dependencies) { { guardian: admin.guardian } }
 
     before do
       enable_current_plugin
-      SiteSetting.discourse_kanban_enabled = true
       write_group.add(writer)
       read_group.add(reader)
     end
@@ -56,7 +55,7 @@ RSpec.describe DiscourseKanban::MoveTopicToColumn do
     end
 
     context "when user cannot write to board" do
-      let(:dependencies) { { guardian: Guardian.new(reader) } }
+      let(:dependencies) { { guardian: reader.guardian } }
 
       it { is_expected.to fail_a_policy(:can_write) }
     end
@@ -72,7 +71,7 @@ RSpec.describe DiscourseKanban::MoveTopicToColumn do
       fab!(:private_topic) { Fabricate(:topic, category: private_category) }
 
       let(:params) { { board_id: board.id, topic_id: private_topic.id, to_column_id: column.id } }
-      let(:dependencies) { { guardian: Guardian.new(writer) } }
+      let(:dependencies) { { guardian: writer.guardian } }
 
       it { is_expected.to fail_a_policy(:can_see_topic) }
     end
@@ -80,7 +79,7 @@ RSpec.describe DiscourseKanban::MoveTopicToColumn do
     context "when user cannot edit topic" do
       fab!(:other_user, :user)
 
-      let(:dependencies) { { guardian: Guardian.new(other_user) } }
+      let(:dependencies) { { guardian: other_user.guardian } }
 
       before { write_group.add(other_user) }
 

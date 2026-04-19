@@ -8,6 +8,10 @@ module PageObjects
         self
       end
 
+      def board_form
+        PageObjects::Components::FormKit.new(".kanban-board-settings-modal .form-kit")
+      end
+
       def click_new_board
         find(".discourse-kanban-manage__header .btn-primary").click
         self
@@ -49,11 +53,7 @@ module PageObjects
       end
 
       def toggle_modal_require_confirmation
-        within(".kanban-board-settings-modal") do
-          find("label", text: I18n.t("js.discourse_kanban.manage.require_confirmation")).find(
-            "input[type='checkbox']",
-          ).click
-        end
+        board_form.field("require_confirmation").toggle
         self
       end
 

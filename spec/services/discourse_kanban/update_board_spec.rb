@@ -19,11 +19,10 @@ RSpec.describe DiscourseKanban::UpdateBoard do
 
     let(:raw) { { "name" => "Updated" } }
     let(:params) { raw.merge("id" => board.id) }
-    let(:dependencies) { { guardian: Guardian.new(manager) } }
+    let(:dependencies) { { guardian: manager.guardian } }
 
     before do
       enable_current_plugin
-      SiteSetting.discourse_kanban_enabled = true
       SiteSetting.discourse_kanban_manage_board_allowed_groups = manage_group.id.to_s
       manage_group.add(manager)
     end
@@ -41,7 +40,7 @@ RSpec.describe DiscourseKanban::UpdateBoard do
     end
 
     context "when user cannot manage boards" do
-      let(:dependencies) { { guardian: Guardian.new(outsider) } }
+      let(:dependencies) { { guardian: outsider.guardian } }
 
       it { is_expected.to fail_a_policy(:can_manage) }
     end
@@ -72,7 +71,7 @@ RSpec.describe DiscourseKanban::UpdateBoard do
           described_class.call(
             params: let_params,
             raw_board_params: let_raw,
-            guardian: Guardian.new(manager),
+            guardian: manager.guardian,
           )
         }.not_to change { board.cards.where(card_type: :topic).count }
       end
