@@ -102,6 +102,7 @@ describe "Manage Kanban Boards" do
       boards_page.visit_page
       boards_page.click_new_board
       boards_page.fill_modal_board_name("Accessibility Board")
+      boards_page.board_form.field("constraint_type").select("tags")
       boards_page.select_modal_board_tag("a11y")
       boards_page.save_board_modal
 
