@@ -190,6 +190,14 @@ export default class KanbanCard extends Component {
     return this.args.canWrite;
   }
 
+  get showAssignButton() {
+    if (!this.isTopicCard) {
+      return this.canAssign;
+    }
+
+    return this.canAssign && !this.topicStatusModel?.closed;
+  }
+
   get canAssign() {
     return (
       this.siteSettings.assign_enabled &&
@@ -612,7 +620,7 @@ export default class KanbanCard extends Component {
         </div>
       {{/if}}
 
-      {{#if this.canAssign}}
+      {{#if this.showAssignButton}}
         {{#if this.isAssigned}}
           <DMenu
             @identifier="kanban-card-assignment"
@@ -669,7 +677,6 @@ export default class KanbanCard extends Component {
           />
         {{/if}}
       {{/if}}
-
     </div>
   </template>
 }

@@ -1,0 +1,67 @@
+/*
+Fabricators are used to create fake data for testing purposes.
+The following fabricators are available in lib folder to allow
+styleguide to use them, and eventually to generate dummy data
+in a placeholder component. It should not be used for any other case.
+*/
+import ApplicationInstance from "@ember/application/instance";
+import { setOwner } from "@ember/owner";
+import CoreFabricators, { incrementSequence } from "discourse/lib/fabricators";
+import Board from "discourse/plugins/discourse-kanban/discourse/models/board";
+import Card from "discourse/plugins/discourse-kanban/discourse/models/card";
+import Column from "discourse/plugins/discourse-kanban/discourse/models/column";
+
+export default class KanbanFabricators {
+  constructor(owner) {
+    if (owner && !(owner instanceof ApplicationInstance)) {
+      throw new Error(
+        "First argument of KanbanFabricators constructor must be the owning ApplicationInstance"
+      );
+    }
+    setOwner(this, owner);
+    this.coreFabricators = new CoreFabricators(owner);
+  }
+
+  card(args = {}) {
+    const card = Card.create({
+      id: args.id || incrementSequence(),
+      title: args.title || "Test Card",
+      notes: args.notes || "This is a test card",
+      created_at: args.created_at || moment(),
+      created_by: args.created_by || this.coreFabricators.user(),
+      board_id: args.board_id,
+      column_id: args.column_id,
+      // TODO: Add assign fabricator with avatar_template, type, and username
+      assigned_to: args.assigned_to,
+      tags: args.tags || [],
+      tag_ids: args.tag_ids || [],
+      topic_id: args.topic?.id || null,
+      topic: args.topic || null,
+    });
+
+    return card;
+  }
+
+  board(args = {}) {
+    const board = Board.create({
+      id: args.id || incrementSequence(),
+      name: args.name || "Test Board",
+      slug: args.slug || "test-board",
+      columns: args.columns || [],
+      can_write: args.can_write ?? true,
+      can_manage: args.can_manage ?? true,
+    });
+
+    return board;
+  }
+
+  column(args = {}) {
+    const column = Column.create({
+      id: args.id || incrementSequence(),
+      title: args.title || "Test Column",
+      position: args.position || 0,
+    });
+
+    return column;
+  }
+}

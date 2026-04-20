@@ -1,6 +1,9 @@
 {
   "extends": "discourse/tsconfig-plugin",
   "include": [
+    "admin/assets/javascripts/**/*.gjs",
+    "assets/javascripts/**/*.gjs",
+    "test/javascripts/**/*.gjs",
     "admin/assets/javascripts/**/*",
     "assets/javascripts/**/*",
     "test/javascripts/**/*",
@@ -8,9 +11,7 @@
   ],
   "compilerOptions": {
     "paths": {
-      "discourse/plugins/discourse-kanban/*": [
-        "./assets/javascripts/*"
-      ],
+      "discourse/plugins/discourse-kanban/*": ["./assets/javascripts/*"],
       "discourse/plugins/discourse-kanban/admin/*": [
         "./admin/assets/javascripts/admin/*"
       ],
