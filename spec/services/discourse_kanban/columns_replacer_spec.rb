@@ -87,5 +87,48 @@ RSpec.describe DiscourseKanban::ColumnsReplacer do
 
       expect(DiscourseKanban::Card.find_by(id: card.id)).to be_nil
     end
+
+    describe "when a tag is provided" do
+      fab!(:tag)
+
+      it "creates a new column with the tag" do
+        DiscourseKanban::ColumnsReplacer.replace!(
+          board:,
+          columns_payload: [{ "title" => "Backlog", "tag_name" => tag.name }],
+          user: admin,
+        )
+
+        expect(board.columns.last.tag).to eq(tag)
+      end
+
+      it "raises an error if the tag is not found" do
+        expect {
+          DiscourseKanban::ColumnsReplacer.replace!(
+            board:,
+            columns_payload: [{ "title" => "Backlog", "tag_name" => "unknown" }],
+            user: admin,
+          )
+        }.to raise_error(
+          Discourse::InvalidParameters,
+          I18n.t("discourse_kanban.errors.unknown_tag_name", tag_name: "unknown"),
+        )
+      end
+
+      it "raises an error if a tag has already been used for another column" do
+        expect {
+          DiscourseKanban::ColumnsReplacer.replace!(
+            board:,
+            columns_payload: [
+              { "title" => "Backlog", "tag_name" => tag.name },
+              { "title" => "Done", "tag_name" => tag.name },
+            ],
+            user: admin,
+          )
+        }.to raise_error(
+          Discourse::InvalidParameters,
+          I18n.t("discourse_kanban.errors.cannot_use_same_tag_multiple_times", tag_name: tag.name),
+        )
+      end
+    end
   end
 end
