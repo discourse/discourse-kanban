@@ -138,6 +138,28 @@ describe "Manage Kanban Boards" do
         boards_page.select_modal_column_tag(todo_tag.name)
         boards_page.save_column_modal
       end
+
+      it "does not allow creating a column for the same tag twice" do
+        boards_page.visit_page
+        boards_page.click_board("Simple Board")
+        boards_page.open_board_menu
+        boards_page.click_add_column_menu_item
+        boards_page.select_modal_column_tag(todo_tag.name)
+        boards_page.save_column_modal
+
+        expect(toasts).to have_success(I18n.t("js.saved"))
+
+        boards_page.open_board_menu
+        boards_page.click_add_column_menu_item
+        boards_page.select_modal_column_tag(todo_tag.name)
+        boards_page.save_column_modal
+        expect(page).to have_content(
+          I18n.t(
+            "discourse_kanban.errors.cannot_use_same_tag_multiple_times",
+            tag_name: todo_tag.name,
+          ),
+        )
+      end
     end
   end
 

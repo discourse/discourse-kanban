@@ -24,3 +24,4 @@ en:
       unknown_tag_names: "Unknown tag names: %{tag_names}"
       cannot_assign: "You do not have permission to assign."
       assignment_carry_over_failed: "Could not carry the card's assignment to the topic."
+      cannot_use_same_tag_multiple_times: "You cannot use the same tag (%{tag_name}) multiple times for columns in the same board."

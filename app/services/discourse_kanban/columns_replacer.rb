@@ -5,6 +5,7 @@ module DiscourseKanban
     def self.replace!(board:, columns_payload:, **)
       current_columns = board.columns.index_by(&:id)
       kept_column_ids = []
+      used_tag_ids = []
 
       Array(columns_payload).each_with_index do |raw_col, index|
         col_payload = raw_col.with_indifferent_access
@@ -20,6 +21,15 @@ module DiscourseKanban
                     I18n.t("discourse_kanban.errors.unknown_tag_name", tag_name: tag_name),
                   )
           end
+          if used_tag_ids.include?(resolved_tag_id)
+            raise Discourse::InvalidParameters.new(
+                    I18n.t(
+                      "discourse_kanban.errors.cannot_use_same_tag_multiple_times",
+                      tag_name: tag_name,
+                    ),
+                  )
+          end
+          used_tag_ids << resolved_tag_id
         end
 
         column.assign_attributes(
