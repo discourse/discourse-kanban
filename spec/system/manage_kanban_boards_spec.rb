@@ -113,40 +113,41 @@ describe "Manage Kanban Boards" do
       expect(board.tag_ids).to contain_exactly(Tag.find_by(name: "a11y").id)
     end
 
-    it "creates a column with a tag" do
-      board =
-        DiscourseKanban::Board.create!(
-          name: "Simple Board",
-          slug: "simple-board",
-          created_by_id: admin.id,
-        )
+    describe "for an existing board" do
+      fab!(:board) { Fabricate(:kanban_board, name: "Simple Board", created_by: admin) }
 
-      boards_page.visit_page
-      boards_page.click_board("Simple Board")
-      boards_page.open_board_menu
-      boards_page.click_add_column_menu_item
+      it "creates a column with a tag" do
+        boards_page.visit_page
+        boards_page.click_board("Simple Board")
+        boards_page.open_board_menu
+        boards_page.click_add_column_menu_item
 
-      boards_page.fill_modal_column_title("Todo")
-      boards_page.select_modal_column_tag(todo_tag.name)
-      boards_page.save_column_modal
+        boards_page.fill_modal_column_title("Todo")
+        boards_page.select_modal_column_tag(todo_tag.name)
+        boards_page.save_column_modal
 
-      column = board.reload.columns.find_by(title: "Todo")
-      expect(column.tag_id).to eq(todo_tag.id)
+        column = board.reload.columns.find_by(title: "Todo")
+        expect(column.tag_id).to eq(todo_tag.id)
+      end
+
+      it "can create a column using only the tag as the title" do
+        boards_page.visit_page
+        boards_page.click_board("Simple Board")
+        boards_page.open_board_menu
+        boards_page.click_add_column_menu_item
+        boards_page.select_modal_column_tag(todo_tag.name)
+        boards_page.save_column_modal
+      end
     end
   end
 
   context "when user is a regular user not in the manage group" do
+    fab!(:board) { Fabricate(:kanban_board, name: "Visible Board", created_by: admin) }
+    fab!(:column) { Fabricate(:kanban_column, board: board) }
+
     before { sign_in(regular_user) }
 
     it "can see the boards list but not management controls" do
-      board =
-        DiscourseKanban::Board.create!(
-          name: "Visible Board",
-          slug: "visible",
-          created_by_id: admin.id,
-        )
-      board.columns.create!(title: "Col", position: 0)
-
       boards_page.visit_page
 
       expect(boards_page).to have_board_listed("Visible Board")
@@ -160,7 +161,6 @@ describe "Manage Kanban Boards" do
     it "can manage boards regardless of group membership" do
       boards_page.visit_page
       expect(boards_page).to have_new_board_button
-
       boards_page.click_new_board
       boards_page.fill_modal_board_name("Admin Board")
       boards_page.save_board_modal
