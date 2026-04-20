@@ -1,14 +1,15 @@
 import Component from "@glimmer/component";
 import { tracked } from "@glimmer/tracking";
-import { action } from "@ember/object";
 import { hash } from "@ember/helper";
+import { action } from "@ember/object";
 import DButton from "discourse/components/d-button";
 import DModal from "discourse/components/d-modal";
 import EmailGroupUserChooser from "discourse/select-kit/components/email-group-user-chooser";
 import { i18n } from "discourse-i18n";
 
 export default class KanbanFloaterAssign extends Component {
-  @tracked assignee = this.args.model.currentAssignee
+  @tracked
+  assignee = this.args.model.currentAssignee
     ? [this.args.model.currentAssignee]
     : [];
 
