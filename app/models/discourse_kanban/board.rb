@@ -11,6 +11,8 @@ module DiscourseKanban
              dependent: :destroy,
              inverse_of: :board
     has_many :cards, class_name: "DiscourseKanban::Card", dependent: :destroy, inverse_of: :board
+    belongs_to :created_by, class_name: "User"
+    belongs_to :updated_by, class_name: "User", optional: true
 
     enum :card_style, { detailed: 0, simple: 1 }, default: :detailed
 

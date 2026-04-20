@@ -6,6 +6,8 @@ module DiscourseKanban
     self.ignored_columns = %w[wip_limit filter_query move_to_tag]
 
     belongs_to :board, class_name: "DiscourseKanban::Board", inverse_of: :columns
+    belongs_to :move_to_category, class_name: "Category", optional: true
+    belongs_to :tag, optional: true
     has_many :cards, class_name: "DiscourseKanban::Card", dependent: :nullify, inverse_of: :column
 
     validates :title, presence: true

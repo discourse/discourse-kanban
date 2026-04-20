@@ -6,7 +6,6 @@ import { isEmpty } from "@ember/utils";
 import { modifier } from "ember-modifier";
 import DButton from "discourse/components/d-button";
 import concatClass from "discourse/helpers/concat-class";
-import { or } from "discourse/truth-helpers";
 
 class KanbanEditableTitleUi extends Component {
   @tracked isEditing = false;
@@ -93,28 +92,37 @@ class KanbanEditableTitleUi extends Component {
   </template>
 }
 
-const KanbanEditableTitle = <template>
-  <div class="kanban-editable-title">
-    <@form.Field
-      @name={{@name}}
-      @title={{@title}}
-      @type="custom"
-      @validation={{or @validation "required:trim"}}
-      @showTitle={{false}}
-      @disabled={{@disabled}}
-      @format="full"
-      as |field|
-    >
-      <field.Control>
-        <KanbanEditableTitleUi
-          @field={{field}}
-          @placeholder={{@placeholder}}
-          @showClose={{@showClose}}
-          @onClose={{@onClose}}
-        />
-      </field.Control>
-    </@form.Field>
-  </div>
-</template>;
+export default class KanbanEditableTitle extends Component {
+  get validation() {
+    if (this.args.validate) {
+      return null;
+    }
 
-export default KanbanEditableTitle;
+    return this.args.validation || "required:trim";
+  }
+
+  <template>
+    <div class="kanban-editable-title">
+      <@form.Field
+        @name={{@name}}
+        @title={{@title}}
+        @type="custom"
+        @validation={{this.validation}}
+        @showTitle={{false}}
+        @disabled={{@disabled}}
+        @validate={{@validate}}
+        @format="full"
+        as |field|
+      >
+        <field.Control>
+          <KanbanEditableTitleUi
+            @field={{field}}
+            @placeholder={{@placeholder}}
+            @showClose={{@showClose}}
+            @onClose={{@onClose}}
+          />
+        </field.Control>
+      </@form.Field>
+    </div>
+  </template>
+}

@@ -2,6 +2,7 @@ import Component from "@glimmer/component";
 import { cached, tracked } from "@glimmer/tracking";
 import { fn, hash } from "@ember/helper";
 import { action } from "@ember/object";
+import { isEmpty } from "@ember/utils";
 import DButton from "discourse/components/d-button";
 import DModal from "discourse/components/d-modal";
 import Form from "discourse/components/form";
@@ -101,7 +102,7 @@ export default class KanbanColumnSettings extends Component {
   @action
   async save(data) {
     const columnData = {
-      title: data.title.trim(),
+      title: data.title.trim() || data.tag_name.trim(),
       icon: data.icon,
       tag_name: data.tag_name || null,
       move_to_category_id: data.move_to_category_id,
@@ -113,6 +114,16 @@ export default class KanbanColumnSettings extends Component {
       this.args.closeModal();
     } catch (error) {
       popupAjaxError(error);
+    }
+  }
+
+  @action
+  validateTitle(name, value, { data, addError }) {
+    if (isEmpty(value) && isEmpty(data.tag_name)) {
+      addError("title", {
+        title: i18n("discourse_kanban.manage.columns.column_title"),
+        message: i18n("discourse_kanban.manage.columns.column_title_required"),
+      });
     }
   }
 
@@ -131,6 +142,7 @@ export default class KanbanColumnSettings extends Component {
             @placeholder={{i18n
               "discourse_kanban.manage.columns.column_title_placeholder"
             }}
+            @validate={{this.validateTitle}}
             @onClose={{@closeModal}}
           />
           <div class="kanban-column-settings-modal__wrapper">
