@@ -123,6 +123,7 @@ export default class KanbanEditableTitle extends Component {
           />
         </field.Control>
       </@form.Field>
+      {{yield}}
     </div>
   </template>
 }

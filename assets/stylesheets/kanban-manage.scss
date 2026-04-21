@@ -6,6 +6,7 @@
   border-bottom: 1px solid var(--primary-low);
   gap: var(--space-1);
   width: 100%;
+  position: relative;
 
   .form-kit__field-custom.--full {
     width: 100% !important;
@@ -94,7 +95,7 @@
   }
 
   .form-kit {
-    flex: 1;
+    flex: 0 1 60%;
     display: flex;
     flex-direction: column;
     min-height: 0;
@@ -115,7 +116,7 @@
 }
 
 .kanban-card-detail-modal {
-  --modal-max-width: 50ch;
+  --modal-max-width: 75ch;
 
   .d-modal__body {
     position: relative;
@@ -136,6 +137,21 @@
   .form-kit__field-composer .form-kit__container-content {
     width: 100% !important;
   }
+}
+
+.kanban-card-detail__content {
+  display: flex;
+  flex-direction: row;
+}
+
+.kanban-card-detail-side-panel {
+  padding: var(--space-4);
+  border-left: 1px solid var(--content-border-color);
+  flex: 1 0;
+}
+
+.kanban-card-detail-side-panel__nav {
+  justify-content: space-around;
 }
 
 .kanban-column-settings-modal {

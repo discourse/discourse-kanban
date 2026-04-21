@@ -4,7 +4,9 @@ import { action } from "@ember/object";
 import { service } from "@ember/service";
 import DButton from "discourse/components/d-button";
 import DModal from "discourse/components/d-modal";
+import DNavigationItem from "discourse/components/d-navigation-item";
 import Form from "discourse/components/form";
+import HorizontalOverflowNav from "discourse/components/horizontal-overflow-nav";
 import { USER_OPTION_COMPOSITION_MODES } from "discourse/lib/constants";
 import EmailGroupUserChooser from "discourse/select-kit/components/email-group-user-chooser";
 import { not } from "discourse/truth-helpers";
@@ -78,78 +80,105 @@ export default class KanbanCardDetail extends Component {
       class="kanban-card-detail-modal"
     >
       <:body>
-        <Form @data={{this.formData}} @onSubmit={{this.save}} as |form data|>
-          <KanbanEditableTitle
-            @form={{form}}
-            @name="title"
-            @title={{i18n "discourse_kanban.board.title"}}
-            @placeholder={{i18n "discourse_kanban.board.title_placeholder"}}
-            @disabled={{not this.canWrite}}
-            @showClose={{false}}
-          />
-          <form.Section>
-            <form.Field
-              @name="notes"
-              @title={{i18n "discourse_kanban.board.notes"}}
-              @format="max"
-              @type="composer"
+        <div class="kanban-card-detail__content">
+          <Form @data={{this.formData}} @onSubmit={{this.save}} as |form data|>
+            <KanbanEditableTitle
+              @form={{form}}
+              @name="title"
+              @title={{i18n "discourse_kanban.board.title"}}
+              @placeholder={{i18n "discourse_kanban.board.title_placeholder"}}
               @disabled={{not this.canWrite}}
-              as |field|
+              @showClose={{false}}
             >
-              <field.Control
-                @height={{300}}
-                @forceEditorMode={{USER_OPTION_COMPOSITION_MODES.rich}}
+              <DButton
+                @action={{@closeModal}}
+                @icon="xmark"
+                @ariaLabel="modal.close"
+                @title="modal.close"
+                class="btn-flat kanban-card-detail-modal__close"
               />
-            </form.Field>
-            <form.Field
-              @name="tags"
-              @title={{i18n "discourse_kanban.board.tags"}}
-              @format="max"
-              @type="tag-chooser"
-              as |field|
-            >
-              <field.Control @allowCreate={{true}} />
-            </form.Field>
-
-            {{#if this.siteSettings.assign_enabled}}
+            </KanbanEditableTitle>
+            <form.Section>
               <form.Field
-                @name="assigned_to"
-                @title={{i18n "discourse_kanban.board.assigned_to"}}
+                @name="notes"
+                @title={{i18n "discourse_kanban.board.notes"}}
                 @format="max"
-                @type="custom"
+                @type="composer"
+                @disabled={{not this.canWrite}}
                 as |field|
               >
-                <field.Control>
-                  <EmailGroupUserChooser
-                    @value={{data.assigned_to}}
-                    @onChange={{fn this.onAssignedChanged field}}
-                    @options={{hash maximum=1 excludeCurrentUser=false}}
-                    @disabled={{not this.canWrite}}
-                  />
-                </field.Control>
+                <field.Control
+                  @height={{300}}
+                  @forceEditorMode={{USER_OPTION_COMPOSITION_MODES.rich}}
+                />
               </form.Field>
-            {{/if}}
-          </form.Section>
+              <form.Field
+                @name="tags"
+                @title={{i18n "discourse_kanban.board.tags"}}
+                @format="max"
+                @type="tag-chooser"
+                as |field|
+              >
+                <field.Control @allowCreate={{true}} />
+              </form.Field>
 
-          <form.Actions>
-            {{#if this.canWrite}}
-              <form.Submit />
-            {{/if}}
-            <form.Button
-              class="btn-flat d-modal-cancel"
-              @action={{@closeModal}}
-              @label="cancel"
-            />
-          </form.Actions>
-        </Form>
+              {{#if this.siteSettings.assign_enabled}}
+                <form.Field
+                  @name="assigned_to"
+                  @title={{i18n "discourse_kanban.board.assigned_to"}}
+                  @format="max"
+                  @type="custom"
+                  as |field|
+                >
+                  <field.Control>
+                    <EmailGroupUserChooser
+                      @value={{data.assigned_to}}
+                      @onChange={{fn this.onAssignedChanged field}}
+                      @options={{hash maximum=1 excludeCurrentUser=false}}
+                      @disabled={{not this.canWrite}}
+                    />
+                  </field.Control>
+                </form.Field>
+              {{/if}}
+            </form.Section>
 
-        <DButton
-          @action={{@closeModal}}
-          @icon="xmark"
-          @ariaLabel="modal.close"
-          @title="modal.close"
-          class="btn-flat kanban-card-detail-modal__close"
-        />
+            <form.Actions>
+              {{#if this.canWrite}}
+                <form.Submit />
+              {{/if}}
+              <form.Button
+                class="btn-flat d-modal-cancel"
+                @action={{@closeModal}}
+                @label="cancel"
+              />
+            </form.Actions>
+          </Form>
+
+          <div class="kanban-card-detail-side-panel">
+            <div class="kanban-card-detail-side-panel__header">
+              <HorizontalOverflowNav
+                @ariaLabel="Card detail navigation"
+                class="kanban-card-detail-side-panel__nav"
+              >
+                <DNavigationItem
+                  {{! @route="cardActivity" }}
+                  {{!-- @model={{this.args.model.card}} --}}
+                  class="kanban-card-detail-side-panel__nav-item"
+                >
+                  Activity
+                </DNavigationItem>
+                <DNavigationItem
+                  {{! @route="cardActivity" }}
+                  {{!-- @model={{this.args.model.card}} --}}
+                  class="kanban-card-detail-side-panel__nav-item"
+                >
+                  Chat
+                </DNavigationItem>
+              </HorizontalOverflowNav>
+            </div>
+          </div>
+        </div>
+
       </:body>
     </DModal>
   </template>
