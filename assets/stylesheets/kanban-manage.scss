@@ -150,6 +150,11 @@
   flex: 1 0;
 }
 
+.kanban-card-detail-side-panel__header {
+  display: flex;
+  justify-content: center;
+}
+
 .kanban-card-detail-side-panel__nav {
   justify-content: space-around;
 }

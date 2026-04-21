@@ -7,6 +7,7 @@ import DButton from "discourse/components/d-button";
 import DModal from "discourse/components/d-modal";
 import DSegmentedControl from "discourse/components/d-segmented-control";
 import Form from "discourse/components/form";
+import avatar from "discourse/helpers/avatar";
 import { USER_OPTION_COMPOSITION_MODES } from "discourse/lib/constants";
 import EmailGroupUserChooser from "discourse/select-kit/components/email-group-user-chooser";
 import { eq, not } from "discourse/truth-helpers";
@@ -180,7 +181,28 @@ export default class KanbanCardDetail extends Component {
 
             <div class="kanban-card-detail-side-panel__content">
               {{#if (eq this.selectedTab "activity")}}
-                Activity
+                <ul>
+                  {{#each this.args.model.card.activities as |activity|}}
+                    <li>
+                      {{avatar activity.user imageSize="tiny"}}
+                      <span
+                        class="kanban-card-detail-side-panel__activity-username"
+                      >
+                        {{activity.user.username}}
+                      </span>
+                      <span
+                        class="kanban-card-detail-side-panel__activity-action"
+                      >
+                        {{activity.action}}
+                      </span>
+                      <span
+                        class="kanban-card-detail-side-panel__activity-timestamp"
+                      >
+                        {{! component to render time }}
+                      </span>
+                    </li>
+                  {{/each}}
+                </ul>
               {{else if (eq this.selectedTab "chat")}}
                 Chat
               {{/if}}
