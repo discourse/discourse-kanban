@@ -1,20 +1,22 @@
 import Component from "@glimmer/component";
+import { tracked } from "@glimmer/tracking";
 import { fn, hash } from "@ember/helper";
 import { action } from "@ember/object";
 import { service } from "@ember/service";
 import DButton from "discourse/components/d-button";
 import DModal from "discourse/components/d-modal";
-import DNavigationItem from "discourse/components/d-navigation-item";
+import DSegmentedControl from "discourse/components/d-segmented-control";
 import Form from "discourse/components/form";
-import HorizontalOverflowNav from "discourse/components/horizontal-overflow-nav";
 import { USER_OPTION_COMPOSITION_MODES } from "discourse/lib/constants";
 import EmailGroupUserChooser from "discourse/select-kit/components/email-group-user-chooser";
-import { not } from "discourse/truth-helpers";
+import { eq, not } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
 import KanbanEditableTitle from "../kanban-editable-title";
 
 export default class KanbanCardDetail extends Component {
   @service siteSettings;
+
+  @tracked selectedTab = "activity";
 
   get canWrite() {
     return this.args.model.canWrite;
@@ -70,6 +72,18 @@ export default class KanbanCardDetail extends Component {
     } catch {
       // modal stays open — popupAjaxError already handles the error
     }
+  }
+
+  get sidePanelNavItems() {
+    return [
+      { value: "activity", label: "Activity" },
+      { value: "chat", label: "Chat" },
+    ];
+  }
+
+  @action
+  handleChangeSidePanelTab(value) {
+    this.selectedTab = value;
   }
 
   <template>
@@ -156,29 +170,23 @@ export default class KanbanCardDetail extends Component {
 
           <div class="kanban-card-detail-side-panel">
             <div class="kanban-card-detail-side-panel__header">
-              <HorizontalOverflowNav
-                @ariaLabel="Card detail navigation"
-                class="kanban-card-detail-side-panel__nav"
-              >
-                <DNavigationItem
-                  {{! @route="cardActivity" }}
-                  {{!-- @model={{this.args.model.card}} --}}
-                  class="kanban-card-detail-side-panel__nav-item"
-                >
-                  Activity
-                </DNavigationItem>
-                <DNavigationItem
-                  {{! @route="cardActivity" }}
-                  {{!-- @model={{this.args.model.card}} --}}
-                  class="kanban-card-detail-side-panel__nav-item"
-                >
-                  Chat
-                </DNavigationItem>
-              </HorizontalOverflowNav>
+              <DSegmentedControl
+                @name="card-detail-navigation"
+                @items={{this.sidePanelNavItems}}
+                @value={{this.selectedTab}}
+                @onSelect={{this.handleChangeSidePanelTab}}
+              />
+            </div>
+
+            <div class="kanban-card-detail-side-panel__content">
+              {{#if (eq this.selectedTab "activity")}}
+                Activity
+              {{else if (eq this.selectedTab "chat")}}
+                Chat
+              {{/if}}
             </div>
           </div>
         </div>
-
       </:body>
     </DModal>
   </template>
