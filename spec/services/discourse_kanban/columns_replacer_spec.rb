@@ -101,12 +101,25 @@ RSpec.describe DiscourseKanban::ColumnsReplacer do
         expect(board.columns.last.tag).to eq(tag)
       end
 
-      it "raises an error if the tag is not found" do
+      it "creates the tag when it doesn't exist and the user can create tags" do
+        DiscourseKanban::ColumnsReplacer.replace!(
+          board:,
+          columns_payload: [{ "title" => "Backlog", "tag_name" => "brand-new" }],
+          user: admin,
+        )
+
+        expect(board.columns.last.tag.name).to eq("brand-new")
+      end
+
+      it "raises an error if the tag is not found and the user cannot create tags" do
+        user = Fabricate(:user)
+        SiteSetting.create_tag_allowed_groups = Group::AUTO_GROUPS[:staff]
+
         expect {
           DiscourseKanban::ColumnsReplacer.replace!(
             board:,
             columns_payload: [{ "title" => "Backlog", "tag_name" => "unknown" }],
-            user: admin,
+            user: user,
           )
         }.to raise_error(
           Discourse::InvalidParameters,
