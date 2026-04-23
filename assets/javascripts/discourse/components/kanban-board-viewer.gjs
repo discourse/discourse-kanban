@@ -1157,7 +1157,6 @@ export default class KanbanBoardViewer extends Component {
                 @user={{this.createdBy}}
               >
                 {{i18n "discourse_kanban.board.created_by"}}
-
                 {{avatar this.createdBy imageSize="tiny"}}
                 <span class="kanban-board-viewer__creator-username">
                   {{formatUsername this.createdBy.username}}
