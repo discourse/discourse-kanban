@@ -60,6 +60,7 @@ en:
         constraint_fix_tags: "Add a board tag"
         constraint_fix_confirm: "Move and update"
         constraint_tooltip: "Only topics with these categories and tags are allowed on this board."
+        created_by: "by"
       keyboard_shortcuts:
         navigate_columns: "Navigate between columns"
         navigate_cards: "Navigate between cards"

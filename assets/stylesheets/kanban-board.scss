@@ -50,6 +50,12 @@ body.kanban-board {
   display: flex;
   flex-direction: column;
 
+  &__title-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
   &__header {
     display: flex;
     align-items: center;
@@ -62,13 +68,46 @@ body.kanban-board {
   &__title {
     font-weight: bold;
     margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+  }
+
+  &__metadata {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  &__creator {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--font-down-2-rem);
+    color: var(--primary-medium);
+    font-weight: normal;
+
+    .avatar {
+      width: 15px;
+      height: 15px;
+    }
+
+    &:hover {
+      color: var(--primary);
+    }
+  }
+
+  &__creator-username {
+    color: var(--primary-800);
+    font-weight: 600;
   }
 
   &__constraint {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.25em;
+    gap: var(--space-1);
     font-size: var(--font-down-1);
 
     .fk-d-tooltip__trigger {

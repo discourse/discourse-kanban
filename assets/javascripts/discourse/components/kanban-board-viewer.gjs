@@ -9,8 +9,10 @@ import { service } from "@ember/service";
 import { modifier } from "ember-modifier";
 import DButton from "discourse/components/d-button";
 import DropdownMenu from "discourse/components/dropdown-menu";
+import UserLink from "discourse/components/user-link";
 import DMenu from "discourse/float-kit/components/d-menu";
 import DTooltip from "discourse/float-kit/components/d-tooltip";
+import avatar from "discourse/helpers/avatar";
 import bodyClass from "discourse/helpers/body-class";
 import boundCategoryLink from "discourse/helpers/bound-category-link";
 import icon from "discourse/helpers/d-icon";
@@ -19,6 +21,7 @@ import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
 import { bind } from "discourse/lib/decorators";
 import DiscourseURL from "discourse/lib/url";
+import { formatUsername } from "discourse/lib/utilities";
 import Category from "discourse/models/category";
 import { i18n } from "discourse-i18n";
 import { kanbanBoardUrl } from "../lib/kanban-urls";
@@ -87,7 +90,6 @@ export default class KanbanBoardViewer extends Component {
   @service messageBus;
   @service modal;
   @service router;
-  @service siteSettings;
   @service toasts;
 
   @tracked board;
@@ -289,6 +291,10 @@ export default class KanbanBoardViewer extends Component {
 
   get hasBoardFilters() {
     return this.boardCategories.length > 0 || this.boardTagNames.length > 0;
+  }
+
+  get createdBy() {
+    return this.board.created_by;
   }
 
   get allSameCategory() {
@@ -1144,29 +1150,44 @@ export default class KanbanBoardViewer extends Component {
     >
       <div class="kanban-board-viewer__header">
         <div class="kanban-board-viewer__title-wrapper">
-          <h2 class="kanban-board-viewer__title">{{this.board.name}}</h2>
-          {{#if this.hasBoardFilters}}
-            <div class="kanban-board-viewer__constraint">
-              {{#each this.boardCategories as |category|}}
-                {{boundCategoryLink category link=false}}
-              {{/each}}
-              {{#if this.boardTagNames.length}}
-                <div class="list-tags">
-                  {{discourseTags null tags=this.boardTagNames}}
-                </div>
-              {{/if}}
-              <DTooltip>
-                <:trigger>
-                  {{icon "circle-info"}}
-                </:trigger>
-                <:content>
-                  <span>{{i18n
-                      "discourse_kanban.board.constraint_tooltip"
-                    }}</span>
-                </:content>
-              </DTooltip>
-            </div>
-          {{/if}}
+          <h2 class="kanban-board-viewer__title">{{this.board.name}}
+            {{#if this.createdBy}}
+              <UserLink
+                class="kanban-board-viewer__creator"
+                @user={{this.createdBy}}
+              >
+                {{i18n "discourse_kanban.board.created_by"}}
+                {{avatar this.createdBy imageSize="tiny"}}
+                <span class="kanban-board-viewer__creator-username">
+                  {{formatUsername this.createdBy.username}}
+                </span>
+              </UserLink>
+            {{/if}}</h2>
+
+          <div class="kanban-board-viewer__metadata">
+            {{#if this.hasBoardFilters}}
+              <div class="kanban-board-viewer__constraint">
+                {{#each this.boardCategories as |category|}}
+                  {{boundCategoryLink category link=false}}
+                {{/each}}
+                {{#if this.boardTagNames.length}}
+                  <div class="list-tags">
+                    {{discourseTags null tags=this.boardTagNames}}
+                  </div>
+                {{/if}}
+                <DTooltip>
+                  <:trigger>
+                    {{icon "circle-info"}}
+                  </:trigger>
+                  <:content>
+                    <span>{{i18n
+                        "discourse_kanban.board.constraint_tooltip"
+                      }}</span>
+                  </:content>
+                </DTooltip>
+              </div>
+            {{/if}}
+          </div>
         </div>
 
         <div class="kanban-board-viewer__controls">

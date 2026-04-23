@@ -12,7 +12,10 @@ module DiscourseKanban
 
     def index
       boards =
-        DiscourseKanban::Board.includes(:columns).to_a.select { |board| board.can_read?(guardian) }
+        DiscourseKanban::Board
+          .includes(:columns, :created_by)
+          .to_a
+          .select { |board| board.can_read?(guardian) }
       tag_name_map = build_tag_name_map(*boards)
       render json: { boards: boards.map { |board| board_payload(board, tag_name_map:) } }
     end

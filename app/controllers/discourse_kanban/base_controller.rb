@@ -45,8 +45,15 @@ module DiscourseKanban
         show_activity_indicators: board.show_activity_indicators,
         can_write: board.can_write?(guardian),
         can_manage: guardian.can_manage_kanban_boards?,
+        created_by: created_by_payload(board.created_by),
         columns: board.columns.map { |column| column_payload(column, tag_name_map:) },
       }
+    end
+
+    def created_by_payload(user)
+      return nil if user.blank?
+
+      { username: user.username, avatar_template: user.avatar_template }
     end
 
     def column_payload(column, tag_name_map: {})
