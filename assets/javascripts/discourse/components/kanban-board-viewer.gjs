@@ -1150,7 +1150,7 @@ export default class KanbanBoardViewer extends Component {
     >
       <div class="kanban-board-viewer__header">
         <div class="kanban-board-viewer__title-wrapper">
-          <h1 class="kanban-board-viewer__title">{{this.board.name}}
+          <h2 class="kanban-board-viewer__title">{{this.board.name}}
             {{#if this.createdBy}}
               <UserLink
                 class="kanban-board-viewer__creator"
@@ -1162,7 +1162,7 @@ export default class KanbanBoardViewer extends Component {
                   {{formatUsername this.createdBy.username}}
                 </span>
               </UserLink>
-            {{/if}}</h1>
+            {{/if}}</h2>
 
           <div class="kanban-board-viewer__metadata">
             {{#if this.hasBoardFilters}}
