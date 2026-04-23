@@ -154,6 +154,25 @@ RSpec.describe DiscourseKanban::BoardsController do
       expect(response.parsed_body["board"]["can_manage"]).to eq(false)
     end
 
+    it "includes the creator's username and avatar_template" do
+      board =
+        DiscourseKanban::Board.create!(
+          name: "Creator Test",
+          slug: "creator-test",
+          created_by_id: admin.id,
+        )
+      board.columns.create!(title: "Col", position: 0)
+
+      sign_in(admin)
+      get "/kanban/boards/#{board.id}.json"
+
+      expect(response.status).to eq(200)
+      created_by = response.parsed_body["board"]["created_by"]
+      expect(created_by).to be_present
+      expect(created_by["username"]).to eq(admin.username)
+      expect(created_by["avatar_template"]).to eq(admin.avatar_template)
+    end
+
     it "includes topic details for detailed cards" do
       topic = Fabricate(:topic, category: category)
       board =

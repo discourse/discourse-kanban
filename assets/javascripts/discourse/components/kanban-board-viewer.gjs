@@ -6,6 +6,7 @@ import { action } from "@ember/object";
 import didInsert from "@ember/render-modifiers/modifiers/did-insert";
 import { schedule } from "@ember/runloop";
 import { service } from "@ember/service";
+import { trustHTML } from "@ember/template";
 import { modifier } from "ember-modifier";
 import DButton from "discourse/components/d-button";
 import DropdownMenu from "discourse/components/dropdown-menu";
@@ -15,9 +16,11 @@ import bodyClass from "discourse/helpers/body-class";
 import boundCategoryLink from "discourse/helpers/bound-category-link";
 import icon from "discourse/helpers/d-icon";
 import discourseTags from "discourse/helpers/discourse-tags";
+import { renderAvatar } from "discourse/helpers/user-avatar";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
 import { bind } from "discourse/lib/decorators";
+import getURL from "discourse/lib/get-url";
 import DiscourseURL from "discourse/lib/url";
 import Category from "discourse/models/category";
 import { i18n } from "discourse-i18n";
@@ -289,6 +292,28 @@ export default class KanbanBoardViewer extends Component {
 
   get hasBoardFilters() {
     return this.boardCategories.length > 0 || this.boardTagNames.length > 0;
+  }
+
+  get createdBy() {
+    return this.board.created_by;
+  }
+
+  get createdByAvatarHtml() {
+    if (!this.createdBy) {
+      return null;
+    }
+    return renderAvatar(this.createdBy, {
+      avatarTemplatePath: "avatar_template",
+      usernamePath: "username",
+      imageSize: "tiny",
+    });
+  }
+
+  get createdByUrl() {
+    if (!this.createdBy?.username) {
+      return null;
+    }
+    return getURL(`/u/${this.createdBy.username}`);
   }
 
   get allSameCategory() {
@@ -1144,29 +1169,48 @@ export default class KanbanBoardViewer extends Component {
     >
       <div class="kanban-board-viewer__header">
         <div class="kanban-board-viewer__title-wrapper">
-          <h2 class="kanban-board-viewer__title">{{this.board.name}}</h2>
-          {{#if this.hasBoardFilters}}
-            <div class="kanban-board-viewer__constraint">
-              {{#each this.boardCategories as |category|}}
-                {{boundCategoryLink category link=false}}
-              {{/each}}
-              {{#if this.boardTagNames.length}}
-                <div class="list-tags">
-                  {{discourseTags null tags=this.boardTagNames}}
-                </div>
-              {{/if}}
-              <DTooltip>
-                <:trigger>
-                  {{icon "circle-info"}}
-                </:trigger>
-                <:content>
-                  <span>{{i18n
-                      "discourse_kanban.board.constraint_tooltip"
-                    }}</span>
-                </:content>
-              </DTooltip>
-            </div>
-          {{/if}}
+          <h2 class="kanban-board-viewer__title">{{this.board.name}}
+            {{#if this.createdBy}}
+              <a
+                class="kanban-board-viewer__creator"
+                href={{this.createdByUrl}}
+                title={{i18n
+                  "discourse_kanban.board.created_by"
+                  username=this.createdBy.username
+                }}
+              >
+                {{trustHTML this.createdByAvatarHtml}}
+                by
+                <span
+                  class="kanban-board-viewer__creator-username"
+                >{{this.createdBy.username}}</span>
+              </a>
+            {{/if}}</h2>
+
+          <div class="kanban-board-viewer__metadata">
+            {{#if this.hasBoardFilters}}
+              <div class="kanban-board-viewer__constraint">
+                {{#each this.boardCategories as |category|}}
+                  {{boundCategoryLink category link=false}}
+                {{/each}}
+                {{#if this.boardTagNames.length}}
+                  <div class="list-tags">
+                    {{discourseTags null tags=this.boardTagNames}}
+                  </div>
+                {{/if}}
+                <DTooltip>
+                  <:trigger>
+                    {{icon "circle-info"}}
+                  </:trigger>
+                  <:content>
+                    <span>{{i18n
+                        "discourse_kanban.board.constraint_tooltip"
+                      }}</span>
+                  </:content>
+                </DTooltip>
+              </div>
+            {{/if}}
+          </div>
         </div>
 
         <div class="kanban-board-viewer__controls">
