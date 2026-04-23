@@ -492,6 +492,54 @@ describe "Kanban Board Viewer" do
     end
   end
 
+  context "when adding a topic as card via URL" do
+    it "adds the topic as a card when pasting a URL and clicking submit" do
+      result =
+        create_board(
+          { allow_write_group_ids: [write_group.id], require_confirmation: false },
+          with_columns: [{ title: "To Do", position: 0 }],
+        )
+      board = result.board
+
+      topic = Fabricate(:topic, title: "Add dark mode toggle", category: category)
+      Fabricate(:post, topic: topic)
+
+      sign_in(user)
+      board_viewer.visit_board(board)
+
+      board_viewer.click_add_topic_as_card("To Do")
+      board_viewer.fill_topic_search("/t/#{topic.slug}/#{topic.id}")
+      board_viewer.submit_topic_search
+
+      expect(board_viewer).to have_no_add_topic_as_card_modal
+      expect(board_viewer).to have_card_in_column("To Do", "Add dark mode toggle")
+      expect(board.cards.where(topic_id: topic.id)).to exist
+    end
+
+    it "adds the topic as a card when pasting a URL and pressing Enter" do
+      result =
+        create_board(
+          { allow_write_group_ids: [write_group.id], require_confirmation: false },
+          with_columns: [{ title: "To Do", position: 0 }],
+        )
+      board = result.board
+
+      topic = Fabricate(:topic, title: "Ship onboarding tour", category: category)
+      Fabricate(:post, topic: topic)
+
+      sign_in(user)
+      board_viewer.visit_board(board)
+
+      board_viewer.click_add_topic_as_card("To Do")
+      board_viewer.fill_topic_search("/t/#{topic.slug}/#{topic.id}")
+      board_viewer.submit_topic_search_with_enter
+
+      expect(board_viewer).to have_no_add_topic_as_card_modal
+      expect(board_viewer).to have_card_in_column("To Do", "Ship onboarding tour")
+      expect(board.cards.where(topic_id: topic.id)).to exist
+    end
+  end
+
   context "with controls menu" do
     it "toggles fullscreen mode" do
       result = create_board(with_columns: [{ title: "To Do", position: 0 }])

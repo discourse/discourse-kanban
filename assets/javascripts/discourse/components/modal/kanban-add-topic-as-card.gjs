@@ -3,6 +3,7 @@ import { tracked } from "@glimmer/tracking";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
 import { cancel } from "@ember/runloop";
+import { isEmpty } from "@ember/utils";
 import DButton from "discourse/components/d-button";
 import DModal from "discourse/components/d-modal";
 import Form from "discourse/components/form";
@@ -13,6 +14,7 @@ import loadingSpinner from "discourse/helpers/loading-spinner";
 import replaceEmoji from "discourse/helpers/replace-emoji";
 import discourseDebounce from "discourse/lib/debounce";
 import { searchForTerm } from "discourse/lib/search";
+import { TOPIC_URL_REGEXP } from "discourse/lib/url";
 import { i18n } from "discourse-i18n";
 
 export default class KanbanAddTopicAsCard extends Component {
@@ -55,8 +57,13 @@ export default class KanbanAddTopicAsCard extends Component {
     }
   }
 
+  #topicIdFromInput(value) {
+    const match = TOPIC_URL_REGEXP.exec(value ?? "");
+    return match ? parseInt(match[2], 10) : null;
+  }
+
   async triggerSearch(value) {
-    if (!value || value.length < 4 || value.startsWith("http")) {
+    if (!value || value.length < 4 || this.#topicIdFromInput(value)) {
       this.abortSearch();
       return;
     }
@@ -98,6 +105,10 @@ export default class KanbanAddTopicAsCard extends Component {
           }
           event.preventDefault();
           event.stopPropagation();
+        } else if (event.target.tagName === "INPUT") {
+          this.formApi?.submit();
+          event.preventDefault();
+          event.stopPropagation();
         }
         break;
       case "Escape":
@@ -137,6 +148,21 @@ export default class KanbanAddTopicAsCard extends Component {
     this.#debounced = discourseDebounce(this, this.triggerSearch, value, 400);
   }
 
+  @action
+  onFormSubmit(data) {
+    const value = data.topicSearch?.trim();
+    if (isEmpty(value)) {
+      return;
+    }
+
+    const topicId = this.#topicIdFromInput(value);
+    if (topicId) {
+      this.searchResults = [];
+      this.args.model.onAddTopicAsCard({ topicId });
+      this.args.closeModal();
+    }
+  }
+
   <template>
     {{! template-lint-disable no-pointer-down-event-binding }}
     <DModal
@@ -151,6 +177,7 @@ export default class KanbanAddTopicAsCard extends Component {
         <div class="inputs">
           <Form
             @data={{this.data}}
+            @onSubmit={{this.onFormSubmit}}
             @onRegisterApi={{this.registerApi}}
             as |form|
           >
@@ -203,6 +230,12 @@ export default class KanbanAddTopicAsCard extends Component {
       </:body>
 
       <:footer>
+        <DButton
+          @action={{this.formApi.submit}}
+          @label="discourse_kanban.board.add_topic_as_card"
+          type="submit"
+          class="btn-primary"
+        />
         <DButton
           @action={{@closeModal}}
           @label="cancel"

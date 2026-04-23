@@ -100,6 +100,41 @@ module PageObjects
         self
       end
 
+      def click_add_topic_as_card(column_title)
+        within(find(".kanban-column", text: /#{Regexp.escape(column_title)}/i)) do
+          find(".kanban-column__add-btn").click
+        end
+        find(
+          "[data-content][data-identifier='kanban-column-add'] .btn-transparent",
+          text: I18n.t("js.discourse_kanban.board.add_topic_as_card"),
+        ).click
+        has_css?(".kanban-add-topic-as-card-modal")
+        self
+      end
+
+      def fill_topic_search(value)
+        within(".kanban-add-topic-as-card-modal") { find("input.topic-search-input").set(value) }
+        self
+      end
+
+      def submit_topic_search
+        within(".kanban-add-topic-as-card-modal") do
+          find(".d-modal__footer .btn-primary").click
+        end
+        self
+      end
+
+      def submit_topic_search_with_enter
+        within(".kanban-add-topic-as-card-modal") do
+          find("input.topic-search-input").send_keys(:enter)
+        end
+        self
+      end
+
+      def has_no_add_topic_as_card_modal?
+        has_no_css?(".kanban-add-topic-as-card-modal")
+      end
+
       def fill_card_title(title)
         fill_card_detail_title(title)
       end
