@@ -14,7 +14,7 @@ import loadingSpinner from "discourse/helpers/loading-spinner";
 import replaceEmoji from "discourse/helpers/replace-emoji";
 import discourseDebounce from "discourse/lib/debounce";
 import { searchForTerm } from "discourse/lib/search";
-import { TOPIC_URL_REGEXP } from "discourse/lib/url";
+import DiscourseURL, { TOPIC_URL_REGEXP } from "discourse/lib/url";
 import { i18n } from "discourse-i18n";
 
 export default class KanbanAddTopicAsCard extends Component {
@@ -58,12 +58,17 @@ export default class KanbanAddTopicAsCard extends Component {
   }
 
   #topicIdFromInput(value) {
-    const match = TOPIC_URL_REGEXP.exec(value ?? "");
+    const input = value ?? "";
+    if (/^(?:https?:)?\/\//i.test(input) && !DiscourseURL.isInternal(input)) {
+      return null;
+    }
+    const match = TOPIC_URL_REGEXP.exec(input);
     return match ? parseInt(match[2], 10) : null;
   }
 
   async triggerSearch(value) {
-    if (!value || value.length < 4 || this.#topicIdFromInput(value)) {
+    const looksLikeUrl = /^(?:https?:)?\/\//i.test(value ?? "");
+    if (!value || value.length < 4 || looksLikeUrl) {
       this.abortSearch();
       return;
     }
@@ -158,7 +163,7 @@ export default class KanbanAddTopicAsCard extends Component {
     const topicId = this.#topicIdFromInput(value);
     if (topicId) {
       this.searchResults = [];
-      this.args.model.onAddTopicAsCard({ topicId });
+      this.args.model.onAddTopicAsCard({ topicId, title: value });
       this.args.closeModal();
     }
   }

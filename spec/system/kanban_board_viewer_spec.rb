@@ -538,6 +538,31 @@ describe "Kanban Board Viewer" do
       expect(board_viewer).to have_card_in_column("To Do", "Ship onboarding tour")
       expect(board.cards.where(topic_id: topic.id)).to exist
     end
+
+    it "does not add a card when pasting an external URL that shares a local topic id" do
+      result =
+        create_board(
+          { allow_write_group_ids: [write_group.id], require_confirmation: false },
+          with_columns: [{ title: "To Do", position: 0 }],
+        )
+      board = result.board
+
+      topic = Fabricate(:topic, title: "Legit local topic", category: category)
+      Fabricate(:post, topic: topic)
+
+      sign_in(user)
+      board_viewer.visit_board(board)
+
+      board_viewer.click_add_topic_as_card("To Do")
+      board_viewer.fill_topic_search(
+        "https://other-discourse.example/t/imposter-slug/#{topic.id}",
+      )
+      board_viewer.submit_topic_search
+
+      expect(page).to have_css(".kanban-add-topic-as-card-modal")
+      expect(board_viewer).to have_no_card_in_column("To Do", "Legit local topic")
+      expect(board.cards.where(topic_id: topic.id)).not_to exist
+    end
   end
 
   context "with controls menu" do
