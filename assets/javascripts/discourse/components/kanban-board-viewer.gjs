@@ -22,6 +22,10 @@ import { bind } from "discourse/lib/decorators";
 import DiscourseURL from "discourse/lib/url";
 import Category from "discourse/models/category";
 import { i18n } from "discourse-i18n";
+import {
+  isRecencyColumn,
+  sortCardsForColumn,
+} from "../lib/kanban-card-ordering";
 import { kanbanBoardUrl } from "../lib/kanban-urls";
 import KanbanColumn from "./kanban-column";
 import KanbanBoardSettings from "./modal/kanban-board-settings";
@@ -81,6 +85,10 @@ function calcAvailableHeight(element) {
   });
 }
 
+export function shouldRefetchMovedCardPayload(existingCard, cardPayload) {
+  return !existingCard && !!cardPayload?.topic_id && !cardPayload.topic;
+}
+
 export default class KanbanBoardViewer extends Component {
   @service appEvents;
   @service composer;
@@ -119,7 +127,7 @@ export default class KanbanBoardViewer extends Component {
     this.board = { ...this.args.model.board };
     this.columns = this.args.model.columns.map((col) => ({
       ...col,
-      cards: [...(col.cards || [])],
+      cards: sortCardsForColumn(col, col.cards || []),
     }));
 
     if (this.args.initialCardId) {
@@ -182,28 +190,34 @@ export default class KanbanBoardViewer extends Component {
 
     this.columns = this.columns.map((col) => {
       if (col.id === card.column_id) {
-        const cards = [...col.cards];
-        const insertIndex = cards.findIndex((c) => c.position > card.position);
-        if (insertIndex === -1) {
-          cards.push(card);
-        } else {
-          cards.splice(insertIndex, 0, card);
-        }
-        return { ...col, cards };
+        return {
+          ...col,
+          cards: sortCardsForColumn(col, [
+            ...col.cards.filter((c) => c.id !== card.id),
+            card,
+          ]),
+        };
       }
       return col;
     });
   }
 
   #handleCardUpdated(card) {
-    this.columns = this.columns.map((col) => ({
-      ...col,
-      cards: col.cards.map((c) => (c.id === card.id ? { ...c, ...card } : c)),
-    }));
+    this.columns = this.columns.map((col) => {
+      const cards = col.cards.map((c) =>
+        c.id === card.id ? { ...c, ...card } : c
+      );
+      return { ...col, cards: sortCardsForColumn(col, cards) };
+    });
   }
 
   #handleCardMoved(card) {
     const existing = this.#findCard(card.id);
+    if (shouldRefetchMovedCardPayload(existing, card)) {
+      this.#handleBoardUpdated();
+      return;
+    }
+
     const mergedCard = existing ? { ...existing, ...card } : card;
 
     const withoutCard = this.columns.map((col) => ({
@@ -213,16 +227,10 @@ export default class KanbanBoardViewer extends Component {
 
     this.columns = withoutCard.map((col) => {
       if (col.id === mergedCard.column_id) {
-        const cards = [...col.cards];
-        const insertIndex = cards.findIndex(
-          (c) => c.position > mergedCard.position
-        );
-        if (insertIndex === -1) {
-          cards.push(mergedCard);
-        } else {
-          cards.splice(insertIndex, 0, mergedCard);
-        }
-        return { ...col, cards };
+        return {
+          ...col,
+          cards: sortCardsForColumn(col, [...col.cards, mergedCard]),
+        };
       }
       return col;
     });
@@ -256,9 +264,12 @@ export default class KanbanBoardViewer extends Component {
     try {
       const result = await ajax(`/kanban/boards/${this.board.id}.json`);
       if (result.columns) {
-        this.columns = result.columns;
+        this.columns = result.columns.map((col) => ({
+          ...col,
+          cards: sortCardsForColumn(col, col.cards || []),
+        }));
       }
-      Object.assign(this.board, result);
+      Object.assign(this.board, result.board || result);
     } catch {
       // Board may have been deleted — no action needed
     }
@@ -352,6 +363,16 @@ export default class KanbanBoardViewer extends Component {
 
     const card = fromColumn.cards[cardIndex];
     const isSameColumn = fromColumnId === toColumnId;
+    const targetIsRecency = isRecencyColumn(toColumn);
+    if (isSameColumn && targetIsRecency) {
+      this.dragData = null;
+      return;
+    }
+
+    if (targetIsRecency) {
+      afterCardId = null;
+    }
+
     let constraintFix = null;
 
     if (!isSameColumn && card.topic) {
@@ -382,8 +403,8 @@ export default class KanbanBoardViewer extends Component {
 
     fromColumn.cards.splice(cardIndex, 1);
 
-    let insertIndex = toColumn.cards.length;
-    if (afterCardId != null) {
+    let insertIndex = targetIsRecency ? 0 : toColumn.cards.length;
+    if (!targetIsRecency && afterCardId != null) {
       const idx = toColumn.cards.findIndex((c) => c.id === afterCardId);
       if (idx !== -1) {
         insertIndex = idx + 1;
@@ -419,12 +440,26 @@ export default class KanbanBoardViewer extends Component {
         { type: "PUT", data }
       );
       if (result?.card) {
-        this.columns = this.columns.map((col) => ({
+        const existingCard = this.columns
+          .flatMap((col) => col.cards)
+          .find((c) => c.id === result.card.id);
+        const mergedCard = existingCard
+          ? { ...existingCard, ...result.card }
+          : result.card;
+        const withoutCard = this.columns.map((col) => ({
           ...col,
-          cards: col.cards.map((c) =>
-            c.id === card.id ? { ...c, ...result.card } : c
-          ),
+          cards: col.cards.filter((c) => c.id !== result.card.id),
         }));
+
+        this.columns = withoutCard.map((col) => {
+          if (col.id === mergedCard.column_id) {
+            return {
+              ...col,
+              cards: sortCardsForColumn(col, [...col.cards, mergedCard]),
+            };
+          }
+          return col;
+        });
       }
       this._highlightDroppedCard(card.id);
     } catch (error) {
@@ -547,12 +582,7 @@ export default class KanbanBoardViewer extends Component {
           }));
           this.#handleCardMoved(result.card);
         } else {
-          this.columns = this.columns.map((col) => ({
-            ...col,
-            cards: col.cards.map((c) =>
-              c.id === cardId ? { ...c, ...result.card } : c
-            ),
-          }));
+          this.#handleCardUpdated(result.card);
         }
       }
     } catch (error) {
@@ -670,7 +700,13 @@ export default class KanbanBoardViewer extends Component {
     }
     this.columns = this.columns.map((col) => {
       if (col.id === columnId) {
-        return { ...col, cards: [...col.cards, card] };
+        return {
+          ...col,
+          cards: sortCardsForColumn(col, [
+            ...col.cards.filter((c) => c.id !== card.id),
+            card,
+          ]),
+        };
       }
       return col;
     });
@@ -773,6 +809,7 @@ export default class KanbanBoardViewer extends Component {
       id: col.id,
       title: col.title,
       icon: col.icon,
+      default_sort: col.default_sort || "priority",
       tag_name: col.tag_name || null,
       move_to_category_id: col.move_to_category_id,
       move_to_assigned:

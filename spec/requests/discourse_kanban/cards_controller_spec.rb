@@ -23,6 +23,7 @@ RSpec.describe DiscourseKanban::CardsController do
   fab!(:col_todo) { board.columns.create!(title: "To Do", position: 0) }
   fab!(:done_tag, :tag) { Fabricate(:tag, name: "done") }
   fab!(:col_done) { board.columns.create!(title: "Done", position: 1, tag_id: done_tag.id) }
+  fab!(:col_recent) { board.columns.create!(title: "Recent", position: 2, default_sort: "recency") }
 
   before do
     enable_current_plugin
@@ -47,6 +48,8 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(card["card_type"]).to eq("floater")
       expect(card["title"]).to eq("New task")
       expect(card["column_id"]).to eq(col_todo.id)
+      expect(card["column_changed_at"]).to be_present
+      expect(card["recency_at"]).to be_present
     end
 
     it "creates a floater card with tag ids" do
@@ -399,6 +402,7 @@ RSpec.describe DiscourseKanban::CardsController do
           position: 0,
           created_by_id: admin.id,
         )
+      card.update_column(:column_changed_at, 2.days.ago)
 
       sign_in(writer)
 
@@ -411,6 +415,8 @@ RSpec.describe DiscourseKanban::CardsController do
 
       expect(response.status).to eq(200)
       expect(card.reload.column_id).to eq(col_done.id)
+      expect(card.column_changed_at).to be > 1.day.ago
+      expect(response.parsed_body.dig("card", "column_changed_at")).to be_present
     end
 
     it "updates a floater card title" do
@@ -565,6 +571,72 @@ RSpec.describe DiscourseKanban::CardsController do
 
       expect(response.status).to eq(200)
       expect(card2.reload.position).to be < card1.reload.position
+    end
+
+    it "moves cards into recency columns at the top" do
+      existing =
+        board.cards.create!(
+          card_type: :floater,
+          title: "Existing",
+          column_id: col_recent.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      card =
+        board.cards.create!(
+          card_type: :floater,
+          title: "Move me",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+
+      sign_in(writer)
+
+      put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+          params: {
+            card: {
+              column_id: col_recent.id,
+              after_card_id: existing.id,
+            },
+          }
+
+      expect(response.status).to eq(200)
+      expect(card.reload.column_id).to eq(col_recent.id)
+      expect(card.position).to be < existing.reload.position
+      expect(response.parsed_body.dig("card", "recency_at")).to be_present
+    end
+
+    it "rejects same-column reordering in recency columns" do
+      card1 =
+        board.cards.create!(
+          card_type: :floater,
+          title: "First",
+          column_id: col_recent.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      card2 =
+        board.cards.create!(
+          card_type: :floater,
+          title: "Second",
+          column_id: col_recent.id,
+          position: 1,
+          created_by_id: admin.id,
+        )
+
+      sign_in(writer)
+
+      put "/kanban/boards/#{board.id}/cards/#{card1.id}.json",
+          params: {
+            card: {
+              column_id: col_recent.id,
+              after_card_id: card2.id,
+            },
+          }
+
+      expect(response.status).to eq(400)
+      expect(card1.reload.position).to eq(0)
     end
 
     it "promotes a floater card to a topic card" do

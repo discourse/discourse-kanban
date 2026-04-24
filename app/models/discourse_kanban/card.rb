@@ -13,6 +13,8 @@ module DiscourseKanban
 
     self.ignored_columns = %w[membership_mode labels]
 
+    RECENCY_WINDOW = 1.week
+
     enum :card_type, { floater: 0, topic: 1 }, default: :floater
 
     validates :position, presence: true
@@ -21,6 +23,7 @@ module DiscourseKanban
     validate :validate_type_integrity
 
     before_validation :normalize_card_type
+    before_validation :initialize_column_changed_at, on: :create
 
     scope :with_column, -> { where.not(column_id: nil) }
     scope :ordered, -> { order(:position, :id) }
@@ -60,9 +63,26 @@ module DiscourseKanban
             )
     end
 
+    def recency_at
+      timestamps = [column_changed_at]
+      timestamps << (topic? ? topic&.bumped_at : updated_at)
+      timestamps.compact.max
+    end
+
+    def recent_for_column?
+      recency = recency_at
+      recency.present? && recency >= RECENCY_WINDOW.ago
+    end
+
     private
 
     private_class_method :normalize_tag_id_values!, :tag_ids_missing_from_database
+
+    def initialize_column_changed_at
+      return if column_changed_at.present? || column_id.blank?
+
+      self.column_changed_at = updated_at || created_at || Time.current
+    end
 
     def normalize_card_type
       return if topic_id.blank?
@@ -85,22 +105,23 @@ end
 #
 # Table name: discourse_kanban_cards
 #
-#  id               :bigint           not null, primary key
-#  assigned_to_type :string
-#  card_type        :integer          default("floater"), not null
-#  due_at           :datetime
-#  notes            :text
-#  position         :bigint           default(0), not null
-#  tag_ids          :integer          default([]), not null, is an Array
-#  title            :string
-#  created_at       :datetime         not null
-#  updated_at       :datetime         not null
-#  assigned_to_id   :bigint
-#  board_id         :bigint           not null
-#  column_id        :bigint
-#  created_by_id    :bigint
-#  topic_id         :bigint
-#  updated_by_id    :bigint
+#  id                :bigint           not null, primary key
+#  assigned_to_type  :string
+#  card_type         :integer          default("floater"), not null
+#  column_changed_at :datetime         not null
+#  due_at            :datetime
+#  notes             :text
+#  position          :bigint           default(0), not null
+#  tag_ids           :integer          default([]), not null, is an Array
+#  title             :string
+#  created_at        :datetime         not null
+#  updated_at        :datetime         not null
+#  assigned_to_id    :bigint
+#  board_id          :bigint           not null
+#  column_id         :bigint
+#  created_by_id     :bigint
+#  topic_id          :bigint
+#  updated_by_id     :bigint
 #
 # Indexes
 #

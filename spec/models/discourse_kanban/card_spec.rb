@@ -194,4 +194,40 @@ RSpec.describe DiscourseKanban::Card do
       expect(described_class.ordered_tags([tag.id, tag.id + 1000])).to eq([tag])
     end
   end
+
+  describe "#recency_at" do
+    it "uses the later of topic bumped_at and column_changed_at for topic cards" do
+      bumped_at = 2.days.ago
+      column_changed_at = 1.day.ago
+      topic.update_columns(bumped_at: bumped_at)
+      card =
+        board.cards.create!(
+          card_type: :topic,
+          topic_id: topic.id,
+          column_id: column.id,
+          position: 0,
+          column_changed_at: column_changed_at,
+          created_by_id: admin.id,
+        )
+
+      expect(card.reload.recency_at.to_i).to eq(column_changed_at.to_i)
+    end
+
+    it "uses the later of updated_at and column_changed_at for floater cards" do
+      column_changed_at = 3.days.ago
+      updated_at = 2.hours.ago
+      card =
+        board.cards.create!(
+          card_type: :floater,
+          title: "Recent floater",
+          column_id: column.id,
+          position: 0,
+          column_changed_at: column_changed_at,
+          created_by_id: admin.id,
+        )
+      card.update_columns(updated_at: updated_at)
+
+      expect(card.reload.recency_at.to_i).to eq(updated_at.to_i)
+    end
+  end
 end

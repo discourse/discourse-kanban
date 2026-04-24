@@ -5,16 +5,31 @@ module DiscourseKanban
     GAP_SIZE = 65_536
 
     def self.place_card!(card, column:, after_card_id: nil, position_first: false)
+      if same_column_recency_reorder?(card, column, after_card_id, position_first)
+        raise_recency_reorder_error!
+      end
+
+      if column.recency? && !card.new_record? && card.column_id == column.id
+        card.save!
+        return card
+      end
+
       card.transaction do
         scope = card.board.cards.with_column.where(column_id: column.id).where.not(id: card.id)
 
-        position = compute_position(scope, after_card_id:, position_first:)
+        position =
+          if column.recency?
+            insert_at_beginning(scope)
+          else
+            compute_position(scope, after_card_id:, position_first:)
+          end
 
         if position.nil?
           rebalance_column!(card.board, column)
           position = compute_position(scope, after_card_id:, position_first:)
         end
 
+        stamp_column_changed_at!(card, column)
         card.column_id = column.id
         card.position = position
         card.save!
@@ -22,8 +37,15 @@ module DiscourseKanban
     end
 
     def self.append_to_column!(card, column)
+      scope = card.board.cards.with_column.where(column_id: column.id)
       next_position =
-        card.board.cards.with_column.where(column_id: column.id).maximum(:position).to_i + GAP_SIZE
+        if column.recency?
+          insert_at_beginning(scope)
+        else
+          scope.maximum(:position).to_i + GAP_SIZE
+        end
+
+      stamp_column_changed_at!(card, column)
       card.column_id = column.id
       card.position = next_position
       card
@@ -39,6 +61,26 @@ module DiscourseKanban
       end
     end
     private_class_method :compute_position
+
+    def self.same_column_recency_reorder?(card, column, after_card_id, position_first)
+      column.recency? && !card.new_record? && card.column_id == column.id &&
+        (after_card_id.present? || position_first)
+    end
+    private_class_method :same_column_recency_reorder?
+
+    def self.raise_recency_reorder_error!
+      raise Discourse::InvalidParameters.new(
+              I18n.t("discourse_kanban.errors.cannot_reorder_recency_column"),
+            )
+    end
+    private_class_method :raise_recency_reorder_error!
+
+    def self.stamp_column_changed_at!(card, column)
+      return unless card.new_record? || card.column_id != column.id || card.column_changed_at.blank?
+
+      card.column_changed_at = Time.current
+    end
+    private_class_method :stamp_column_changed_at!
 
     def self.insert_after_card(scope, after_card_id)
       anchor = scope.find_by(id: after_card_id)

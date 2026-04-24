@@ -9,6 +9,9 @@ RSpec.describe DiscourseKanban::CardOrdering do
     DiscourseKanban::Board.create!(name: "Test", slug: "test-ordering", created_by_id: admin.id)
   end
   fab!(:column) { board.columns.create!(title: "Col A", position: 0) }
+  fab!(:recency_column) do
+    board.columns.create!(title: "Recent", position: 1, default_sort: "recency")
+  end
 
   let(:gap) { described_class::GAP_SIZE }
 
@@ -126,6 +129,31 @@ RSpec.describe DiscourseKanban::CardOrdering do
       described_class.place_card!(new_card2, column: column, position_first: true)
       expect(new_card2.reload.position).to be < new_card1.reload.position
     end
+    it "moves cards into recency columns at the beginning and stamps column_changed_at" do
+      existing = create_card(title: "Existing", position: 0, column: recency_column)
+      card = create_card(title: "Mover", position: gap, column: column)
+      previous_changed_at = 2.days.ago
+      card.update_column(:column_changed_at, previous_changed_at)
+
+      freeze_time do
+        described_class.place_card!(card, column: recency_column, after_card_id: existing.id)
+
+        card.reload
+        expect(card.column_id).to eq(recency_column.id)
+        expect(card.position).to be < existing.reload.position
+        expect(card.column_changed_at.to_i).to eq(Time.current.to_i)
+        expect(card.column_changed_at.to_i).not_to eq(previous_changed_at.to_i)
+      end
+    end
+
+    it "rejects manual reordering inside recency columns" do
+      card = create_card(title: "First", position: 0, column: recency_column)
+      other = create_card(title: "Second", position: gap, column: recency_column)
+
+      expect do
+        described_class.place_card!(card, column: recency_column, after_card_id: other.id)
+      end.to raise_error(Discourse::InvalidParameters)
+    end
   end
 
   describe ".append_to_column!" do
@@ -154,6 +182,19 @@ RSpec.describe DiscourseKanban::CardOrdering do
       described_class.append_to_column!(new_card, column)
 
       expect(new_card).to be_new_record
+    end
+
+    it "prepends new cards in recency columns" do
+      existing = create_card(title: "Existing", position: 0, column: recency_column)
+      new_card = board.cards.build(card_type: :floater, title: "Recent", created_by_id: admin.id)
+
+      freeze_time do
+        described_class.append_to_column!(new_card, recency_column)
+
+        expect(new_card.column_id).to eq(recency_column.id)
+        expect(new_card.position).to be < existing.position
+        expect(new_card.column_changed_at.to_i).to eq(Time.current.to_i)
+      end
     end
   end
 end

@@ -1,4 +1,5 @@
 import Component from "@glimmer/component";
+import { tracked } from "@glimmer/tracking";
 import { fn } from "@ember/helper";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
@@ -9,10 +10,31 @@ import DMenu from "discourse/float-kit/components/d-menu";
 import icon from "discourse/helpers/d-icon";
 import { eq } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
+import { isRecencyColumn } from "../lib/kanban-card-ordering";
 import { animateCardReorder, captureCardRects } from "../lib/kanban-motion";
 import KanbanCard from "./kanban-card";
 import KanbanAddTopicAsCardModal from "./modal/kanban-add-topic-as-card";
 import KanbanCardDetailModal from "./modal/kanban-card-detail";
+
+const RECENCY_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+export function recencyTimestamp(card) {
+  const value = Date.parse(card?.recency_at || "");
+  return Number.isFinite(value) ? value : 0;
+}
+
+export function recencyDropIndicatorInsertBefore(
+  cardsContainer,
+  cardElements,
+  draggedCardId
+) {
+  return (
+    cardElements.find((cardEl) => {
+      const elCardId = parseInt(cardEl.dataset.cardId, 10);
+      return elCardId !== draggedCardId;
+    }) || cardsContainer.querySelector(".kanban-column__show-all")
+  );
+}
 
 export function shouldAnimateDropIndicatorPlacement({
   hadIndicator,
@@ -26,8 +48,32 @@ export function shouldAnimateDropIndicatorPlacement({
 export default class KanbanColumn extends Component {
   @service modal;
 
+  @tracked showAllCards = false;
+
   get cardCount() {
     return this.args.column.cards?.length || 0;
+  }
+
+  get visibleCards() {
+    const cards = this.args.column.cards || [];
+    if (!this.isRecencySorted || this.showAllCards) {
+      return cards;
+    }
+
+    const cutoff = Date.now() - RECENCY_WINDOW_MS;
+    return cards.filter((card) => recencyTimestamp(card) >= cutoff);
+  }
+
+  get hiddenCardCount() {
+    if (!this.isRecencySorted || this.showAllCards) {
+      return 0;
+    }
+
+    return this.cardCount - this.visibleCards.length;
+  }
+
+  get isRecencySorted() {
+    return isRecencyColumn(this.args.column);
   }
 
   get columnTags() {
@@ -42,6 +88,11 @@ export default class KanbanColumn extends Component {
 
   get lastColumnIndex() {
     return (this.args.allColumns?.length || 0) - 1;
+  }
+
+  @action
+  showAllOlderCards() {
+    this.showAllCards = true;
   }
 
   @action
@@ -116,6 +167,11 @@ export default class KanbanColumn extends Component {
       return;
     }
 
+    if (this.isRecencySorted && dragData.fromColumnId === this.args.column.id) {
+      this.removeDropIndicator(event.currentTarget, { animate: true });
+      return;
+    }
+
     let indicator = cardsContainer.querySelector(
       ".kanban-column__drop-indicator"
     );
@@ -129,15 +185,23 @@ export default class KanbanColumn extends Component {
     const cardElements = [...cardsContainer.querySelectorAll(".kanban-card")];
     let insertBefore = null;
 
-    for (const cardEl of cardElements) {
-      const elCardId = parseInt(cardEl.dataset.cardId, 10);
-      if (elCardId === dragData.cardId) {
-        continue;
-      }
-      const rect = cardEl.getBoundingClientRect();
-      if (event.clientY <= rect.top + rect.height / 2) {
-        insertBefore = cardEl;
-        break;
+    if (this.isRecencySorted) {
+      insertBefore = recencyDropIndicatorInsertBefore(
+        cardsContainer,
+        cardElements,
+        dragData.cardId
+      );
+    } else {
+      for (const cardEl of cardElements) {
+        const elCardId = parseInt(cardEl.dataset.cardId, 10);
+        if (elCardId === dragData.cardId) {
+          continue;
+        }
+        const rect = cardEl.getBoundingClientRect();
+        if (event.clientY <= rect.top + rect.height / 2) {
+          insertBefore = cardEl;
+          break;
+        }
       }
     }
 
@@ -202,12 +266,17 @@ export default class KanbanColumn extends Component {
       return;
     }
 
+    if (this.isRecencySorted && dragData.fromColumnId === this.args.column.id) {
+      this.removeDropIndicator(event.currentTarget, { animate: false });
+      return;
+    }
+
     const cardsContainer = event.currentTarget.querySelector(
       ".kanban-column__cards"
     );
     let afterCardId = null;
 
-    if (cardsContainer) {
+    if (cardsContainer && !this.isRecencySorted) {
       const cardElements = [...cardsContainer.querySelectorAll(".kanban-card")];
       for (const cardEl of cardElements) {
         const elCardId = parseInt(cardEl.dataset.cardId, 10);
@@ -280,6 +349,7 @@ export default class KanbanColumn extends Component {
     <div
       class="kanban-column"
       data-column-id={{@column.id}}
+      data-default-sort={{@column.default_sort}}
       {{on "dragover" this.dragOver}}
       {{on "dragleave" this.dragLeave}}
       {{on "drop" this.drop}}
@@ -353,28 +423,43 @@ export default class KanbanColumn extends Component {
       </div>
 
       <div class="kanban-column__cards">
-        {{#each @column.cards key="id" as |card|}}
-          <KanbanCard
-            @card={{card}}
-            @board={{@board}}
-            @columnTitle={{@column.title}}
-            @columnIcon={{@column.icon}}
-            @canWrite={{@canWrite}}
-            @allSameCategory={{@allSameCategory}}
-            @isDropHighlighted={{eq @dropHighlightCardId card.id}}
-            @onDragStart={{@onDragStart}}
-            @onDragEnd={{@onDragEnd}}
-            @onUpdateCard={{@onUpdateCard}}
-            @onDeleteCard={{@onDeleteCard}}
-            @onPromoteToTopic={{fn @onPromoteToTopic card.id}}
-            @onRefreshBoard={{@onRefreshBoard}}
-            @columnTags={{this.columnTags}}
-          />
-        {{else}}
+        {{#if this.visibleCards.length}}
+          {{#each this.visibleCards key="id" as |card|}}
+            <KanbanCard
+              @card={{card}}
+              @board={{@board}}
+              @columnTitle={{@column.title}}
+              @columnIcon={{@column.icon}}
+              @canWrite={{@canWrite}}
+              @allSameCategory={{@allSameCategory}}
+              @isDropHighlighted={{eq @dropHighlightCardId card.id}}
+              @onDragStart={{@onDragStart}}
+              @onDragEnd={{@onDragEnd}}
+              @onUpdateCard={{@onUpdateCard}}
+              @onDeleteCard={{@onDeleteCard}}
+              @onPromoteToTopic={{fn @onPromoteToTopic card.id}}
+              @onRefreshBoard={{@onRefreshBoard}}
+              @columnTags={{this.columnTags}}
+            />
+          {{/each}}
+        {{else if (eq this.cardCount 0)}}
           <div class="kanban-column__empty">
             {{i18n "discourse_kanban.board.no_cards"}}
           </div>
-        {{/each}}
+        {{/if}}
+
+        {{#if this.hiddenCardCount}}
+          <button
+            type="button"
+            class="kanban-column__show-all"
+            {{on "click" this.showAllOlderCards}}
+          >
+            {{i18n
+              "discourse_kanban.board.show_older_cards"
+              count=this.hiddenCardCount
+            }}
+          </button>
+        {{/if}}
       </div>
 
       {{#if @canWrite}}

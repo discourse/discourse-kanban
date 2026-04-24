@@ -17,6 +17,7 @@ import {
   ASSIGNED_OPTIONS,
   assignedMode,
   assignedUserValue,
+  COLUMN_SORT_OPTIONS,
   STATUS_OPTIONS,
   tagToArray,
 } from "../../lib/kanban-column-helpers";
@@ -36,6 +37,7 @@ export default class KanbanColumnSettings extends Component {
       return {
         title: column.title || "",
         icon: column.icon || null,
+        default_sort: column.default_sort || "priority",
         tag_name: column.tag_name || "",
         move_to_category_id: column.move_to_category_id || null,
         move_to_assigned: column.move_to_assigned || "",
@@ -45,6 +47,7 @@ export default class KanbanColumnSettings extends Component {
     return {
       title: "",
       icon: null,
+      default_sort: "priority",
       tag_name: "",
       move_to_category_id: null,
       move_to_assigned: "",
@@ -56,8 +59,17 @@ export default class KanbanColumnSettings extends Component {
     return STATUS_OPTIONS;
   }
 
+  get sortOptions() {
+    return COLUMN_SORT_OPTIONS;
+  }
+
   get assignedOptions() {
     return ASSIGNED_OPTIONS;
+  }
+
+  @action
+  onDefaultSortChange(field, value) {
+    field.set(value || "priority");
   }
 
   @action
@@ -104,6 +116,7 @@ export default class KanbanColumnSettings extends Component {
     const columnData = {
       title: data.title.trim() || data.tag_name.trim(),
       icon: data.icon,
+      default_sort: data.default_sort || "priority",
       tag_name: data.tag_name || null,
       move_to_category_id: data.move_to_category_id,
       move_to_assigned: data.move_to_assigned,
@@ -155,6 +168,22 @@ export default class KanbanColumnSettings extends Component {
                 as |field|
               >
                 <field.Control />
+              </form.Field>
+
+              <form.Field
+                @name="default_sort"
+                @title={{i18n "discourse_kanban.manage.columns.default_sort"}}
+                @format="max"
+                @type="custom"
+                as |field|
+              >
+                <field.Control>
+                  <ComboBox
+                    @value={{data.default_sort}}
+                    @content={{this.sortOptions}}
+                    @onChange={{fn this.onDefaultSortChange field}}
+                  />
+                </field.Control>
               </form.Field>
 
               <form.Field

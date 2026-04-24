@@ -26,24 +26,32 @@ module DiscourseKanban
       topic_includes = %i[tags last_poster]
       topic_includes << :assignment if Topic.reflect_on_association(:assignment)
       cards =
-        @board.cards.with_column.ordered.includes(:created_by, :assigned_to, topic: topic_includes)
+        @board.cards.with_column.includes(:created_by, :assigned_to, topic: topic_includes).to_a
       visible_topic_ids = visible_topic_ids_for(cards)
 
       assignments_by_topic = preload_all_assignments(cards, visible_topic_ids)
       tags_by_id = preload_floater_card_tags(cards)
 
       tag_name_map = build_tag_name_map(@board)
+      board_columns = @board.columns.to_a
+      cards_by_column =
+        cards
+          .reject { |card| card.topic? && !visible_topic_ids.include?(card.topic_id) }
+          .group_by(&:column_id)
       columns =
-        @board.columns.map { |column| column_payload(column, tag_name_map:).merge(cards: []) }
-      columns_by_id = columns.index_by { |column| column[:id] }
-
-      cards.each do |card|
-        next if card.topic? && !visible_topic_ids.include?(card.topic_id)
-
-        columns_by_id[card.column_id]&.[](:cards)&.push(
-          CardPayloadSerializer.new(card, root: false, assignments_by_topic:, tags_by_id:).as_json,
-        )
-      end
+        board_columns.map do |column|
+          column_payload(column, tag_name_map:).merge(
+            cards:
+              sort_cards_for_column(column, cards_by_column[column.id] || []).map do |card|
+                CardPayloadSerializer.new(
+                  card,
+                  root: false,
+                  assignments_by_topic:,
+                  tags_by_id:,
+                ).as_json
+              end,
+          )
+        end
 
       render json: { board: board_payload(@board, tag_name_map:), columns: columns }
     end
@@ -170,6 +178,14 @@ module DiscourseKanban
     end
 
     private
+
+    def sort_cards_for_column(column, cards)
+      if column.recency?
+        cards.sort_by { |card| [card.recency_at || Time.zone.at(0), card.id] }.reverse
+      else
+        cards.sort_by { |card| [card.position, card.id] }
+      end
+    end
 
     def preload_all_assignments(cards, visible_topic_ids)
       return {} unless defined?(Assignment)

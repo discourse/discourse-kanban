@@ -228,7 +228,8 @@ describe "Kanban Board Viewer" do
           category: category,
           bumped_at: 25.days.ago,
         )
-      add_topic_card(board, result.column("To Do"), topic_1)
+      card = add_topic_card(board, result.column("To Do"), topic_1)
+      card.update_columns(column_changed_at: 25.days.ago)
 
       sign_in(user)
       board_viewer.visit_board(board)

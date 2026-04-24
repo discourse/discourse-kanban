@@ -40,6 +40,7 @@ module DiscourseKanban
           title: col_payload[:title],
           icon: col_payload[:icon],
           tag_id: resolved_tag_id,
+          default_sort: normalize_default_sort(col_payload[:default_sort]),
           move_to_category_id: col_payload[:move_to_category_id],
           move_to_assigned: col_payload[:move_to_assigned],
           move_to_status: col_payload[:move_to_status],
@@ -57,5 +58,16 @@ module DiscourseKanban
 
       removed_columns.delete_all
     end
+
+    def self.normalize_default_sort(value)
+      sort = value.presence || "priority"
+      sort = sort.to_s
+      return sort if Column.default_sorts.key?(sort)
+
+      raise Discourse::InvalidParameters.new(
+              I18n.t("discourse_kanban.errors.invalid_column_sort", sort: sort),
+            )
+    end
+    private_class_method :normalize_default_sort
   end
 end
