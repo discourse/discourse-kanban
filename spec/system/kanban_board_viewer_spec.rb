@@ -554,9 +554,7 @@ describe "Kanban Board Viewer" do
       board_viewer.visit_board(board)
 
       board_viewer.click_add_topic_as_card("To Do")
-      board_viewer.fill_topic_search(
-        "https://other-discourse.example/t/imposter-slug/#{topic.id}",
-      )
+      board_viewer.fill_topic_search("https://other-discourse.example/t/imposter-slug/#{topic.id}")
       board_viewer.submit_topic_search
 
       expect(page).to have_css(".kanban-add-topic-as-card-modal")

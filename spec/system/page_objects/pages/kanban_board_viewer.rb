@@ -118,9 +118,7 @@ module PageObjects
       end
 
       def submit_topic_search
-        within(".kanban-add-topic-as-card-modal") do
-          find(".d-modal__footer .btn-primary").click
-        end
+        within(".kanban-add-topic-as-card-modal") { find(".d-modal__footer .btn-primary").click }
         self
       end
 
