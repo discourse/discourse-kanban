@@ -13,6 +13,7 @@ import discourseTags from "discourse/helpers/discourse-tags";
 import loadingSpinner from "discourse/helpers/loading-spinner";
 import replaceEmoji from "discourse/helpers/replace-emoji";
 import discourseDebounce from "discourse/lib/debounce";
+import { withoutPrefix } from "discourse/lib/get-url";
 import { searchForTerm } from "discourse/lib/search";
 import DiscourseURL, { TOPIC_URL_REGEXP } from "discourse/lib/url";
 import { i18n } from "discourse-i18n";
@@ -58,12 +59,24 @@ export default class KanbanAddTopicAsCard extends Component {
   }
 
   #topicIdFromInput(value) {
-    const input = value ?? "";
-    if (/^(?:https?:)?\/\//i.test(input) && !DiscourseURL.isInternal(input)) {
+    const input = (value ?? "").trim();
+    if (!input || !DiscourseURL.isInternal(input)) {
       return null;
     }
-    const match = TOPIC_URL_REGEXP.exec(input);
-    return match ? parseInt(match[2], 10) : null;
+
+    let pathname;
+    try {
+      pathname = new URL(input, DiscourseURL.origin).pathname;
+    } catch {
+      return null;
+    }
+
+    const stripped = withoutPrefix(pathname);
+    const match = TOPIC_URL_REGEXP.exec(stripped);
+    if (!match || match.index !== 0 || match[0].length !== stripped.length) {
+      return null;
+    }
+    return parseInt(match[2], 10);
   }
 
   async triggerSearch(value) {
