@@ -4,6 +4,7 @@ import { fn } from "@ember/helper";
 import { action } from "@ember/object";
 import { cancel } from "@ember/runloop";
 import { service } from "@ember/service";
+import { isEmpty } from "@ember/utils";
 import DButton from "discourse/components/d-button";
 import DModal from "discourse/components/d-modal";
 import Form from "discourse/components/form";
@@ -84,16 +85,12 @@ export default class KanbanBoardSettings extends Component {
         show_activity_indicators: board.show_activity_indicators ?? false,
         require_confirmation: board.require_confirmation ?? false,
         allow_read_group_ids: board.allow_read_group_ids || [],
-        allow_write_group_ids: board.allow_write_group_ids || [],
+        allow_write_group_ids: isEmpty(board.allow_write_group_ids)
+          ? this.discourseKanbanManageBoardAllowedGroupIds
+          : board.allow_write_group_ids,
       };
     }
 
-    console.log(
-      "dadsa",
-      this.siteSettings.groupSettingArray(
-        "discourse_kanban_manage_board_allowed_groups"
-      )
-    );
     // New board
     return {
       name: "",
@@ -107,16 +104,18 @@ export default class KanbanBoardSettings extends Component {
       show_activity_indicators: false,
       require_confirmation: false,
       allow_read_group_ids: [],
-      allow_write_group_ids: [
-        this.siteSettings.groupSettingArray(
-          "discourse_kanban_manage_board_allowed_groups"
-        ),
-      ],
+      allow_write_group_ids: this.discourseKanbanManageBoardAllowedGroupIds,
     };
   }
 
   get isNew() {
     return this.args.model.isNew;
+  }
+
+  get discourseKanbanManageBoardAllowedGroupIds() {
+    return this.siteSettings.groupSettingArray(
+      "discourse_kanban_manage_board_allowed_groups"
+    );
   }
 
   @action
@@ -165,6 +164,13 @@ export default class KanbanBoardSettings extends Component {
   @action
   setGroupIds(field, groupIds) {
     field.set(groupIds || []);
+  }
+
+  @action
+  onCloseWriteGroupChooser(field) {
+    if (field.name === "allow_write_group_ids" && isEmpty(field.value)) {
+      field.set(this.discourseKanbanManageBoardAllowedGroupIds);
+    }
   }
 
   _checkConstraints(categoryIds, tagNames) {
@@ -313,6 +319,7 @@ export default class KanbanBoardSettings extends Component {
                     @content={{this.site.groups}}
                     @value={{data.allow_write_group_ids}}
                     @onChange={{fn this.setGroupIds field}}
+                    @onClose={{fn this.onCloseWriteGroupChooser field}}
                   />
                 </field.Control>
               </form.Field>
