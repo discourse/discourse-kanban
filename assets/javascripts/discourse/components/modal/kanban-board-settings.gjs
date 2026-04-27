@@ -1,9 +1,10 @@
 import Component from "@glimmer/component";
-import { cached } from "@glimmer/tracking";
+import { cached, tracked } from "@glimmer/tracking";
 import { fn } from "@ember/helper";
 import { action } from "@ember/object";
 import { cancel } from "@ember/runloop";
 import { service } from "@ember/service";
+import DButton from "discourse/components/d-button";
 import DModal from "discourse/components/d-modal";
 import Form from "discourse/components/form";
 import { ajax } from "discourse/lib/ajax";
@@ -51,6 +52,9 @@ const CARD_STYLE_OPTIONS = [
 export default class KanbanBoardSettings extends Component {
   @service dialog;
   @service site;
+  @service siteSettings;
+
+  @tracked showAdvanced = false;
 
   constraintWarning = null;
 
@@ -62,6 +66,8 @@ export default class KanbanBoardSettings extends Component {
   @cached
   get formData() {
     const board = this.args.model.board;
+
+    // Existing board
     if (board) {
       return {
         name: board.name || "",
@@ -81,6 +87,14 @@ export default class KanbanBoardSettings extends Component {
         allow_write_group_ids: board.allow_write_group_ids || [],
       };
     }
+
+    console.log(
+      "dadsa",
+      this.siteSettings.groupSettingArray(
+        "discourse_kanban_manage_board_allowed_groups"
+      )
+    );
+    // New board
     return {
       name: "",
       slug: "",
@@ -93,12 +107,21 @@ export default class KanbanBoardSettings extends Component {
       show_activity_indicators: false,
       require_confirmation: false,
       allow_read_group_ids: [],
-      allow_write_group_ids: [],
+      allow_write_group_ids: [
+        this.siteSettings.groupSettingArray(
+          "discourse_kanban_manage_board_allowed_groups"
+        ),
+      ],
     };
   }
 
   get isNew() {
     return this.args.model.isNew;
+  }
+
+  @action
+  toggleAdvanced() {
+    this.showAdvanced = !this.showAdvanced;
   }
 
   @action
@@ -252,14 +275,54 @@ export default class KanbanBoardSettings extends Component {
               >
                 <field.Control />
               </form.Field>
+            </form.Section>
 
+            <form.Section>
+              <form.Field
+                @name="allow_read_group_ids"
+                @title={{i18n "discourse_kanban.manage.allow_read_groups"}}
+                @format="max"
+                @type="custom"
+                @description={{i18n
+                  "discourse_kanban.manage.allow_read_groups_description"
+                }}
+                as |field|
+              >
+                <field.Control>
+                  <GroupChooser
+                    @content={{this.site.groups}}
+                    @value={{data.allow_read_group_ids}}
+                    @onChange={{fn this.setGroupIds field}}
+                  />
+                </field.Control>
+              </form.Field>
+
+              <form.Field
+                @name="allow_write_group_ids"
+                @title={{i18n "discourse_kanban.manage.allow_write_groups"}}
+                @format="max"
+                @type="custom"
+                @validation="required"
+                @description={{i18n
+                  "discourse_kanban.manage.allow_write_groups_description"
+                }}
+                as |field|
+              >
+                <field.Control>
+                  <GroupChooser
+                    @content={{this.site.groups}}
+                    @value={{data.allow_write_group_ids}}
+                    @onChange={{fn this.setGroupIds field}}
+                  />
+                </field.Control>
+              </form.Field>
+            </form.Section>
+
+            <form.Section>
               <form.Field
                 @name="constraint_type"
                 @title={{i18n "discourse_kanban.manage.constrain_board_by"}}
-                @description={{if
-                  data.constraint_type
-                  (i18n "discourse_kanban.manage.constraint_help")
-                }}
+                @description={{i18n "discourse_kanban.manage.constraint_help"}}
                 @format="max"
                 @type="select"
                 @onSet={{this.onConstraintTypeChange}}
@@ -282,7 +345,9 @@ export default class KanbanBoardSettings extends Component {
               }}
                 <form.Field
                   @name="category_ids"
-                  @title={{i18n "discourse_kanban.manage.board_categories"}}
+                  @title={{i18n
+                    "discourse_kanban.manage.board_categories_constraint"
+                  }}
                   @format="max"
                   @type="custom"
                   as |field|
@@ -304,7 +369,9 @@ export default class KanbanBoardSettings extends Component {
               }}
                 <form.Field
                   @name="tag_names"
-                  @title={{i18n "discourse_kanban.manage.board_tags"}}
+                  @title={{i18n
+                    "discourse_kanban.manage.board_tags_constraint"
+                  }}
                   @format="max"
                   @type="tag-chooser"
                   @onSet={{this.onTagsChange}}
@@ -328,6 +395,9 @@ export default class KanbanBoardSettings extends Component {
               <form.Field
                 @name="card_style"
                 @title={{i18n "discourse_kanban.manage.card_style"}}
+                @description={{i18n
+                  "discourse_kanban.manage.card_style_description"
+                }}
                 @format="max"
                 @type="select"
                 as |field|
@@ -340,77 +410,53 @@ export default class KanbanBoardSettings extends Component {
                   {{/each}}
                 </field.Control>
               </form.Field>
-              <form.Field
-                @name="show_tags"
-                @title={{i18n "discourse_kanban.manage.show_tags"}}
-                @type="checkbox"
-                as |field|
-              >
-                <field.Control />
-              </form.Field>
 
-              <form.Field
-                @name="show_topic_thumbnail"
-                @title={{i18n "discourse_kanban.manage.show_topic_thumbnail"}}
-                @type="checkbox"
-                as |field|
-              >
-                <field.Control />
-              </form.Field>
-
-              <form.Field
-                @name="show_activity_indicators"
-                @title={{i18n
-                  "discourse_kanban.manage.show_activity_indicators"
-                }}
-                @type="checkbox"
-                as |field|
-              >
-                <field.Control />
-              </form.Field>
-
-              <form.Field
-                @name="require_confirmation"
-                @title={{i18n "discourse_kanban.manage.require_confirmation"}}
-                @type="checkbox"
-                as |field|
-              >
-                <field.Control />
-              </form.Field>
             </form.Section>
-            <form.Section>
-              <form.Field
-                @name="allow_read_group_ids"
-                @title={{i18n "discourse_kanban.manage.allow_read_groups"}}
-                @format="max"
-                @type="custom"
-                as |field|
-              >
-                <field.Control>
-                  <GroupChooser
-                    @content={{this.site.groups}}
-                    @value={{data.allow_read_group_ids}}
-                    @onChange={{fn this.setGroupIds field}}
-                  />
-                </field.Control>
-              </form.Field>
 
-              <form.Field
-                @name="allow_write_group_ids"
-                @title={{i18n "discourse_kanban.manage.allow_write_groups"}}
-                @format="max"
-                @type="custom"
-                as |field|
+            {{#if this.showAdvanced}}
+              <form.Section
+                @title={{i18n "discourse_kanban.manage.advanced_settings"}}
               >
-                <field.Control>
-                  <GroupChooser
-                    @content={{this.site.groups}}
-                    @value={{data.allow_write_group_ids}}
-                    @onChange={{fn this.setGroupIds field}}
-                  />
-                </field.Control>
-              </form.Field>
-            </form.Section>
+
+                <form.Field
+                  @name="show_tags"
+                  @title={{i18n "discourse_kanban.manage.show_tags"}}
+                  @type="checkbox"
+                  as |field|
+                >
+                  <field.Control />
+                </form.Field>
+
+                <form.Field
+                  @name="show_topic_thumbnail"
+                  @title={{i18n "discourse_kanban.manage.show_topic_thumbnail"}}
+                  @type="checkbox"
+                  as |field|
+                >
+                  <field.Control />
+                </form.Field>
+
+                <form.Field
+                  @name="show_activity_indicators"
+                  @title={{i18n
+                    "discourse_kanban.manage.show_activity_indicators"
+                  }}
+                  @type="checkbox"
+                  as |field|
+                >
+                  <field.Control />
+                </form.Field>
+
+                <form.Field
+                  @name="require_confirmation"
+                  @title={{i18n "discourse_kanban.manage.require_confirmation"}}
+                  @type="checkbox"
+                  as |field|
+                >
+                  <field.Control />
+                </form.Field>
+              </form.Section>
+            {{/if}}
           </div>
 
           <form.Actions>
@@ -422,6 +468,17 @@ export default class KanbanBoardSettings extends Component {
                 @label="discourse_kanban.board.delete_board"
               />
             {{/unless}}
+
+            <DButton
+              @action={{this.toggleAdvanced}}
+              @icon="gear"
+              @title={{if
+                this.showAdvanced
+                "discourse_kanban.manage.columns.hide_advanced"
+                "discourse_kanban.manage.columns.show_advanced"
+              }}
+              class="btn-default show-advanced"
+            />
           </form.Actions>
         </Form>
 

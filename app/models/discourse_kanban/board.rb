@@ -26,25 +26,6 @@ module DiscourseKanban
     before_validation :normalize_slug
     before_validation :normalize_group_ids
 
-    def can_read?(guardian)
-      return true if can_write?(guardian)
-      return true if public_read?
-
-      user = guardian&.user
-      return false if user.blank?
-
-      (effective_read_group_ids & user.group_ids).any?
-    end
-
-    def can_write?(guardian)
-      user = guardian&.user
-      return false if user.blank?
-      return true if user.admin?
-      return true if created_by_id == user.id
-
-      (allow_write_group_ids & user.group_ids).any?
-    end
-
     def public_read?
       effective_read_group_ids.empty?
     end

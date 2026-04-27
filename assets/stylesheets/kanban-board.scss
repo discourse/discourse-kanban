@@ -791,6 +791,13 @@ body.kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
   }
 }
 
+.kanban-board-settings-modal {
+  .show-advanced {
+    margin-left: auto;
+    margin-right: 0;
+  }
+}
+
 .kanban-column-settings-modal {
   .show-advanced {
     margin-left: auto;

@@ -15,7 +15,7 @@ module DiscourseKanban
         DiscourseKanban::Board
           .includes(:columns, :created_by)
           .to_a
-          .select { |board| board.can_read?(guardian) }
+          .select { |board| guardian.can_read_board?(board) }
       tag_name_map = build_tag_name_map(*boards)
       render json: { boards: boards.map { |board| board_payload(board, tag_name_map:) } }
     end
@@ -109,9 +109,8 @@ module DiscourseKanban
     end
 
     def constraint_preview
-      board = DiscourseKanban::Board.find_by(id: params[:id])
-      raise Discourse::NotFound if board.blank?
-      raise Discourse::InvalidAccess unless guardian.can_manage_kanban_boards?
+      board = DiscourseKanban::Board.find(params[:id])
+      guardian.ensure_can_manage_kanban_boards!
 
       new_category_ids = Array(params[:category_ids]).map(&:to_i).reject(&:zero?)
       new_tag_ids =

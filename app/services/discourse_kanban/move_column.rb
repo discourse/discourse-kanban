@@ -30,7 +30,7 @@ module DiscourseKanban
     end
 
     def can_manage(guardian:)
-      guardian.can_manage_kanban_boards?
+      guardian.can_move_board_column?
     end
 
     def fetch_column(board:, params:)
