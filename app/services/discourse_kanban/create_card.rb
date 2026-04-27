@@ -33,7 +33,7 @@ module DiscourseKanban
     end
 
     def can_write(board:, guardian:)
-      board.can_write?(guardian)
+      guardian.can_write_board?(board)
     end
 
     def fetch_column(board:, params:)

@@ -7,3 +7,4 @@ discourse_kanban:
     list_type: compact
     default: "3"
     allow_any: false
+    client: true

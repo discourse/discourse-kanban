@@ -52,6 +52,11 @@ module PageObjects
         self
       end
 
+      def toggle_modal_advanced_settings
+        find(".show-advanced").click
+        self
+      end
+
       def toggle_modal_require_confirmation
         board_form.field("require_confirmation").toggle
         self
