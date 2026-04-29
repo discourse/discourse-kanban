@@ -50,7 +50,11 @@ RSpec.describe DiscourseKanban::CreateBoard do
         fab!(:existing_tag, :tag)
 
         let(:raw) do
-          { "name" => "Tagged", "slug" => "tagged", "tag_names" => [existing_tag.name, "brand-new"] }
+          {
+            "name" => "Tagged",
+            "slug" => "tagged",
+            "tag_names" => [existing_tag.name, "brand-new"],
+          }
         end
 
         context "when the user can create tags" do
