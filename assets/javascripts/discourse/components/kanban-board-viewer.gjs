@@ -8,6 +8,7 @@ import { schedule } from "@ember/runloop";
 import { service } from "@ember/service";
 import { modifier } from "ember-modifier";
 import DButton from "discourse/components/d-button";
+import { buildPermanentlyDeleteConfirmDialogArgs } from "discourse/components/dialog-messages/permanently-delete-confirm";
 import DropdownMenu from "discourse/components/dropdown-menu";
 import DMenu from "discourse/float-kit/components/d-menu";
 import DTooltip from "discourse/float-kit/components/d-tooltip";
@@ -838,19 +839,43 @@ export default class KanbanBoardViewer extends Component {
   }
 
   @action
-  deleteColumn(columnId) {
+  async deleteColumn(column) {
+    const saveColumns = async () => {
+      const columnsPayload = this.columns
+        .filter((col) => col.id !== column.id)
+        .map((col) => this._serializeColumn(col));
+      try {
+        return await this._saveColumnsUpdate(columnsPayload);
+      } catch (error) {
+        popupAjaxError(error);
+      }
+    };
+
+    // No need for confirmation if there are no cards in the column.
+    if (column.cards.length === 0) {
+      await saveColumns();
+      return;
+    }
+
+    // Need a bit of a stronger delete confirmation when getting rid
+    // of a lot of cards.
+    if (column.cards.length > 5) {
+      return this.dialog.confirm(
+        buildPermanentlyDeleteConfirmDialogArgs(
+          i18n("discourse_kanban.board.confirm_delete_column_with_cards", {
+            count: column.cards.length,
+          }),
+          column.title,
+          () => {
+            saveColumns();
+          }
+        )
+      );
+    }
+
     this.dialog.confirm({
       message: i18n("discourse_kanban.board.confirm_delete_column"),
-      didConfirm: async () => {
-        const columnsPayload = this.columns
-          .filter((col) => col.id !== columnId)
-          .map((col) => this._serializeColumn(col));
-        try {
-          await this._saveColumnsUpdate(columnsPayload);
-        } catch (error) {
-          popupAjaxError(error);
-        }
-      },
+      didConfirm: saveColumns,
     });
   }
 
@@ -1180,7 +1205,7 @@ export default class KanbanBoardViewer extends Component {
           >
             <:content as |args|>
               <DropdownMenu as |dropdown|>
-                <dropdown.item>
+                <dropdown.item data-identifier="go-to-all-boards">
                   <DButton
                     @action={{fn this.goToAllBoards args.close}}
                     @icon="house"
@@ -1189,7 +1214,7 @@ export default class KanbanBoardViewer extends Component {
                   />
                 </dropdown.item>
                 {{#if this.canManage}}
-                  <dropdown.item>
+                  <dropdown.item data-identifier="add-column">
                     <DButton
                       @action={{fn this.openAddColumnModal args.close}}
                       @icon="plus"
@@ -1197,7 +1222,7 @@ export default class KanbanBoardViewer extends Component {
                       class="btn-transparent"
                     />
                   </dropdown.item>
-                  <dropdown.item>
+                  <dropdown.item data-identifier="board-settings">
                     <DButton
                       @action={{fn this.openBoardSettings args.close}}
                       @icon="gear"
@@ -1205,7 +1230,7 @@ export default class KanbanBoardViewer extends Component {
                       class="btn-transparent"
                     />
                   </dropdown.item>
-                  <dropdown.item>
+                  <dropdown.item data-identifier="delete-board">
                     <DButton
                       @action={{fn this.deleteBoard args.close}}
                       @icon="trash-can"

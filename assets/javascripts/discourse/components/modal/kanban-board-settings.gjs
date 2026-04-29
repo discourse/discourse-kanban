@@ -467,10 +467,10 @@ export default class KanbanBoardSettings extends Component {
           </div>
 
           <form.Actions>
-            <form.Submit />
+            <form.Submit class="kanban-board-settings-modal__save-board" />
             {{#unless this.isNew}}
               <form.Button
-                class="btn-danger"
+                class="btn-danger kanban-board-settings-modal__delete-board"
                 @action={{this.onDelete}}
                 @label="discourse_kanban.board.delete_board"
               />

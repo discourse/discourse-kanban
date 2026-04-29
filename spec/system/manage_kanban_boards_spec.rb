@@ -28,7 +28,7 @@ describe "Manage Kanban Boards" do
       boards_page.click_new_board
       boards_page.fill_modal_board_name("Sprint Board")
       boards_page.toggle_modal_advanced_settings
-      boards_page.toggle_modal_require_confirmation
+      boards_page.board_settings_form.field("require_confirmation").toggle
       boards_page.save_board_modal
 
       expect(toasts).to have_success(I18n.t("js.saved"))
@@ -42,8 +42,9 @@ describe "Manage Kanban Boards" do
       expect(boards_page).to have_board_listed("Sprint Board")
 
       boards_page.click_board("Sprint Board")
-      boards_page.open_board_menu
-      boards_page.click_board_settings_menu_item
+      board = PageObjects::Components::Board.new
+      board.open_board_menu
+      board.click_board_settings_menu_item
       boards_page.fill_modal_board_name("Updated Board")
       boards_page.save_board_modal
 
@@ -54,8 +55,9 @@ describe "Manage Kanban Boards" do
       expect(boards_page).to have_board_listed("Updated Board")
 
       boards_page.click_board("Updated Board")
-      boards_page.open_board_menu
-      boards_page.click_board_settings_menu_item
+      board = PageObjects::Components::Board.new
+      board.open_board_menu
+      board.click_board_settings_menu_item
       boards_page.delete_from_board_modal
       dialog.click_yes
 
@@ -65,7 +67,7 @@ describe "Manage Kanban Boards" do
       boards_page.visit_page
       boards_page.click_new_board
       boards_page.save_board_modal
-      expect(boards_page.board_form.field("name")).to have_errors("Required")
+      expect(boards_page.board_settings_form.field("name")).to have_errors("Required")
     end
 
     it "can add columns to a board" do
@@ -76,15 +78,17 @@ describe "Manage Kanban Boards" do
 
       expect(toasts).to have_success(I18n.t("js.saved"))
 
-      boards_page.open_board_menu
-      boards_page.click_add_column_menu_item
+      board = PageObjects::Components::Board.new
+      board.open_board_menu
+      board.click_add_column_menu_item
       boards_page.fill_modal_column_title("To Do")
       boards_page.save_column_modal
 
       expect(toasts).to have_success(I18n.t("js.saved"))
 
-      boards_page.open_board_menu
-      boards_page.click_add_column_menu_item
+      board = PageObjects::Components::Board.new
+      board.open_board_menu
+      board.click_add_column_menu_item
       boards_page.fill_modal_column_title("Done")
       boards_page.save_column_modal
 
@@ -98,13 +102,54 @@ describe "Manage Kanban Boards" do
       expect(boards_page).to have_column("Done")
     end
 
+    it "can delete a column with no cards without confirmation" do
+      board = Fabricate(:kanban_board)
+      column = Fabricate(:kanban_column, board: board)
+      boards_page.visit_page
+      boards_page.click_board(board.name)
+      column_component = boards_page.column_by_title(column.title)
+      column_component.open_menu
+      column_component.click_delete
+
+      expect(toasts).to have_success(I18n.t("js.saved"))
+    end
+
+    it "requires confirmation when deleting a column with cards" do
+      board = Fabricate(:kanban_board)
+      column = Fabricate(:kanban_column, board: board)
+      Fabricate(:kanban_card, board: board, column: column)
+      boards_page.visit_page
+      boards_page.click_board(board.name)
+      column_component = boards_page.column_by_title(column.title)
+      column_component.open_menu
+      column_component.click_delete
+      dialog.click_yes
+
+      expect(toasts).to have_success(I18n.t("js.saved"))
+    end
+
+    it "requires entering the column name as delete confirmation when deleting a column with more than 5 cards" do
+      board = Fabricate(:kanban_board)
+      column = Fabricate(:kanban_column, board: board)
+      6.times { Fabricate(:kanban_card, board: board, column: column) }
+      boards_page.visit_page
+      boards_page.click_board(board.name)
+      column_component = boards_page.column_by_title(column.title)
+      column_component.open_menu
+      column_component.click_delete
+      dialog.fill_in_confirmation_phrase(column.title)
+      dialog.click_danger
+
+      expect(toasts).to have_success(I18n.t("js.saved"))
+    end
+
     it "persists board tag filter when creating a board with a tag" do
       Fabricate(:tag, name: "a11y")
 
       boards_page.visit_page
       boards_page.click_new_board
       boards_page.fill_modal_board_name("Accessibility Board")
-      boards_page.board_form.field("constraint_type").select("tags")
+      boards_page.board_settings_form.field("constraint_type").select("tags")
       boards_page.select_modal_board_tag("a11y")
       boards_page.save_board_modal
 
@@ -121,8 +166,9 @@ describe "Manage Kanban Boards" do
       it "creates a column with a tag" do
         boards_page.visit_page
         boards_page.click_board("Simple Board")
-        boards_page.open_board_menu
-        boards_page.click_add_column_menu_item
+        board = PageObjects::Components::Board.new
+        board.open_board_menu
+        board.click_add_column_menu_item
 
         boards_page.fill_modal_column_title("Todo")
         boards_page.select_modal_column_tag(todo_tag.name)
@@ -135,8 +181,9 @@ describe "Manage Kanban Boards" do
       it "can create a column using only the tag as the title" do
         boards_page.visit_page
         boards_page.click_board("Simple Board")
-        boards_page.open_board_menu
-        boards_page.click_add_column_menu_item
+        board = PageObjects::Components::Board.new
+        board.open_board_menu
+        board.click_add_column_menu_item
         boards_page.select_modal_column_tag(todo_tag.name)
         boards_page.save_column_modal
       end
@@ -144,15 +191,17 @@ describe "Manage Kanban Boards" do
       it "does not allow creating a column for the same tag twice" do
         boards_page.visit_page
         boards_page.click_board("Simple Board")
-        boards_page.open_board_menu
-        boards_page.click_add_column_menu_item
+        board = PageObjects::Components::Board.new
+        board.open_board_menu
+        board.click_add_column_menu_item
         boards_page.select_modal_column_tag(todo_tag.name)
         boards_page.save_column_modal
 
         expect(toasts).to have_success(I18n.t("js.saved"))
 
-        boards_page.open_board_menu
-        boards_page.click_add_column_menu_item
+        board = PageObjects::Components::Board.new
+        board.open_board_menu
+        board.click_add_column_menu_item
         boards_page.select_modal_column_tag(todo_tag.name)
         boards_page.save_column_modal
         expect(page).to have_content(

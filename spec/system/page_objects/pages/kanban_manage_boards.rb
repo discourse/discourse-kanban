@@ -8,12 +8,12 @@ module PageObjects
         self
       end
 
-      def board_form
-        PageObjects::Components::FormKit.new(".kanban-board-settings-modal .form-kit")
+      def board_settings_form
+        PageObjects::Components::FormKit.new("#{board_settings_modal.full_body_selector} .form-kit")
       end
 
       def click_new_board
-        find(".discourse-kanban-manage__header .btn-primary").click
+        find(".discourse-kanban-manage__new-board").click
         self
       end
 
@@ -30,11 +30,11 @@ module PageObjects
       end
 
       def has_new_board_button?
-        has_css?(".discourse-kanban-manage__header .btn-primary")
+        has_css?(".discourse-kanban-manage__new-board")
       end
 
       def has_no_new_board_button?
-        has_no_css?(".discourse-kanban-manage__header .btn-primary")
+        has_no_css?(".discourse-kanban-manage__new-board")
       end
 
       def click_board(board_name)
@@ -44,119 +44,93 @@ module PageObjects
 
       # Board settings modal interactions
 
+      def board_settings_modal
+        PageObjects::Modals::Base.new(modal_selector: ".kanban-board-settings-modal")
+      end
+
       def fill_modal_board_name(name)
-        within(".kanban-board-settings-modal") do
-          find(".kanban-editable-title__input, .kanban-editable-title__text").click
-          find(".kanban-editable-title__input").fill_in(with: name)
-        end
+        modal = board_settings_modal
+        modal.body.find(".kanban-editable-title__input, .kanban-editable-title__text").click
+        modal.body.find(".kanban-editable-title__input").fill_in(with: name)
         self
       end
 
       def toggle_modal_advanced_settings
-        find(".show-advanced").click
-        self
-      end
-
-      def toggle_modal_require_confirmation
-        board_form.field("require_confirmation").toggle
+        modal = board_settings_modal
+        modal.body.find(".show-advanced").click
         self
       end
 
       def select_modal_board_tag(tag_name)
-        within(".kanban-board-settings-modal") do
-          chooser =
-            PageObjects::Components::SelectKit.new(
-              "[data-name='tag_names'] .form-kit__control-tag-chooser",
-            )
-          chooser.expand
-          chooser.search(tag_name)
-          chooser.select_row_by_name(tag_name)
-        end
+        modal = board_settings_modal
+        chooser =
+          PageObjects::Components::SelectKit.new(
+            "#{modal.full_body_selector} [data-name='tag_names'] .form-kit__control-tag-chooser",
+          )
+        chooser.expand
+        chooser.search(tag_name)
+        chooser.select_row_by_name(tag_name)
         self
       end
 
       def save_board_modal
-        within(".kanban-board-settings-modal") do
-          find(".form-kit__actions button[type='submit']").click
-        end
+        modal = board_settings_modal
+        modal.body.find(".kanban-board-settings-modal__save-board").click
         self
       end
 
       def delete_from_board_modal
-        within(".kanban-board-settings-modal") { find(".btn-danger").click }
-        self
-      end
-
-      # Board viewer interactions
-
-      def open_board_menu
-        find(".kanban-board-viewer__controls [data-identifier='kanban-board-controls']").click
-        self
-      end
-
-      def click_board_settings_menu_item
-        find(".btn-transparent", text: I18n.t("js.discourse_kanban.board.board_settings")).click
-        self
-      end
-
-      def click_add_column_menu_item
-        find(".btn-transparent", text: I18n.t("js.discourse_kanban.board.add_column")).click
-        self
-      end
-
-      def click_delete_board_menu_item
-        find(
-          ".btn-transparent.btn-danger",
-          text: I18n.t("js.discourse_kanban.board.delete_board"),
-        ).click
+        modal = board_settings_modal
+        modal.body.find(".kanban-board-settings-modal__delete-board").click
         self
       end
 
       # Column settings modal interactions
 
+      def column_settings_modal
+        PageObjects::Modals::Base.new(modal_selector: ".kanban-column-settings-modal")
+      end
+
       def fill_modal_column_title(title)
-        within(".kanban-column-settings-modal") do
-          if has_css?(".kanban-editable-title__input", wait: 0)
-            find(".kanban-editable-title__input").fill_in(with: title)
-          else
-            find(".kanban-editable-title__text").click
-            find(".kanban-editable-title__input").fill_in(with: title)
-          end
+        modal = column_settings_modal
+        if modal.body.has_css?(".kanban-editable-title__input", wait: 0)
+          modal.body.find(".kanban-editable-title__input").fill_in(with: title)
+        else
+          modal.body.find(".kanban-editable-title__text").click
+          modal.body.find(".kanban-editable-title__input").fill_in(with: title)
         end
         self
       end
 
       def select_modal_column_tag(tag_name)
-        within(".kanban-column-settings-modal") do
-          chooser = PageObjects::Components::SelectKit.new(".mini-tag-chooser")
-          chooser.expand
-          chooser.search(tag_name)
-          chooser.select_row_by_name(tag_name)
-        end
+        modal = column_settings_modal
+        chooser =
+          PageObjects::Components::SelectKit.new("#{modal.full_body_selector} .mini-tag-chooser")
+        chooser.expand
+        chooser.search(tag_name)
+        chooser.select_row_by_name(tag_name)
         self
+      end
+
+      def column_by_title(title)
+        PageObjects::Components::Column.new(title: title)
       end
 
       def open_column_menu(column_title)
-        within(find(".kanban-column", text: /#{Regexp.escape(column_title)}/i)) do
-          find(".kanban-column__menu-trigger", visible: :all).click
-        end
-        self
-      end
-
-      def click_edit_column_menu_item
-        find(".btn-transparent", text: I18n.t("js.discourse_kanban.board.edit_column")).click
-        self
+        column = column_by_title(column_title)
+        column.open_menu
+        column
       end
 
       def save_column_modal
-        within(".kanban-column-settings-modal") do
-          find(".form-kit__actions button[type='submit']").click
-        end
+        modal = column_settings_modal
+        modal.body.find(".kanban-column-settings-modal__save").click
         self
       end
 
       def has_column?(title)
-        has_css?(".kanban-column__title", text: /#{Regexp.escape(title)}/i)
+        column = column_by_title(title)
+        column.exists?
       end
     end
   end
