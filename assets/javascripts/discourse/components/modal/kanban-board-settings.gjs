@@ -11,6 +11,7 @@ import Form from "discourse/components/form";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
 import discourseDebounce from "discourse/lib/debounce";
+import { slugify } from "discourse/lib/utilities";
 import CategorySelector from "discourse/select-kit/components/category-selector";
 import GroupChooser from "discourse/select-kit/components/group-chooser";
 import { eq, or } from "discourse/truth-helpers";
@@ -116,6 +117,16 @@ export default class KanbanBoardSettings extends Component {
     return this.siteSettings.groupSettingArray(
       "discourse_kanban_manage_board_allowed_groups"
     );
+  }
+
+  get slugPlaceholder() {
+    const boardName = this.formApi.get("name");
+
+    if (isEmpty(boardName)) {
+      return "";
+    }
+
+    return slugify(boardName);
   }
 
   @action
@@ -252,6 +263,7 @@ export default class KanbanBoardSettings extends Component {
     <DModal
       @closeModal={{@closeModal}}
       @hideHeader={{true}}
+      @inline={{@inline}}
       class="kanban-board-settings-modal"
     >
       <:body>
@@ -277,6 +289,7 @@ export default class KanbanBoardSettings extends Component {
                 @title={{i18n "discourse_kanban.manage.slug"}}
                 @format="max"
                 @type="input"
+                @placeholder={{this.slugPlaceholder}}
                 as |field|
               >
                 <field.Control />
