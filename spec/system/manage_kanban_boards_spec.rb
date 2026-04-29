@@ -241,5 +241,26 @@ describe "Manage Kanban Boards" do
       expect(toasts).to have_success(I18n.t("js.saved"))
       expect(DiscourseKanban::Board.find_by(name: "Admin Board")).to be_present
     end
+
+    it "creates a column and a new tag when typing a non-existent tag" do
+      board = Fabricate(:kanban_board, name: "New Tag Board", created_by: admin)
+
+      boards_page.visit_page
+      boards_page.click_board("New Tag Board")
+      boards_page.open_board_menu
+      boards_page.click_add_column_menu_item
+
+      boards_page.fill_modal_column_title("Backlog")
+      boards_page.select_modal_column_tag("brand-new")
+      boards_page.save_column_modal
+
+      expect(toasts).to have_success(I18n.t("js.saved"))
+
+      new_tag = Tag.find_by(name: "brand-new")
+      expect(new_tag).to be_present
+
+      column = board.reload.columns.find_by(title: "Backlog")
+      expect(column.tag_id).to eq(new_tag.id)
+    end
   end
 end

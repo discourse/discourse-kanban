@@ -76,6 +76,32 @@ RSpec.describe DiscourseKanban::UpdateBoard do
         }.not_to change { board.cards.where(card_type: :topic).count }
       end
 
+      context "with tag_names" do
+        fab!(:existing_tag, :tag)
+
+        let(:raw) { { "name" => "Updated", "tag_names" => [existing_tag.name, "brand-new"] } }
+
+        context "when the user can create tags" do
+          let(:dependencies) { { guardian: admin.guardian } }
+
+          it "resolves existing tags and creates new ones" do
+            result
+            board.reload
+            expect(board.tag_ids).to contain_exactly(
+              existing_tag.id,
+              Tag.find_by(name: "brand-new").id,
+            )
+          end
+        end
+
+        it "fails when the user cannot create tags and a tag is missing" do
+          expect { result }.to raise_error(
+            Discourse::InvalidParameters,
+            I18n.t("discourse_kanban.errors.unknown_tag_names", tag_names: "brand-new"),
+          )
+        end
+      end
+
       context "with column changes" do
         let(:raw) do
           {
