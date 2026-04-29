@@ -9,6 +9,10 @@ module DiscourseKanban
     belongs_to :move_to_category, class_name: "Category", optional: true
     belongs_to :tag, optional: true
     has_many :cards, class_name: "DiscourseKanban::Card", dependent: :nullify, inverse_of: :column
+    has_many :history,
+             ->(column) { where(board_id: column.board_id).order(created_at: :asc) },
+             class_name: "DiscourseKanban::BoardHistory",
+             inverse_of: :column
 
     validates :title, presence: true
     validates :position, presence: true

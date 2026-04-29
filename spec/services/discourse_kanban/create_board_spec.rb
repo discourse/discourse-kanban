@@ -1,12 +1,14 @@
 # frozen_string_literal: true
 
 RSpec.describe DiscourseKanban::CreateBoard do
-  describe described_class::Contract, type: :model do
+  describe DiscourseKanban::CreateBoard::Contract, type: :model do
     it { is_expected.to validate_presence_of(:name) }
   end
 
   describe ".call" do
-    subject(:result) { described_class.call(params:, raw_board_params: raw, **dependencies) }
+    subject(:result) do
+      DiscourseKanban::CreateBoard.call(params:, raw_board_params: raw, **dependencies)
+    end
 
     fab!(:manager, :user)
     fab!(:outsider, :user)
@@ -43,6 +45,16 @@ RSpec.describe DiscourseKanban::CreateBoard do
         expect(board.name).to eq("New Board")
         expect(board.slug).to eq("new-board")
         expect(board.created_by_id).to eq(manager.id)
+      end
+
+      it "creates a board history" do
+        expect { result }.to change { DiscourseKanban::BoardHistory.count }.by(1)
+        board = DiscourseKanban::Board.last
+        expect(board.history.first).to have_attributes(
+          action: "board_created",
+          acting_user_id: manager.id,
+          board_id: board.id,
+        )
       end
 
       context "with tag_names" do

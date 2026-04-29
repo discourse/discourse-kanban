@@ -50,6 +50,15 @@ RSpec.describe DiscourseKanban::DestroyBoard do
         result
         expect(DiscourseKanban::Board.find_by(id: board.id)).to be_nil
       end
+
+      it "creates a board deletion history" do
+        result
+        expect(board.history.first).to have_attributes(
+          action: "board_deleted",
+          acting_user_id: manager.id,
+          board_id: board.id,
+        )
+      end
     end
   end
 end

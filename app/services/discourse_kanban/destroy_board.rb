@@ -14,7 +14,11 @@ module DiscourseKanban
     model :board
     policy :can_manage
     step :publish_update
-    step :destroy
+
+    transaction do
+      step :destroy
+      step :create_history
+    end
 
     private
 
@@ -32,6 +36,10 @@ module DiscourseKanban
 
     def destroy(board:)
       board.destroy!
+    end
+
+    def create_history(board:, guardian:)
+      BoardHistory.create!(board:, acting_user: guardian.user, action: "board_deleted")
     end
   end
 end

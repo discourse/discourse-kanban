@@ -15,6 +15,7 @@ module DiscourseKanban
     transaction do
       model :board, :create_board
       step :replace_columns
+      step :create_history
     end
 
     private
@@ -45,6 +46,14 @@ module DiscourseKanban
     def replace_columns(board:, guardian:)
       raw = context[:raw_board_params] || {}
       ColumnsReplacer.replace!(board:, columns_payload: raw["columns"] || [], user: guardian.user)
+    end
+
+    def create_history(board:, guardian:)
+      BoardHistory.create!(
+        board:,
+        acting_user: guardian.user,
+        action: BoardHistory.actions[:board_created],
+      )
     end
   end
 end
