@@ -491,6 +491,31 @@ RSpec.describe DiscourseKanban::TopicSync do
       expect(card.column_id).to eq(col.id)
     end
 
+    it "discovers topics from muted categories" do
+      muted_category = Fabricate(:category)
+      tagged_topic = Fabricate(:topic, category: muted_category, tags: [tag_a])
+      CategoryUser.set_notification_level_for_category(
+        Discourse.system_user,
+        CategoryUser.notification_levels[:muted],
+        muted_category.id,
+      )
+
+      board =
+        DiscourseKanban::Board.create!(
+          name: "Muted Category Backfill Board",
+          slug: "muted-category-backfill-board",
+          tag_ids: [tag_a.id],
+          created_by_id: admin.id,
+        )
+      col = board.columns.create!(title: "Alpha", position: 0, tag_id: tag_a.id)
+
+      described_class.backfill_board(board)
+
+      card = board.cards.find_by(topic_id: tagged_topic.id)
+      expect(card).to be_present
+      expect(card.column_id).to eq(col.id)
+    end
+
     it "limits the number of topics per column to MAX_CARDS_PER_COLUMN" do
       4.times { Fabricate(:topic, category: category, tags: [tag_a]) }
 

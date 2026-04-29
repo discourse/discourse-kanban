@@ -392,7 +392,11 @@ module DiscourseKanban
     def self.build_column_topic_map(board, columns)
       result = {}
       scope_base =
-        TopicQuery.new(Discourse.system_user, limit: false, no_definitions: true).latest_results
+        Topic
+          .listable_topics
+          .visible
+          .where.not(id: Category.where.not(topic_id: nil).select(:topic_id))
+          .order(bumped_at: :desc)
 
       # Apply board-level category filter
       scope_base = scope_base.where(category_id: board.category_ids) if board.category_ids.present?
