@@ -252,9 +252,9 @@ export default class KanbanColumnSettings extends Component {
           </div>
 
           <form.Actions>
-            <form.Submit />
+            <form.Submit class="kanban-column-settings-modal__save" />
             <form.Button
-              class="btn-flat d-modal-cancel"
+              class="btn-flat d-modal-cancel kanban-column-settings-modal__cancel"
               @action={{@closeModal}}
               @label="cancel"
             />

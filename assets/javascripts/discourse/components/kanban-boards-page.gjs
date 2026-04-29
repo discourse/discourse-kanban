@@ -75,7 +75,7 @@ export default class KanbanBoardsPage extends Component {
             @action={{this.openNewBoardModal}}
             @icon="plus"
             @label="discourse_kanban.manage.new"
-            class="btn-primary"
+            class="btn-primary discourse-kanban-manage__new-board"
           />
         {{/if}}
       </div>

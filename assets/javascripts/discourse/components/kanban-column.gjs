@@ -96,7 +96,7 @@ export default class KanbanColumn extends Component {
   @action
   deleteColumn(closeMenu) {
     closeMenu();
-    this.args.onDeleteColumn(this.args.column.id);
+    this.args.onDeleteColumn(this.args.column);
   }
 
   @action
@@ -308,7 +308,7 @@ export default class KanbanColumn extends Component {
                     @action={{fn this.editColumn args.close}}
                     @icon="pencil"
                     @label="discourse_kanban.board.edit_column"
-                    class="btn-transparent"
+                    class="btn-transparent kanban-column__menu-edit"
                   />
                 </dropdown.item>
                 <dropdown.item>
@@ -317,7 +317,7 @@ export default class KanbanColumn extends Component {
                     @icon="arrow-left"
                     @label="discourse_kanban.board.move_left"
                     @disabled={{eq this.columnIndex 0}}
-                    class="btn-transparent"
+                    class="btn-transparent kanban-column__menu-move-left"
                   />
                 </dropdown.item>
                 <dropdown.item>
@@ -326,7 +326,7 @@ export default class KanbanColumn extends Component {
                     @icon="arrow-right"
                     @label="discourse_kanban.board.move_right"
                     @disabled={{eq this.columnIndex this.lastColumnIndex}}
-                    class="btn-transparent"
+                    class="btn-transparent kanban-column__menu-move-right"
                   />
                 </dropdown.item>
                 <dropdown.item>
@@ -335,7 +335,7 @@ export default class KanbanColumn extends Component {
                     @icon="xmark"
                     @label="discourse_kanban.board.clear_column"
                     @disabled={{eq this.cardCount 0}}
-                    class="btn-transparent"
+                    class="btn-transparent kanban-column__menu-clear"
                   />
                 </dropdown.item>
                 <dropdown.item>
@@ -343,7 +343,7 @@ export default class KanbanColumn extends Component {
                     @action={{fn this.deleteColumn args.close}}
                     @icon="trash-can"
                     @label="discourse_kanban.board.delete_column"
-                    class="btn-transparent btn-danger"
+                    class="btn-transparent btn-danger kanban-column__menu-delete"
                   />
                 </dropdown.item>
               </DropdownMenu>
