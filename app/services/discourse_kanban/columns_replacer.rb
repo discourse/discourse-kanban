@@ -2,7 +2,7 @@
 
 module DiscourseKanban
   class ColumnsReplacer
-    def self.replace!(board:, columns_payload:, **)
+    def self.replace!(board:, columns_payload:, user:)
       current_columns = board.columns.index_by(&:id)
       kept_column_ids = []
       used_tag_ids = []
@@ -16,6 +16,10 @@ module DiscourseKanban
         resolved_tag_id = nil
         if tag_name
           resolved_tag_id = Tag.find_by(name: tag_name)&.id
+          if resolved_tag_id.nil? && user.guardian.can_create_tag?
+            cleaned = DiscourseTagging.clean_tag(tag_name)
+            resolved_tag_id = Tag.create!(name: cleaned).id if cleaned.present?
+          end
           if resolved_tag_id.nil?
             raise Discourse::InvalidParameters.new(
                     I18n.t("discourse_kanban.errors.unknown_tag_name", tag_name: tag_name),

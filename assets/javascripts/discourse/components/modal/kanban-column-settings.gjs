@@ -168,7 +168,7 @@ export default class KanbanColumnSettings extends Component {
                   <MiniTagChooser
                     @value={{tagToArray data.tag_name}}
                     @onChange={{fn this.onTagChange field}}
-                    @options={{hash maximum=1 allowCreate=false}}
+                    @options={{hash maximum=1 allowCreate=true}}
                   />
                   <p class="kanban-column-settings__help">
                     {{i18n "discourse_kanban.manage.columns.tag_help"}}

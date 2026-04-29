@@ -45,6 +45,36 @@ RSpec.describe DiscourseKanban::CreateBoard do
         expect(board.created_by_id).to eq(manager.id)
       end
 
+      context "with tag_names" do
+        fab!(:admin)
+        fab!(:existing_tag, :tag)
+
+        let(:raw) do
+          {
+            "name" => "Tagged",
+            "slug" => "tagged",
+            "tag_names" => [existing_tag.name, "brand-new"],
+          }
+        end
+
+        context "when the user can create tags" do
+          let(:dependencies) { { guardian: admin.guardian } }
+
+          it "resolves existing tags and creates new ones" do
+            board = result[:board]
+            expect(board.tag_ids).to contain_exactly(
+              existing_tag.id,
+              Tag.find_by(name: "brand-new").id,
+            )
+          end
+        end
+
+        it "fails when the user cannot create tags and a tag is missing" do
+          expect(result).to be_failure
+          expect(result["result.model.board"].exception).to be_a(Discourse::InvalidParameters)
+        end
+      end
+
       context "with columns" do
         let(:raw) do
           {
