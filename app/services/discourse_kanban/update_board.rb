@@ -18,6 +18,7 @@ module DiscourseKanban
       step :update_board
       step :replace_columns
       step :remove_non_matching_cards
+      step :create_histories
     end
 
     step :publish_update
@@ -34,9 +35,54 @@ module DiscourseKanban
 
     def update_board(board:, guardian:)
       raw = context[:raw_board_params] || {}
+      context[:histories] = {}
       ensure_new_tags_exist!(raw["tag_names"], guardian) if raw.key?("tag_names")
       board.assign_attributes(raw.except("columns"))
       board.updated_by_id = guardian.user.id
+
+      if board.name_changed?
+        context[:histories][:renamed] = { previous_value: board.name_was, new_value: board.name }
+      end
+
+      if board.allow_read_group_ids_changed?
+        context[:histories][:permissions_changed] ||= {}
+        context[:histories][:permissions_changed].merge!(
+          previous_allow_read_group_ids: board.allow_read_group_ids_was,
+          new_allow_read_group_ids: board.allow_read_group_ids,
+        )
+      end
+
+      if board.allow_write_group_ids_changed?
+        context[:histories][:permissions_changed] ||= {}
+        context[:histories][:permissions_changed].merge!(
+          previous_allow_write_group_ids: board.allow_write_group_ids_was,
+          new_allow_write_group_ids: board.allow_write_group_ids,
+        )
+      end
+
+      if board.category_ids_changed?
+        context[:histories][:constraints_changed] ||= {}
+        context[:histories][:constraints_changed].merge!(
+          previous_category_ids: board.category_ids_was,
+          new_category_ids: board.category_ids,
+        )
+      end
+
+      if board.tag_ids_changed?
+        context[:histories][:constraints_changed] ||= {}
+        context[:histories][:constraints_changed].merge!(
+          previous_tag_ids: board.tag_ids_was,
+          new_tag_ids: board.tag_ids,
+        )
+      end
+
+      if board.slug_changed?
+        context[:histories][:slug_changed] = {
+          previous_value: board.slug_was,
+          new_value: board.slug,
+        }
+      end
+
       board.save!
     end
 
@@ -85,6 +131,17 @@ module DiscourseKanban
 
     def pg_array(ids)
       "{#{ids.join(",")}}"
+    end
+
+    def create_histories(board:, guardian:, histories:)
+      histories.each do |action, details|
+        BoardHistory.create!(
+          board:,
+          acting_user: guardian.user,
+          action: "board_#{action}",
+          details:,
+        )
+      end
     end
 
     def publish_update(board:, params:)

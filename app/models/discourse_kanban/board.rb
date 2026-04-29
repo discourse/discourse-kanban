@@ -11,6 +11,10 @@ module DiscourseKanban
              dependent: :destroy,
              inverse_of: :board
     has_many :cards, class_name: "DiscourseKanban::Card", dependent: :destroy, inverse_of: :board
+    has_many :history,
+             -> { order(created_at: :asc) },
+             class_name: "DiscourseKanban::BoardHistory",
+             inverse_of: :board
     belongs_to :created_by, class_name: "User"
     belongs_to :updated_by, class_name: "User", optional: true
 

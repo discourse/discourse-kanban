@@ -1,19 +1,27 @@
 # frozen_string_literal: true
 
 RSpec.describe DiscourseKanban::UpdateBoard do
-  describe described_class::Contract, type: :model do
+  describe DiscourseKanban::UpdateBoard::Contract, type: :model do
     it { is_expected.to validate_presence_of(:id) }
   end
 
   describe ".call" do
-    subject(:result) { described_class.call(params:, raw_board_params: raw, **dependencies) }
+    subject(:result) do
+      DiscourseKanban::UpdateBoard.call(params:, raw_board_params: raw, **dependencies)
+    end
 
     fab!(:admin)
     fab!(:manager, :user)
     fab!(:outsider, :user)
     fab!(:manage_group, :group)
     fab!(:board) do
-      DiscourseKanban::Board.create!(name: "Old", slug: "old", created_by_id: admin.id)
+      DiscourseKanban::Board.create!(
+        name: "Old",
+        slug: "old",
+        created_by_id: admin.id,
+        allow_read_group_ids: [manage_group.id],
+        allow_write_group_ids: [manage_group.id],
+      )
     end
     fab!(:column) { board.columns.create!(title: "Col", position: 0) }
 
@@ -53,6 +61,20 @@ RSpec.describe DiscourseKanban::UpdateBoard do
         board.reload
         expect(board.name).to eq("Updated")
         expect(board.updated_by_id).to eq(manager.id)
+      end
+
+      it "tracks the board rename history" do
+        result
+        board.reload
+        expect(board.history.first).to have_attributes(
+          action: "board_renamed",
+          acting_user_id: manager.id,
+          board_id: board.id,
+          details: {
+            "previous_value" => "Old",
+            "new_value" => "Updated",
+          },
+        )
       end
 
       it "does not delete topic cards on unconstrained boards" do
@@ -115,6 +137,51 @@ RSpec.describe DiscourseKanban::UpdateBoard do
           board.reload
           expect(board.columns.count).to eq(2)
           expect(column.reload.title).to eq("Renamed")
+        end
+      end
+
+      context "with permission changes" do
+        fab!(:new_group, :group)
+        let(:raw) do
+          { "allow_read_group_ids" => [new_group.id], "allow_write_group_ids" => [new_group.id] }
+        end
+
+        it "tracks the permission change history" do
+          result
+          board.reload
+          expect(board.history.first).to have_attributes(
+            action: "board_permissions_changed",
+            acting_user_id: manager.id,
+            board_id: board.id,
+            details: {
+              "previous_allow_read_group_ids" => [manage_group.id],
+              "new_allow_read_group_ids" => [new_group.id],
+              "previous_allow_write_group_ids" => [manage_group.id],
+              "new_allow_write_group_ids" => [new_group.id],
+            },
+          )
+        end
+      end
+
+      context "with constraint changes" do
+        fab!(:category)
+        fab!(:tag)
+        let(:raw) { { "category_ids" => [category.id], "tag_ids" => [tag.id] } }
+
+        it "tracks the constraint change history" do
+          result
+          board.reload
+          expect(board.history.first).to have_attributes(
+            action: "board_constraints_changed",
+            acting_user_id: manager.id,
+            board_id: board.id,
+            details: {
+              "previous_category_ids" => [],
+              "new_category_ids" => [category.id],
+              "previous_tag_ids" => [],
+              "new_tag_ids" => [tag.id],
+            },
+          )
         end
       end
     end
