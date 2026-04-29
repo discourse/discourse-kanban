@@ -20,7 +20,7 @@ module DiscourseKanban
     private
 
     def can_manage(guardian:)
-      guardian.can_manage_kanban_boards?
+      guardian.can_create_board?
     end
 
     def create_board(guardian:)

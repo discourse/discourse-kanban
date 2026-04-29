@@ -87,7 +87,6 @@ export default class KanbanBoardViewer extends Component {
   @service messageBus;
   @service modal;
   @service router;
-  @service siteSettings;
   @service toasts;
 
   @tracked board;
@@ -1145,28 +1144,31 @@ export default class KanbanBoardViewer extends Component {
       <div class="kanban-board-viewer__header">
         <div class="kanban-board-viewer__title-wrapper">
           <h2 class="kanban-board-viewer__title">{{this.board.name}}</h2>
-          {{#if this.hasBoardFilters}}
-            <div class="kanban-board-viewer__constraint">
-              {{#each this.boardCategories as |category|}}
-                {{boundCategoryLink category link=false}}
-              {{/each}}
-              {{#if this.boardTagNames.length}}
-                <div class="list-tags">
-                  {{discourseTags null tags=this.boardTagNames}}
-                </div>
-              {{/if}}
-              <DTooltip>
-                <:trigger>
-                  {{icon "circle-info"}}
-                </:trigger>
-                <:content>
-                  <span>{{i18n
-                      "discourse_kanban.board.constraint_tooltip"
-                    }}</span>
-                </:content>
-              </DTooltip>
-            </div>
-          {{/if}}
+
+          <div class="kanban-board-viewer__metadata">
+            {{#if this.hasBoardFilters}}
+              <div class="kanban-board-viewer__constraint">
+                {{#each this.boardCategories as |category|}}
+                  {{boundCategoryLink category link=false}}
+                {{/each}}
+                {{#if this.boardTagNames.length}}
+                  <div class="list-tags">
+                    {{discourseTags null tags=this.boardTagNames}}
+                  </div>
+                {{/if}}
+                <DTooltip>
+                  <:trigger>
+                    {{icon "circle-info"}}
+                  </:trigger>
+                  <:content>
+                    <span>{{i18n
+                        "discourse_kanban.board.constraint_tooltip"
+                      }}</span>
+                  </:content>
+                </DTooltip>
+              </div>
+            {{/if}}
+          </div>
         </div>
 
         <div class="kanban-board-viewer__controls">

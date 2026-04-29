@@ -21,7 +21,7 @@ module DiscourseKanban
     end
 
     def ensure_board_read!
-      unless @board.can_read?(guardian)
+      unless guardian.can_read_board?(@board)
         raise Discourse::InvalidAccess.new(I18n.t("discourse_kanban.errors.board_read_forbidden"))
       end
     end
@@ -43,10 +43,17 @@ module DiscourseKanban
         card_style: board.card_style,
         show_topic_thumbnail: board.show_topic_thumbnail,
         show_activity_indicators: board.show_activity_indicators,
-        can_write: board.can_write?(guardian),
+        can_write: guardian.can_write_board?(board),
         can_manage: guardian.can_manage_kanban_boards?,
+        created_by: created_by_payload(board.created_by),
         columns: board.columns.map { |column| column_payload(column, tag_name_map:) },
       }
+    end
+
+    def created_by_payload(user)
+      return nil if user.blank?
+
+      { username: user.username, avatar_template: user.avatar_template }
     end
 
     def column_payload(column, tag_name_map: {})

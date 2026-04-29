@@ -4,10 +4,13 @@ import { action } from "@ember/object";
 import { LinkTo } from "@ember/routing";
 import { service } from "@ember/service";
 import DButton from "discourse/components/d-button";
+import UserLink from "discourse/components/user-link";
+import avatar from "discourse/helpers/avatar";
 import boundCategoryLink from "discourse/helpers/bound-category-link";
 import icon from "discourse/helpers/d-icon";
 import discourseTags from "discourse/helpers/discourse-tags";
 import { ajax } from "discourse/lib/ajax";
+import { formatUsername } from "discourse/lib/utilities";
 import Category from "discourse/models/category";
 import { eq, or } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
@@ -122,6 +125,14 @@ export default class KanbanBoardsPage extends Component {
               </div>
 
               <div class="kanban-board-card__footer">
+                <UserLink
+                  class="kanban-board-card__creator kanban-board-card__badge"
+                  @user={{board.created_by}}
+                >
+                  {{i18n "discourse_kanban.board.created_by"}}
+                  {{avatar board.created_by imageSize="micro"}}
+                </UserLink>
+
                 <span class="kanban-board-card__badge">
                   {{i18n
                     "discourse_kanban.manage.column_count"

@@ -21,6 +21,8 @@ end
 require_relative "lib/discourse_kanban/engine"
 
 after_initialize do
+  reloadable_patch { |plugin| Guardian.prepend DiscourseKanban::GuardianExtensions }
+
   # Register any column icons already in the DB so they appear in the SVG sprite
   begin
     if DiscourseKanban::Column.table_exists?
@@ -40,10 +42,6 @@ after_initialize do
       DiscoursePluginRegistry.register_svg_icon(icon)
       SvgSprite.expire_cache
     end
-  end
-
-  add_to_class(:guardian, :can_manage_kanban_boards?) do
-    is_admin? || @user&.in_any_groups?(SiteSetting.discourse_kanban_manage_board_allowed_groups_map)
   end
 
   add_to_serializer(:current_user, :can_manage_kanban_boards) do

@@ -23,7 +23,7 @@ module DiscourseKanban
     end
 
     def can_manage(guardian:)
-      guardian.can_manage_kanban_boards?
+      guardian.can_destroy_board?
     end
 
     def publish_update(board:, params:)

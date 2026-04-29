@@ -27,6 +27,7 @@ describe "Manage Kanban Boards" do
 
       boards_page.click_new_board
       boards_page.fill_modal_board_name("Sprint Board")
+      boards_page.toggle_modal_advanced_settings
       boards_page.toggle_modal_require_confirmation
       boards_page.save_board_modal
 
@@ -35,6 +36,7 @@ describe "Manage Kanban Boards" do
       board = DiscourseKanban::Board.last
       expect(board.name).to eq("Sprint Board")
       expect(board.require_confirmation).to eq(true)
+      expect(board.allow_write_group_ids).to eq([manage_group.id])
 
       boards_page.visit_page
       expect(boards_page).to have_board_listed("Sprint Board")

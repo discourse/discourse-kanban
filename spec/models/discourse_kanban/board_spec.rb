@@ -1,58 +1,7 @@
 # frozen_string_literal: true
 
 RSpec.describe DiscourseKanban::Board do
-  fab!(:admin)
-  fab!(:creator, :user)
-  fab!(:reader, :user)
-  fab!(:writer, :user)
-  fab!(:outsider, :user)
-  fab!(:read_group, :group)
-  fab!(:write_group, :group)
-
-  before do
-    enable_current_plugin
-
-    read_group.add(reader)
-    write_group.add(writer)
-  end
-
-  it "grants read through read groups" do
-    board =
-      described_class.create!(
-        name: "Roadmap",
-        slug: "roadmap",
-        allow_read_group_ids: [read_group.id],
-      )
-
-    expect(board.can_read?(reader.guardian)).to eq(true)
-    expect(board.can_read?(outsider.guardian)).to eq(false)
-  end
-
-  it "grants write through write groups and implies read" do
-    board =
-      described_class.create!(
-        name: "Operations",
-        slug: "operations",
-        allow_write_group_ids: [write_group.id],
-      )
-
-    expect(board.can_write?(writer.guardian)).to eq(true)
-    expect(board.can_read?(writer.guardian)).to eq(true)
-    expect(board.can_write?(outsider.guardian)).to eq(false)
-  end
-
-  it "always allows admins to write" do
-    board =
-      described_class.create!(name: "Engineering", slug: "engineering", allow_write_group_ids: [])
-
-    expect(board.can_write?(admin.guardian)).to eq(true)
-  end
-
-  it "allows creator to write" do
-    board = described_class.create!(name: "Support", slug: "support", created_by_id: creator.id)
-
-    expect(board.can_write?(creator.guardian)).to eq(true)
-  end
+  before { enable_current_plugin }
 
   describe "#topic_matches?" do
     fab!(:category)
