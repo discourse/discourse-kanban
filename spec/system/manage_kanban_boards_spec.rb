@@ -42,9 +42,9 @@ describe "Manage Kanban Boards" do
       expect(boards_page).to have_board_listed("Sprint Board")
 
       boards_page.click_board("Sprint Board")
-      board = PageObjects::Components::Board.new
-      board.open_board_menu
-      board.click_board_settings_menu_item
+      board_component = PageObjects::Components::Board.new
+      board_component.open_board_menu
+      board_component.click_board_settings_menu_item
       boards_page.fill_modal_board_name("Updated Board")
       boards_page.save_board_modal
 
@@ -55,9 +55,9 @@ describe "Manage Kanban Boards" do
       expect(boards_page).to have_board_listed("Updated Board")
 
       boards_page.click_board("Updated Board")
-      board = PageObjects::Components::Board.new
-      board.open_board_menu
-      board.click_board_settings_menu_item
+      board_component = PageObjects::Components::Board.new
+      board_component.open_board_menu
+      board_component.click_board_settings_menu_item
       boards_page.delete_from_board_modal
       dialog.click_yes
 
@@ -78,17 +78,17 @@ describe "Manage Kanban Boards" do
 
       expect(toasts).to have_success(I18n.t("js.saved"))
 
-      board = PageObjects::Components::Board.new
-      board.open_board_menu
-      board.click_add_column_menu_item
+      board_component = PageObjects::Components::Board.new
+      board_component.open_board_menu
+      board_component.click_add_column_menu_item
       boards_page.fill_modal_column_title("To Do")
       boards_page.save_column_modal
 
       expect(toasts).to have_success(I18n.t("js.saved"))
 
-      board = PageObjects::Components::Board.new
-      board.open_board_menu
-      board.click_add_column_menu_item
+      board_component = PageObjects::Components::Board.new
+      board_component.open_board_menu
+      board_component.click_add_column_menu_item
       boards_page.fill_modal_column_title("Done")
       boards_page.save_column_modal
 
@@ -166,9 +166,9 @@ describe "Manage Kanban Boards" do
       it "creates a column with a tag" do
         boards_page.visit_page
         boards_page.click_board("Simple Board")
-        board = PageObjects::Components::Board.new
-        board.open_board_menu
-        board.click_add_column_menu_item
+        board_component = PageObjects::Components::Board.new
+        board_component.open_board_menu
+        board_component.click_add_column_menu_item
 
         boards_page.fill_modal_column_title("Todo")
         boards_page.select_modal_column_tag(todo_tag.name)
@@ -181,9 +181,9 @@ describe "Manage Kanban Boards" do
       it "can create a column using only the tag as the title" do
         boards_page.visit_page
         boards_page.click_board("Simple Board")
-        board = PageObjects::Components::Board.new
-        board.open_board_menu
-        board.click_add_column_menu_item
+        board_component = PageObjects::Components::Board.new
+        board_component.open_board_menu
+        board_component.click_add_column_menu_item
         boards_page.select_modal_column_tag(todo_tag.name)
         boards_page.save_column_modal
       end
@@ -191,17 +191,17 @@ describe "Manage Kanban Boards" do
       it "does not allow creating a column for the same tag twice" do
         boards_page.visit_page
         boards_page.click_board("Simple Board")
-        board = PageObjects::Components::Board.new
-        board.open_board_menu
-        board.click_add_column_menu_item
+        board_component = PageObjects::Components::Board.new
+        board_component.open_board_menu
+        board_component.click_add_column_menu_item
         boards_page.select_modal_column_tag(todo_tag.name)
         boards_page.save_column_modal
 
         expect(toasts).to have_success(I18n.t("js.saved"))
 
-        board = PageObjects::Components::Board.new
-        board.open_board_menu
-        board.click_add_column_menu_item
+        board_component = PageObjects::Components::Board.new
+        board_component.open_board_menu
+        board_component.click_add_column_menu_item
         boards_page.select_modal_column_tag(todo_tag.name)
         boards_page.save_column_modal
         expect(page).to have_content(
@@ -247,8 +247,9 @@ describe "Manage Kanban Boards" do
 
       boards_page.visit_page
       boards_page.click_board("New Tag Board")
-      boards_page.open_board_menu
-      boards_page.click_add_column_menu_item
+      board_component = PageObjects::Components::Board.new
+      board_component.open_board_menu
+      board_component.click_add_column_menu_item
 
       boards_page.fill_modal_column_title("Backlog")
       boards_page.select_modal_column_tag("brand-new")
