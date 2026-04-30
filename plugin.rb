@@ -25,15 +25,16 @@ after_initialize do
 
   # Register any column icons already in the DB so they appear in the SVG sprite
   begin
-    if DiscourseKanban::Column.table_exists?
+    if ActiveRecord::Base.connection.data_source_exists?(:discourse_kanban_columns) &&
+         ActiveRecord::Base.connection.column_exists?(:discourse_kanban_columns, :default_sort)
       DiscourseKanban::Column
         .where.not(icon: [nil, ""])
         .distinct
         .pluck(:icon)
         .each { |icon| DiscoursePluginRegistry.register_svg_icon(icon) }
     end
-  rescue ActiveRecord::NoDatabaseError
-    # Database may not exist yet during db:create / db:migrate bootstrap.
+  rescue ActiveRecord::NoDatabaseError, ActiveRecord::StatementInvalid
+    # Database may not exist/may have pending migrations yet during db:create / db:migrate bootstrap.
   end
 
   # When a column's icon changes, register it and expire the sprite cache

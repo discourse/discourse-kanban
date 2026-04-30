@@ -7,9 +7,6 @@ in a placeholder component. It should not be used for any other case.
 import ApplicationInstance from "@ember/application/instance";
 import { setOwner } from "@ember/owner";
 import CoreFabricators, { incrementSequence } from "discourse/lib/fabricators";
-import Board from "discourse/plugins/discourse-kanban/discourse/models/board";
-import Card from "discourse/plugins/discourse-kanban/discourse/models/card";
-import Column from "discourse/plugins/discourse-kanban/discourse/models/column";
 
 export default class KanbanFabricators {
   constructor(owner) {
@@ -23,7 +20,7 @@ export default class KanbanFabricators {
   }
 
   card(args = {}) {
-    const card = Card.create({
+    return {
       id: args.id || incrementSequence(),
       title: args.title || "Test Card",
       notes: args.notes || "This is a test card",
@@ -37,31 +34,25 @@ export default class KanbanFabricators {
       tag_ids: args.tag_ids || [],
       topic_id: args.topic?.id || null,
       topic: args.topic || null,
-    });
-
-    return card;
+    };
   }
 
   board(args = {}) {
-    const board = Board.create({
+    return {
       id: args.id || incrementSequence(),
       name: args.name || "Test Board",
       slug: args.slug || "test-board",
       columns: args.columns || [],
       can_write: args.can_write ?? true,
       can_manage: args.can_manage ?? true,
-    });
-
-    return board;
+    };
   }
 
   column(args = {}) {
-    const column = Column.create({
+    return {
       id: args.id || incrementSequence(),
       title: args.title || "Test Column",
       position: args.position || 0,
-    });
-
-    return column;
+    };
   }
 }

@@ -22,6 +22,7 @@ RSpec.describe DiscourseKanban::ColumnsReplacer do
       expect(columns.first.position).to eq(0)
       expect(columns.last.title).to eq("Done")
       expect(columns.last.icon).to eq("check")
+      expect(columns.last.default_sort).to eq("priority")
       expect(columns.last.position).to eq(1)
     end
 
@@ -86,6 +87,26 @@ RSpec.describe DiscourseKanban::ColumnsReplacer do
       DiscourseKanban::ColumnsReplacer.replace!(board:, columns_payload: [], user: admin)
 
       expect(DiscourseKanban::Card.find_by(id: card.id)).to be_nil
+    end
+
+    it "persists default sort" do
+      DiscourseKanban::ColumnsReplacer.replace!(
+        board:,
+        columns_payload: [{ "title" => "Recent", "default_sort" => "recency" }],
+        user: admin,
+      )
+
+      expect(board.columns.last.default_sort).to eq("recency")
+    end
+
+    it "rejects invalid default sort" do
+      expect {
+        DiscourseKanban::ColumnsReplacer.replace!(
+          board:,
+          columns_payload: [{ "title" => "Broken", "default_sort" => "random" }],
+          user: admin,
+        )
+      }.to raise_error(Discourse::InvalidParameters)
     end
 
     describe "when a tag is provided" do

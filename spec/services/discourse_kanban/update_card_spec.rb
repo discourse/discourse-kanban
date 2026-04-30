@@ -30,6 +30,9 @@ RSpec.describe DiscourseKanban::UpdateCard do
     end
     fab!(:col_todo) { board.columns.create!(title: "To Do", position: 0) }
     fab!(:col_done) { board.columns.create!(title: "Done", position: 1) }
+    fab!(:col_recent) do
+      board.columns.create!(title: "Recent", position: 2, default_sort: "recency")
+    end
 
     let(:raw_card_params) { {} }
     let(:dependencies) { { guardian: writer.guardian } }
@@ -60,6 +63,14 @@ RSpec.describe DiscourseKanban::UpdateCard do
         result
         expect(card.reload.title).to eq("New")
       end
+
+      it "does not change column_changed_at" do
+        previous_changed_at = 2.days.ago
+        card.update_column(:column_changed_at, previous_changed_at)
+
+        result
+        expect(card.reload.column_changed_at.to_i).to eq(previous_changed_at.to_i)
+      end
     end
 
     context "when moving a card between columns" do
@@ -80,6 +91,16 @@ RSpec.describe DiscourseKanban::UpdateCard do
       it "moves the card to the new column" do
         result
         expect(card.reload.column_id).to eq(col_done.id)
+      end
+
+      it "updates column_changed_at" do
+        previous_changed_at = 2.days.ago
+        card.update_column(:column_changed_at, previous_changed_at)
+
+        freeze_time do
+          result
+          expect(card.reload.column_changed_at.to_i).to eq(Time.current.to_i)
+        end
       end
 
       it "records the original column id" do
@@ -268,6 +289,81 @@ RSpec.describe DiscourseKanban::UpdateCard do
         expect(card.column_id).to eq(col_done.id)
         expect(card.position).to be < card_a.position
         expect(card_a.position).to be < card_b.position
+      end
+    end
+
+    context "when moving a card into a column sorted by recency" do
+      fab!(:existing_card) do
+        board.cards.create!(
+          card_type: :floater,
+          title: "Existing",
+          column_id: col_recent.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      end
+
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :floater,
+          title: "Move to recent",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      end
+
+      let(:raw_card_params) do
+        { "column_id" => col_recent.id.to_s, "after_card_id" => existing_card.id.to_s }
+      end
+      let(:params) do
+        {
+          board_id: board.id,
+          id: card.id,
+          column_id: col_recent.id,
+          after_card_id: existing_card.id,
+        }
+      end
+
+      it { is_expected.to run_successfully }
+
+      it "ignores the requested position and places the card first" do
+        result
+        expect(card.reload.position).to be < existing_card.reload.position
+      end
+    end
+
+    context "when reordering within a column sorted by recency" do
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :floater,
+          title: "First",
+          column_id: col_recent.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      end
+
+      fab!(:other_card) do
+        board.cards.create!(
+          card_type: :floater,
+          title: "Second",
+          column_id: col_recent.id,
+          position: 1,
+          created_by_id: admin.id,
+        )
+      end
+
+      let(:raw_card_params) do
+        { "column_id" => col_recent.id.to_s, "after_card_id" => other_card.id.to_s }
+      end
+      let(:params) do
+        { board_id: board.id, id: card.id, column_id: col_recent.id, after_card_id: other_card.id }
+      end
+
+      it "raises InvalidParameters" do
+        expect { result }.to raise_error(Discourse::InvalidParameters)
+        expect(card.reload.position).to eq(0)
       end
     end
 

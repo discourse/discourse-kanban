@@ -104,6 +104,7 @@ RSpec.describe DiscourseKanban::BoardsController do
       expect(columns.length).to eq(1)
       expect(columns[0]["title"]).to eq("Backlog")
       expect(columns[0]["icon"]).to eq("list")
+      expect(columns[0]["default_sort"]).to eq("priority")
       expect(columns[0]["cards"].length).to eq(1)
 
       card = columns[0]["cards"][0]
@@ -259,6 +260,43 @@ RSpec.describe DiscourseKanban::BoardsController do
       expect(board.cards.where(topic_id: topic.id)).to be_blank
     end
 
+    it "orders columns by recency default sort order based on computed recency_at" do
+      board =
+        DiscourseKanban::Board.create!(
+          name: "Recent Board",
+          slug: "recent-board",
+          created_by_id: admin.id,
+        )
+      col = board.columns.create!(title: "Done", position: 0, default_sort: "recency")
+      old_card =
+        board.cards.create!(
+          card_type: :floater,
+          title: "Old",
+          column_id: col.id,
+          position: 0,
+          column_changed_at: 5.days.ago,
+          created_by_id: admin.id,
+        )
+      new_card =
+        board.cards.create!(
+          card_type: :floater,
+          title: "New",
+          column_id: col.id,
+          position: 10_000,
+          column_changed_at: 5.days.ago,
+          created_by_id: admin.id,
+        )
+      old_card.update_columns(updated_at: 4.days.ago)
+      new_card.update_columns(updated_at: 1.hour.ago)
+
+      sign_in(admin)
+      get "/kanban/boards/#{board.id}.json"
+
+      card_titles = response.parsed_body["columns"][0]["cards"].map { |card| card["title"] }
+      expect(card_titles).to eq(%w[New Old])
+      expect(response.parsed_body["columns"][0]["cards"][0]["recency_at"]).to be_present
+    end
+
     it "denies access to users without read permission" do
       board =
         DiscourseKanban::Board.create!(
@@ -302,6 +340,30 @@ RSpec.describe DiscourseKanban::BoardsController do
       post "/kanban/boards.json", params: { board: { name: "Admin Board", slug: "admin-board" } }
 
       expect(response.status).to eq(201)
+    end
+
+    it "persists column default sort" do
+      board =
+        DiscourseKanban::Board.create!(
+          name: "Sort Board",
+          slug: "sort-board",
+          created_by_id: admin.id,
+        )
+      column = board.columns.create!(title: "Col", position: 0)
+
+      sign_in(manager)
+
+      put "/kanban/boards/#{board.id}.json",
+          params: {
+            board: {
+              name: board.name,
+              columns: [{ id: column.id, title: "Col", default_sort: "recency" }],
+            },
+          }
+
+      expect(response.status).to eq(200)
+      expect(column.reload.default_sort).to eq("recency")
+      expect(response.parsed_body["board"]["columns"][0]["default_sort"]).to eq("recency")
     end
 
     it "rejects users not in the manage group" do

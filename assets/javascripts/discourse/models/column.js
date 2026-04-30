@@ -6,6 +6,7 @@ export default class Column {
   }
 
   @tracked cards;
+  @tracked default_sort;
   @tracked icon;
   @tracked id;
   @tracked move_to_assigned;

@@ -14,6 +14,8 @@ module DiscourseKanban
              class_name: "DiscourseKanban::BoardHistory",
              inverse_of: :column
 
+    enum :default_sort, { priority: 0, recency: 1 }, default: :priority
+
     validates :title, presence: true
     validates :position, presence: true
 
@@ -28,6 +30,7 @@ end
 # Table name: discourse_kanban_columns
 #
 #  id                  :bigint           not null, primary key
+#  default_sort        :integer          default("priority"), not null
 #  icon                :string
 #  move_to_assigned    :string
 #  move_to_status      :string

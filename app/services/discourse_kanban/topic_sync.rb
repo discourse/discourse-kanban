@@ -281,6 +281,8 @@ module DiscourseKanban
         system_user_id = Discourse.system_user.id
         running_positions = max_positions.dup
 
+        now = Time.zone.now
+
         plan[:create_targets].each do |target|
           col_id = target[:column_id]
           running_positions[col_id] = (running_positions[col_id] || 0) + CardOrdering::GAP_SIZE
@@ -292,6 +294,7 @@ module DiscourseKanban
               card_type: :topic,
               topic_id: topic.id,
               position: running_positions[col_id],
+              column_changed_at: now,
               created_by_id: system_user_id,
               updated_by_id: system_user_id,
             )
@@ -432,7 +435,7 @@ module DiscourseKanban
             board.cards.with_column.group(:column_id).maximum(:position).transform_values(&:to_i)
 
           system_user_id = Discourse.system_user.id
-          now = Time.current
+          now = Time.zone.now
 
           to_create.each do |entry|
             col_id = entry[:column_id]
@@ -447,6 +450,7 @@ module DiscourseKanban
                 topic_id: entry[:topic_id],
                 card_type: Card.card_types[:topic],
                 position: pos,
+                column_changed_at: now,
                 created_by_id: system_user_id,
                 updated_by_id: system_user_id,
                 created_at: now,

@@ -62,6 +62,7 @@ en:
         constraint_fix_confirm: "Move and update"
         constraint_tooltip: "Only topics with these categories and tags are allowed on this board."
         created_by: "Created by"
+        show_older_cards: "Show %{count} older cards"
       keyboard_shortcuts:
         navigate_columns: "Navigate between columns"
         navigate_cards: "Navigate between cards"
@@ -119,6 +120,9 @@ en:
           column_title_placeholder: "Column title (leave blank to use tag name)..."
           column_title_required: "Column title or tag name is required"
           icon: "Icon"
+          default_sort: "Default sort"
+          default_sort_priority: "Priority"
+          default_sort_recency: "Recency"
           tag: "Tag"
           tag_help: "Topics with this tag appear in this column. Moving a topic here applies this tag."
           move_to_category: "Move to category"

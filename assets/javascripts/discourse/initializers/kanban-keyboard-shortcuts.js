@@ -46,6 +46,10 @@ function getColumnDataId(columnEl) {
   return id ? parseInt(id, 10) : null;
 }
 
+function isRecencyColumnEl(columnEl) {
+  return columnEl?.dataset.defaultSort === "recency";
+}
+
 function moveCard(container, cardId, toColumnId, afterCardId) {
   const router = container.lookup("service:router");
   const boardId = router.currentRoute?.params?.id;
@@ -345,21 +349,26 @@ export default {
           }
 
           const cardId = getCardDataId(cards[cardIndex]);
-          const toColumnId = getColumnDataId(columns[colIndex + 1]);
+          const targetColumn = columns[colIndex + 1];
+          const toColumnId = getColumnDataId(targetColumn);
           if (!toColumnId) {
             return;
           }
 
-          const targetCards = getCards(columns[colIndex + 1]);
+          const targetIsRecency = isRecencyColumnEl(targetColumn);
+          const targetCards = getCards(targetColumn);
           let afterCardId = null;
-          const targetIdx = Math.min(cardIndex, targetCards.length) - 1;
-          if (targetIdx >= 0) {
-            afterCardId = getCardDataId(targetCards[targetIdx]);
+          if (!targetIsRecency) {
+            const targetIdx = Math.min(cardIndex, targetCards.length) - 1;
+            if (targetIdx >= 0) {
+              afterCardId = getCardDataId(targetCards[targetIdx]);
+            }
           }
 
+          const newCardIndex = targetIsRecency ? 0 : cardIndex;
           moving = true;
           moveCard(container, cardId, toColumnId, afterCardId).then(
-            () => afterMove(colIndex + 1, cardIndex),
+            () => afterMove(colIndex + 1, newCardIndex),
             () => {
               moving = false;
             }
@@ -396,21 +405,26 @@ export default {
           }
 
           const cardId = getCardDataId(cards[cardIndex]);
-          const toColumnId = getColumnDataId(columns[colIndex - 1]);
+          const targetColumn = columns[colIndex - 1];
+          const toColumnId = getColumnDataId(targetColumn);
           if (!toColumnId) {
             return;
           }
 
-          const targetCards = getCards(columns[colIndex - 1]);
+          const targetIsRecency = isRecencyColumnEl(targetColumn);
+          const targetCards = getCards(targetColumn);
           let afterCardId = null;
-          const targetIdx = Math.min(cardIndex, targetCards.length) - 1;
-          if (targetIdx >= 0) {
-            afterCardId = getCardDataId(targetCards[targetIdx]);
+          if (!targetIsRecency) {
+            const targetIdx = Math.min(cardIndex, targetCards.length) - 1;
+            if (targetIdx >= 0) {
+              afterCardId = getCardDataId(targetCards[targetIdx]);
+            }
           }
 
+          const newCardIndex = targetIsRecency ? 0 : cardIndex;
           moving = true;
           moveCard(container, cardId, toColumnId, afterCardId).then(
-            () => afterMove(colIndex - 1, cardIndex),
+            () => afterMove(colIndex - 1, newCardIndex),
             () => {
               moving = false;
             }
@@ -426,7 +440,7 @@ export default {
             return;
           }
           const columns = getColumns();
-          if (colIndex === -1) {
+          if (colIndex === -1 || isRecencyColumnEl(columns[colIndex])) {
             return;
           }
           const cards = getCards(columns[colIndex]);
@@ -472,7 +486,11 @@ export default {
             return;
           }
           const columns = getColumns();
-          if (colIndex === -1 || cardIndex <= 0) {
+          if (
+            colIndex === -1 ||
+            cardIndex <= 0 ||
+            isRecencyColumnEl(columns[colIndex])
+          ) {
             return;
           }
           const cards = getCards(columns[colIndex]);

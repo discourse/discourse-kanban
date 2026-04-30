@@ -27,6 +27,9 @@ RSpec.describe DiscourseKanban::CreateCard do
       )
     end
     fab!(:column) { board.columns.create!(title: "To Do", position: 0) }
+    fab!(:recency_column) do
+      board.columns.create!(title: "Recent", position: 1, default_sort: "recency")
+    end
 
     let(:dependencies) { { guardian: writer.guardian } }
 
@@ -46,7 +49,27 @@ RSpec.describe DiscourseKanban::CreateCard do
         expect(card.card_type).to eq("floater")
         expect(card.title).to eq("New Task")
         expect(card.column_id).to eq(column.id)
+        expect(card.column_changed_at).to be_present
         expect(card.created_by_id).to eq(writer.id)
+      end
+    end
+
+    context "when creating a floater card in a column sorted by recency" do
+      let(:params) { { board_id: board.id, column_id: recency_column.id, title: "Recent Task" } }
+
+      before do
+        board.cards.create!(
+          card_type: :floater,
+          title: "Existing",
+          column_id: recency_column.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      end
+
+      it "places it at the beginning" do
+        expect(result[:card].position).to be < 0
+        expect(result[:card].column_changed_at).to be_present
       end
     end
 

@@ -330,6 +330,22 @@ body.kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     color: var(--primary-medium);
   }
 
+  &__show-all {
+    align-self: center;
+    border: 0;
+    background: transparent;
+    color: var(--tertiary);
+    cursor: pointer;
+    font-size: var(--font-down-1);
+    padding: var(--space-2);
+
+    &:hover,
+    &:focus {
+      color: var(--tertiary-hover);
+      text-decoration: underline;
+    }
+  }
+
   &__add-btn {
     --d-button-default-bg-color: transparent;
     --d-button-default-bg-color--hover: var(--primary-low);

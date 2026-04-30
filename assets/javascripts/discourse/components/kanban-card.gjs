@@ -158,10 +158,10 @@ export default class KanbanCard extends Component {
   }
 
   get activityDate() {
-    if (this.isTopicCard) {
-      return this.topic?.bumped_at;
-    }
-    return this.args.card.created_at;
+    return (
+      this.args.card.recency_at ||
+      (this.isTopicCard ? this.topic?.bumped_at : this.args.card.created_at)
+    );
   }
 
   get activityClass() {

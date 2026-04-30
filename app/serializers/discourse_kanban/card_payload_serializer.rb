@@ -13,6 +13,9 @@ module DiscourseKanban
                :tags,
                :topic_id,
                :created_at,
+               :updated_at,
+               :column_changed_at,
+               :recency_at,
                :created_by,
                :assigned_to
 

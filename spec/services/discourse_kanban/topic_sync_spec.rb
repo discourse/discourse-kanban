@@ -39,6 +39,7 @@ RSpec.describe DiscourseKanban::TopicSync do
 
     card = DiscourseKanban::Card.last
     expect(card.column_id).to eq(column.id)
+    expect(card.column_changed_at).to be_present
   end
 
   it "does not match topics when board has no constraints" do
@@ -415,7 +416,9 @@ RSpec.describe DiscourseKanban::TopicSync do
         1,
       )
 
-      expect(board.cards.where(topic_id: tagged_topic.id).first.column_id).to eq(column.id)
+      card = board.cards.where(topic_id: tagged_topic.id).first
+      expect(card.column_id).to eq(column.id)
+      expect(card.column_changed_at).to be_present
     end
 
     it "does not auto-create cards in unconstrained columns during backfill" do

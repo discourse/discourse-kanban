@@ -27,6 +27,9 @@ RSpec.describe DiscourseKanban::MoveTopicToColumn do
       )
     end
     fab!(:column) { board.columns.create!(title: "Doing", position: 0) }
+    fab!(:recency_column) do
+      board.columns.create!(title: "Recent", position: 1, default_sort: "recency")
+    end
 
     let(:channel) { "/kanban/boards/#{board.id}" }
     let(:client_id) { "test-123" }
@@ -107,6 +110,10 @@ RSpec.describe DiscourseKanban::MoveTopicToColumn do
         expect(result[:card]).to have_attributes(created_by_id: admin.id, updated_by_id: admin.id)
       end
 
+      it "sets column_changed_at" do
+        expect(result[:card].column_changed_at).to be_present
+      end
+
       it "publishes a card_created event scoped to board read groups" do
         expect(messages).to contain_exactly(
           have_attributes(
@@ -144,6 +151,34 @@ RSpec.describe DiscourseKanban::MoveTopicToColumn do
         expect(messages).to contain_exactly(
           have_attributes(data: include(type: "card_moved", client_id: client_id)),
         )
+      end
+    end
+
+    context "when moving a topic to a column sorted by recency" do
+      let(:params) do
+        {
+          board_id: board.id,
+          topic_id: topic.id,
+          to_column_id: recency_column.id,
+          after_card_id: existing_card.id,
+          client_id: client_id,
+        }
+      end
+
+      fab!(:existing_card) do
+        other_topic = Fabricate(:topic, category: category)
+        board.cards.create!(
+          card_type: :topic,
+          topic_id: other_topic.id,
+          column_id: recency_column.id,
+          position: 0,
+          created_by_id: writer.id,
+        )
+      end
+
+      it "places the new card at the beginning" do
+        expect(result[:card].position).to be < existing_card.reload.position
+        expect(result[:card].column_changed_at).to be_present
       end
     end
 

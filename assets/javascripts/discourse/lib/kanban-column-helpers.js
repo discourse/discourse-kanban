@@ -1,5 +1,16 @@
 import { i18n } from "discourse-i18n";
 
+export const COLUMN_SORT_OPTIONS = [
+  {
+    id: "priority",
+    name: i18n("discourse_kanban.manage.columns.default_sort_priority"),
+  },
+  {
+    id: "recency",
+    name: i18n("discourse_kanban.manage.columns.default_sort_recency"),
+  },
+];
+
 export const STATUS_OPTIONS = [
   {
     id: "open",

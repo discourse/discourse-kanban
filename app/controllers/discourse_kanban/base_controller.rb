@@ -62,6 +62,7 @@ module DiscourseKanban
         title: column.title,
         icon: column.icon,
         position: column.position,
+        default_sort: column.default_sort,
         tag_id: column.tag_id,
         tag_name: column.tag_id ? tag_name_map[column.tag_id] : nil,
         move_to_category_id: column.move_to_category_id,
@@ -115,6 +116,7 @@ module DiscourseKanban
           title
           icon
           position
+          default_sort
           tag_name
           move_to_category_id
           move_to_assigned
