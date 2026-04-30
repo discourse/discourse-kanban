@@ -64,14 +64,11 @@ module DiscourseKanban
     end
 
     def recency_at
-      timestamps = [column_changed_at]
-      timestamps << (topic? ? topic&.bumped_at : updated_at)
-      timestamps.compact.max
+      @recency_at ||= [column_changed_at, topic? ? topic&.bumped_at : updated_at].compact.max
     end
 
     def recent_for_column?
-      recency = recency_at
-      recency.present? && recency >= RECENCY_WINDOW.ago
+      recency_at.present? && recency_at >= RECENCY_WINDOW.ago
     end
 
     private
@@ -81,7 +78,7 @@ module DiscourseKanban
     def initialize_column_changed_at
       return if column_changed_at.present? || column_id.blank?
 
-      self.column_changed_at = updated_at || created_at || Time.current
+      self.column_changed_at = updated_at || created_at || Time.zone.now
     end
 
     def normalize_card_type

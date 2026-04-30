@@ -6,7 +6,6 @@ Fabricator(:kanban_card, class_name: "DiscourseKanban::Card") do
   card_type :floater
   title { Faker::Lorem.sentence(word_count: 10) }
   position { sequence(:kanban_card_position) }
-  column_changed_at { Time.current }
 end
 
 Fabricator(:kanban_topic_card, from: :kanban_card) do

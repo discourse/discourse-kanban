@@ -260,7 +260,7 @@ RSpec.describe DiscourseKanban::BoardsController do
       expect(board.cards.where(topic_id: topic.id)).to be_blank
     end
 
-    it "orders recency columns by computed recency" do
+    it "orders columns by recency default sort order based on computed recency_at" do
       board =
         DiscourseKanban::Board.create!(
           name: "Recent Board",

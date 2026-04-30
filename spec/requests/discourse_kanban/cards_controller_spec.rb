@@ -573,7 +573,7 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(card2.reload.position).to be < card1.reload.position
     end
 
-    it "moves cards into recency columns at the top" do
+    it "moves cards into column sorted by recency at the top" do
       existing =
         board.cards.create!(
           card_type: :floater,
@@ -607,7 +607,7 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(response.parsed_body.dig("card", "recency_at")).to be_present
     end
 
-    it "rejects same-column reordering in recency columns" do
+    it "rejects same-column reordering in column sorted by recency" do
       card1 =
         board.cards.create!(
           card_type: :floater,

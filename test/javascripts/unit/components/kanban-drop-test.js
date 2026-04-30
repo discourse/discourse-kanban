@@ -191,7 +191,7 @@ module("Discourse Kanban | Unit | Components | kanban drop", function (hooks) {
     );
   });
 
-  test("dropping into a recency column sends no after_card_id and places the card first", async function (assert) {
+  test("dropping into a column sorted by recency sends no after_card_id and places the card first", async function (assert) {
     pretender.put("/kanban/boards/1/cards/101", (request) => {
       const data = parsePostData(request.requestBody);
 
@@ -242,7 +242,7 @@ module("Discourse Kanban | Unit | Components | kanban drop", function (hooks) {
         .find((column) => column.id === 20)
         .cards.map(({ id }) => id),
       [101, 102],
-      "it sorts the moved card to the top of the recency column"
+      "it sorts the moved card to the top of the column sorted by recency"
     );
   });
 

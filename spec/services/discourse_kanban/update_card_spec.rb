@@ -292,7 +292,7 @@ RSpec.describe DiscourseKanban::UpdateCard do
       end
     end
 
-    context "when moving a card into a recency column" do
+    context "when moving a card into a column sorted by recency" do
       fab!(:existing_card) do
         board.cards.create!(
           card_type: :floater,
@@ -333,7 +333,7 @@ RSpec.describe DiscourseKanban::UpdateCard do
       end
     end
 
-    context "when reordering within a recency column" do
+    context "when reordering within a column sorted by recency" do
       fab!(:card) do
         board.cards.create!(
           card_type: :floater,

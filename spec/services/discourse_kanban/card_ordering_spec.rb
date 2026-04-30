@@ -129,7 +129,8 @@ RSpec.describe DiscourseKanban::CardOrdering do
       described_class.place_card!(new_card2, column: column, position_first: true)
       expect(new_card2.reload.position).to be < new_card1.reload.position
     end
-    it "moves cards into recency columns at the beginning and stamps column_changed_at" do
+
+    it "moves cards into column sorted by recency at the beginning and stamps column_changed_at" do
       existing = create_card(title: "Existing", position: 0, column: recency_column)
       card = create_card(title: "Mover", position: gap, column: column)
       previous_changed_at = 2.days.ago
@@ -146,7 +147,7 @@ RSpec.describe DiscourseKanban::CardOrdering do
       end
     end
 
-    it "rejects manual reordering inside recency columns" do
+    it "rejects manual reordering inside column sorted by recency" do
       card = create_card(title: "First", position: 0, column: recency_column)
       other = create_card(title: "Second", position: gap, column: recency_column)
 
@@ -184,7 +185,7 @@ RSpec.describe DiscourseKanban::CardOrdering do
       expect(new_card).to be_new_record
     end
 
-    it "prepends new cards in recency columns" do
+    it "prepends new cards in column sorted by recency" do
       existing = create_card(title: "Existing", position: 0, column: recency_column)
       new_card = board.cards.build(card_type: :floater, title: "Recent", created_by_id: admin.id)
 

@@ -54,7 +54,7 @@ RSpec.describe DiscourseKanban::CreateCard do
       end
     end
 
-    context "when creating a floater card in a recency column" do
+    context "when creating a floater card in a column sorted by recency" do
       let(:params) { { board_id: board.id, column_id: recency_column.id, title: "Recent Task" } }
 
       before do

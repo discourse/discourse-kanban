@@ -154,7 +154,7 @@ RSpec.describe DiscourseKanban::MoveTopicToColumn do
       end
     end
 
-    context "when moving a topic to a recency column" do
+    context "when moving a topic to a column sorted by recency" do
       let(:params) do
         {
           board_id: board.id,
