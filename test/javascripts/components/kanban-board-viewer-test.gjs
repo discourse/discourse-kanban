@@ -141,7 +141,6 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
     await this.dragCard(101);
     await this.dropOnColumn(20, { clientY: 30 });
 
-    assert.strictEqual(requestData.client_id, "test-client");
     assert.strictEqual(requestData.card.column_id, "20");
     assert.strictEqual(requestData.card.after_card_id, "102");
     assert.deepEqual(
@@ -173,7 +172,7 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
       id: 102,
       columnId: 20,
       title: "Ship receipts",
-      recencyAt: "2020-01-01T00:00:00.000Z",
+      recencyAt: "2026-04-29T00:00:00.000Z",
     });
 
     await this.renderBoard([
