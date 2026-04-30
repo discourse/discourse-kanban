@@ -281,7 +281,7 @@ module DiscourseKanban
         system_user_id = Discourse.system_user.id
         running_positions = max_positions.dup
 
-        now = Time.current
+        now = Time.zone.now
 
         plan[:create_targets].each do |target|
           col_id = target[:column_id]
@@ -435,7 +435,7 @@ module DiscourseKanban
             board.cards.with_column.group(:column_id).maximum(:position).transform_values(&:to_i)
 
           system_user_id = Discourse.system_user.id
-          now = Time.current
+          now = Time.zone.now
 
           to_create.each do |entry|
             col_id = entry[:column_id]

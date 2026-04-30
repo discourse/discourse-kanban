@@ -142,7 +142,7 @@ RSpec.describe DiscourseKanban::CardOrdering do
         card.reload
         expect(card.column_id).to eq(recency_column.id)
         expect(card.position).to be < existing.reload.position
-        expect(card.column_changed_at.to_i).to eq(Time.current.to_i)
+        expect(card.column_changed_at.to_i).to eq(Time.zone.now.to_i)
         expect(card.column_changed_at.to_i).not_to eq(previous_changed_at.to_i)
       end
     end
@@ -194,7 +194,7 @@ RSpec.describe DiscourseKanban::CardOrdering do
 
         expect(new_card.column_id).to eq(recency_column.id)
         expect(new_card.position).to be < existing.position
-        expect(new_card.column_changed_at.to_i).to eq(Time.current.to_i)
+        expect(new_card.column_changed_at.to_i).to eq(Time.zone.now.to_i)
       end
     end
   end
