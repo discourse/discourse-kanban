@@ -27,7 +27,6 @@ import {
   sortCardsForColumn,
 } from "../lib/kanban-card-ordering";
 import { kanbanBoardUrl } from "../lib/kanban-urls";
-import Column from "../models/column";
 import KanbanColumn from "./kanban-column";
 import KanbanBoardSettings from "./modal/kanban-board-settings";
 import KanbanCardDetailModal from "./modal/kanban-card-detail";
@@ -125,7 +124,7 @@ export default class KanbanBoardViewer extends Component {
 
   constructor() {
     super(...arguments);
-    this.board = this.args.model.board;
+    this.board = { ...this.args.model.board };
     this.columns = this.args.model.columns;
 
     if (this.args.initialCardId) {
@@ -395,11 +394,11 @@ export default class KanbanBoardViewer extends Component {
     }
 
     const snapshot = this.columns.map((col) => ({
-      column: col,
-      cards: [...col.cards],
+      ...col,
+      cards: col.cards.map((c) => ({ ...c })),
     }));
 
-    fromColumn.cards = fromColumn.cards.filter((_, i) => i !== cardIndex);
+    fromColumn.cards.splice(cardIndex, 1);
 
     let insertIndex = targetIsRecency ? 0 : toColumn.cards.length;
     if (!targetIsRecency && afterCardId != null) {
@@ -407,15 +406,18 @@ export default class KanbanBoardViewer extends Component {
       if (idx !== -1) {
         insertIndex = idx + 1;
       }
-    } else if (targetIsRecency) {
+    } else {
       insertIndex = 0;
     }
-    toColumn.cards = [
-      ...toColumn.cards.slice(0, insertIndex),
-      card,
-      ...toColumn.cards.slice(insertIndex),
-    ];
+    toColumn.cards.splice(insertIndex, 0, card);
     card.column_id = toColumnId;
+
+    this.columns = this.columns.map((col) => {
+      if (col.id === fromColumnId || col.id === toColumnId) {
+        return { ...col, cards: [...col.cards] };
+      }
+      return col;
+    });
     this.dragData = null;
 
     const data = {
@@ -439,25 +441,26 @@ export default class KanbanBoardViewer extends Component {
           .flatMap((col) => col.cards)
           .find((c) => c.id === result.card.id);
         const mergedCard = existingCard
-          ? Object.assign(existingCard, result.card)
+          ? { ...existingCard, ...result.card }
           : result.card;
+        const withoutCard = this.columns.map((col) => ({
+          ...col,
+          cards: col.cards.filter((c) => c.id !== result.card.id),
+        }));
 
-        this.columns.forEach((col) => {
-          col.cards = col.cards.filter((c) => c.id !== mergedCard.id);
+        this.columns = withoutCard.map((col) => {
+          if (col.id === mergedCard.column_id) {
+            return {
+              ...col,
+              cards: sortCardsForColumn(col, [...col.cards, mergedCard]),
+            };
+          }
+          return col;
         });
-        const destCol = this.columns.find(
-          (c) => c.id === mergedCard.column_id
-        );
-        if (destCol) {
-          destCol.cards = sortCardsForColumn(destCol, [
-            ...destCol.cards,
-            mergedCard,
-          ]);
-        }
       }
       this._highlightDroppedCard(card.id);
     } catch (error) {
-      snapshot.forEach(({ column, cards }) => (column.cards = cards));
+      this.columns = snapshot;
       popupAjaxError(error);
     }
   }
