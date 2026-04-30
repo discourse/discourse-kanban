@@ -57,7 +57,6 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
       board.require_confirmation = false;
 
       this.model = { board, columns };
-
       await render(
         <template><KanbanBoardViewer @model={{this.model}} /></template>
       );

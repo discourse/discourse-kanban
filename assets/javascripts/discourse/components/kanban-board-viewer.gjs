@@ -27,6 +27,7 @@ import {
   sortCardsForColumn,
 } from "../lib/kanban-card-ordering";
 import { kanbanBoardUrl } from "../lib/kanban-urls";
+import Column from "../models/column";
 import KanbanColumn from "./kanban-column";
 import KanbanBoardSettings from "./modal/kanban-board-settings";
 import KanbanCardDetailModal from "./modal/kanban-card-detail";
@@ -125,10 +126,7 @@ export default class KanbanBoardViewer extends Component {
   constructor() {
     super(...arguments);
     this.board = { ...this.args.model.board };
-    this.columns = this.args.model.columns.map((col) => ({
-      ...col,
-      cards: sortCardsForColumn(col, col.cards || []),
-    }));
+    this.columns = this.args.model.columns;
 
     if (this.args.initialCardId) {
       schedule("afterRender", () => {
