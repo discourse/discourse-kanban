@@ -48,13 +48,14 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
     sinon.stub(this.messageBus, "subscribe");
     sinon.stub(this.messageBus, "unsubscribe");
 
-    this.renderBoard = async (columns) => {
+    this.renderBoard = async (columns, boardOverrides = {}) => {
       const board = this.fabricators.board({
         id: 1,
         can_write: true,
         can_manage: false,
       });
       board.require_confirmation = false;
+      Object.assign(board, boardOverrides);
 
       this.model = { board, columns };
       await render(
@@ -231,11 +232,10 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
       return Promise.resolve();
     });
 
-    await this.renderBoard([
-      this.makeColumn({ id: 10, title: "Todo", cards: [] }),
-    ]);
-    this.model.board.category_ids = [1];
-    this.model.board.tag_names = [];
+    await this.renderBoard(
+      [this.makeColumn({ id: 10, title: "Todo", cards: [] })],
+      { category_ids: [1], tag_names: [] }
+    );
 
     pretender.get("/t/777.json", () => {
       return response({ id: 777, category_id: 2, tags: [] });
