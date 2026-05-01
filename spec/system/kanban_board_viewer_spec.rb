@@ -420,7 +420,6 @@ describe "Kanban Board Viewer" do
       board_viewer.click_add_card("To Do")
       expect(board_viewer).to have_card_detail_modal
 
-      find(".kanban-card-detail-modal .kanban-editable-title__text").click
       find(".kanban-card-detail-modal .kanban-editable-title__input").send_keys(:tab)
       expect(page.active_element).to eq(
         first(

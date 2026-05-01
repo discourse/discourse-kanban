@@ -3,17 +3,12 @@ import { tracked } from "@glimmer/tracking";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
 import { isEmpty } from "@ember/utils";
-import { modifier } from "ember-modifier";
 import DButton from "discourse/components/d-button";
 import concatClass from "discourse/helpers/concat-class";
+import autoFocus from "discourse/modifiers/auto-focus";
 
 class KanbanEditableTitleUi extends Component {
-  @tracked isEditing = false;
-
-  focusInput = modifier((element) => {
-    element.focus();
-    element.select();
-  });
+  @tracked isEditing = isEmpty(this.args.field.value);
 
   get hasValue() {
     return !isEmpty(this.args.field.value);
@@ -65,7 +60,7 @@ class KanbanEditableTitleUi extends Component {
         disabled={{@field.disabled}}
         aria-invalid={{if @field.error "true"}}
         aria-describedby={{if @field.error @field.errorId}}
-        {{this.focusInput}}
+        {{autoFocus selectText=true}}
         {{on "input" this.onInput}}
         {{on "blur" this.finishEditing}}
         {{on "keydown" this.handleKeydown}}

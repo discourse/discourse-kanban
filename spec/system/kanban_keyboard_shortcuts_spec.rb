@@ -137,7 +137,6 @@ describe "Kanban Keyboard Shortcuts" do
       board_viewer.visit_board(board)
 
       board_viewer.click_add_card("To Do")
-      find(".kanban-editable-title__text").click
       find(".kanban-editable-title__input").send_keys("hjkl")
 
       expect(find(".kanban-editable-title__input").value).to eq("hjkl")
