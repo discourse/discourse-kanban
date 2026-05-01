@@ -24,6 +24,27 @@ module("Integration | Component | KanbanCard", function (hooks) {
     assert.dom(".kanban-card").exists();
     assert.dom(".kanban-card__title").hasText(this.card.title);
   });
+
+  test("suppresses column tags on floater cards", async function (assert) {
+    this.card.tags = [
+      { id: 1, name: "todo", slug: "todo" },
+      { id: 2, name: "unrelated", slug: "unrelated" },
+    ];
+    this.columnTags = ["todo"];
+
+    await render(
+      <template>
+        <KanbanCard
+          @card={{this.card}}
+          @board={{this.board}}
+          @columnTags={{this.columnTags}}
+        />
+      </template>
+    );
+
+    assert.dom(".kanban-card__tags").hasText("unrelated");
+    assert.dom(".kanban-card__tags").doesNotContainText("todo");
+  });
 });
 
 module(

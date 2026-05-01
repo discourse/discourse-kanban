@@ -151,8 +151,9 @@ module DiscourseKanban
             )
     end
 
-    def place_and_save(card:, column:, params:, guardian:, options:, board:)
+    def place_and_save(card:, column:, params:, guardian:, options:, board:, original_column_id:)
       raw = options.raw_card_params.presence || context[:raw_card_params] || {}
+      tags_changed = raw.key?("tag_ids") || raw.key?("tag_names")
       position_first = raw.key?("after_card_id") && raw["after_card_id"].blank?
       needs_placement =
         context[:promoted] || column.id != card.column_id || raw.key?("after_card_id")
@@ -184,6 +185,9 @@ module DiscourseKanban
           )
         end
 
+        if card.floater? && (column.id != original_column_id || tags_changed)
+          LooseCardTagMutator.apply_to_card!(card:, column:)
+        end
         TopicMutator.apply!(topic: card.topic, column:, guardian:) if column_changed
 
         card.save!

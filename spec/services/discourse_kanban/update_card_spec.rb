@@ -108,6 +108,156 @@ RSpec.describe DiscourseKanban::UpdateCard do
       end
     end
 
+    context "when moving a floater card between tagged columns" do
+      fab!(:todo_tag, :tag) { Fabricate(:tag, name: "todo") }
+      fab!(:done_tag, :tag) { Fabricate(:tag, name: "done") }
+      fab!(:unrelated_tag, :tag) { Fabricate(:tag, name: "unrelated") }
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :floater,
+          title: "Move tagged card",
+          tag_ids: [todo_tag.id, unrelated_tag.id],
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      end
+
+      let(:params) { { board_id: board.id, id: card.id, column_id: col_done.id } }
+
+      before do
+        col_todo.update!(tag_id: todo_tag.id)
+        col_done.update!(tag_id: done_tag.id)
+      end
+
+      it "replaces the source column tag with the destination column tag" do
+        result
+        expect(card.reload.tag_ids).to contain_exactly(done_tag.id, unrelated_tag.id)
+      end
+    end
+
+    context "when moving a floater card to an untagged column" do
+      fab!(:todo_tag, :tag) { Fabricate(:tag, name: "todo") }
+      fab!(:done_tag, :tag) { Fabricate(:tag, name: "done") }
+      fab!(:unrelated_tag, :tag) { Fabricate(:tag, name: "unrelated") }
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :floater,
+          title: "Move to untagged",
+          tag_ids: [todo_tag.id, done_tag.id, unrelated_tag.id],
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      end
+
+      let(:params) { { board_id: board.id, id: card.id, column_id: col_done.id } }
+
+      before do
+        col_todo.update!(tag_id: todo_tag.id)
+        board.columns.create!(title: "Tagged sibling", position: 3, tag_id: done_tag.id)
+      end
+
+      it "removes board column tags and preserves unrelated tags" do
+        result
+        expect(card.reload.tag_ids).to contain_exactly(unrelated_tag.id)
+      end
+    end
+
+    context "when reordering a floater card within the same tagged column" do
+      fab!(:column_tag, :tag) { Fabricate(:tag, name: "same-column") }
+      fab!(:unrelated_tag, :tag) { Fabricate(:tag, name: "unrelated") }
+      fab!(:other_card) do
+        board.cards.create!(
+          card_type: :floater,
+          title: "Other",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      end
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :floater,
+          title: "Reorder me",
+          tag_ids: [unrelated_tag.id],
+          column_id: col_todo.id,
+          position: 1,
+          created_by_id: admin.id,
+        )
+      end
+
+      let(:raw_card_params) do
+        { "column_id" => col_todo.id.to_s, "after_card_id" => other_card.id.to_s }
+      end
+      let(:params) do
+        { board_id: board.id, id: card.id, column_id: col_todo.id, after_card_id: other_card.id }
+      end
+
+      before { col_todo.update!(tag_id: column_tag.id) }
+
+      it "does not apply column tag resolution" do
+        result
+        expect(card.reload.tag_ids).to contain_exactly(unrelated_tag.id)
+      end
+    end
+
+    context "when editing tags on a floater card in a tagged column" do
+      fab!(:column_tag, :tag) { Fabricate(:tag, name: "column-tag") }
+      fab!(:unrelated_tag, :tag) { Fabricate(:tag, name: "unrelated") }
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :floater,
+          title: "Edit tags",
+          tag_ids: [column_tag.id],
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      end
+
+      let(:raw_card_params) { { "tag_ids" => [unrelated_tag.id] } }
+      let(:params) { { board_id: board.id, id: card.id, tag_ids: [unrelated_tag.id] } }
+
+      before { col_todo.update!(tag_id: column_tag.id) }
+
+      it "re-applies the column tag" do
+        result
+        expect(card.reload.tag_ids).to contain_exactly(column_tag.id, unrelated_tag.id)
+      end
+    end
+
+    context "when editing tags on a floater card to include a sibling column tag" do
+      fab!(:column_tag, :tag) { Fabricate(:tag, name: "column-tag") }
+      fab!(:sibling_tag, :tag) { Fabricate(:tag, name: "sibling-tag") }
+      fab!(:unrelated_tag, :tag) { Fabricate(:tag, name: "unrelated") }
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :floater,
+          title: "Edit sibling tag",
+          tag_ids: [column_tag.id],
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      end
+
+      let(:raw_card_params) { { "tag_ids" => [sibling_tag.id, unrelated_tag.id] } }
+      let(:params) do
+        { board_id: board.id, id: card.id, tag_ids: [sibling_tag.id, unrelated_tag.id] }
+      end
+
+      before do
+        col_todo.update!(tag_id: column_tag.id)
+        col_done.update!(tag_id: sibling_tag.id)
+      end
+
+      it "removes the sibling column tag and preserves unrelated tags" do
+        result
+        expect(card.reload.tag_ids).to contain_exactly(column_tag.id, unrelated_tag.id)
+      end
+    end
+
     context "when preserving notes when not provided" do
       fab!(:card) do
         board.cards.create!(

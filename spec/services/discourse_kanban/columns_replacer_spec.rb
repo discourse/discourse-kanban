@@ -163,6 +163,125 @@ RSpec.describe DiscourseKanban::ColumnsReplacer do
           I18n.t("discourse_kanban.errors.cannot_use_same_tag_multiple_times", tag_name: tag.name),
         )
       end
+
+      it "applies a new column tag to existing floater cards" do
+        column = board.columns.create!(title: "Backlog", position: 0)
+        unrelated_tag = Fabricate(:tag, name: "unrelated")
+        card =
+          board.cards.create!(
+            card_type: :floater,
+            title: "Existing floater",
+            tag_ids: [unrelated_tag.id],
+            column_id: column.id,
+            position: 0,
+            created_by_id: admin.id,
+          )
+
+        DiscourseKanban::ColumnsReplacer.replace!(
+          board:,
+          columns_payload: [{ "id" => column.id, "title" => "Backlog", "tag_name" => tag.name }],
+          user: admin,
+        )
+
+        expect(card.reload.tag_ids).to contain_exactly(tag.id, unrelated_tag.id)
+      end
+
+      it "replaces a changed column tag on existing floater cards" do
+        old_tag = Fabricate(:tag, name: "old-column")
+        new_tag = Fabricate(:tag, name: "new-column")
+        column = board.columns.create!(title: "Doing", position: 0, tag_id: old_tag.id)
+        unrelated_tag = Fabricate(:tag, name: "preserved")
+        card =
+          board.cards.create!(
+            card_type: :floater,
+            title: "Existing floater",
+            tag_ids: [old_tag.id, unrelated_tag.id],
+            column_id: column.id,
+            position: 0,
+            created_by_id: admin.id,
+          )
+
+        DiscourseKanban::ColumnsReplacer.replace!(
+          board:,
+          columns_payload: [{ "id" => column.id, "title" => "Doing", "tag_name" => new_tag.name }],
+          user: admin,
+        )
+
+        expect(card.reload.tag_ids).to contain_exactly(new_tag.id, unrelated_tag.id)
+      end
+
+      it "normalizes floater cards in other columns when a new column tag is assigned" do
+        todo_tag = Fabricate(:tag, name: "todo")
+        blocked_tag = Fabricate(:tag, name: "blocked")
+        column = board.columns.create!(title: "Todo", position: 0, tag_id: todo_tag.id)
+        blocked_column = board.columns.create!(title: "Blocked", position: 1)
+        card =
+          board.cards.create!(
+            card_type: :floater,
+            title: "Existing floater",
+            tag_ids: [todo_tag.id, blocked_tag.id],
+            column_id: column.id,
+            position: 0,
+            created_by_id: admin.id,
+          )
+
+        DiscourseKanban::ColumnsReplacer.replace!(
+          board:,
+          columns_payload: [
+            { "id" => column.id, "title" => "Todo", "tag_name" => todo_tag.name },
+            { "id" => blocked_column.id, "title" => "Blocked", "tag_name" => blocked_tag.name },
+          ],
+          user: admin,
+        )
+
+        expect(card.reload.tag_ids).to contain_exactly(todo_tag.id)
+      end
+
+      it "rolls back column changes when loose-card tag enforcement fails" do
+        column = board.columns.create!(title: "Doing", position: 0)
+        allow(DiscourseKanban::LooseCardTagMutator).to receive(:apply_to_column!).and_raise(
+          ActiveRecord::RecordInvalid,
+        )
+
+        expect {
+          DiscourseKanban::ColumnsReplacer.replace!(
+            board:,
+            columns_payload: [{ "id" => column.id, "title" => "Doing", "tag_name" => tag.name }],
+            user: admin,
+          )
+        }.to raise_error(ActiveRecord::RecordInvalid)
+
+        expect(column.reload.tag_id).to be_nil
+      end
+
+      it "removes board column tags when a column tag is removed" do
+        old_tag = Fabricate(:tag, name: "old-column")
+        sibling_tag = Fabricate(:tag, name: "sibling-column")
+        unrelated_tag = Fabricate(:tag, name: "preserved")
+        column = board.columns.create!(title: "Doing", position: 0, tag_id: old_tag.id)
+        sibling_column =
+          board.columns.create!(title: "Sibling", position: 1, tag_id: sibling_tag.id)
+        card =
+          board.cards.create!(
+            card_type: :floater,
+            title: "Existing floater",
+            tag_ids: [old_tag.id, sibling_tag.id, unrelated_tag.id],
+            column_id: column.id,
+            position: 0,
+            created_by_id: admin.id,
+          )
+
+        DiscourseKanban::ColumnsReplacer.replace!(
+          board:,
+          columns_payload: [
+            { "id" => column.id, "title" => "Doing" },
+            { "id" => sibling_column.id, "title" => "Sibling", "tag_name" => sibling_tag.name },
+          ],
+          user: admin,
+        )
+
+        expect(card.reload.tag_ids).to contain_exactly(unrelated_tag.id)
+      end
     end
   end
 end

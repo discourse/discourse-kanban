@@ -85,6 +85,30 @@ RSpec.describe DiscourseKanban::CreateCard do
       end
     end
 
+    context "when creating a floater card in a tagged column" do
+      fab!(:column_tag, :tag) { Fabricate(:tag, name: "column-tag") }
+      fab!(:sibling_tag, :tag) { Fabricate(:tag, name: "sibling-tag") }
+      fab!(:unrelated_tag, :tag) { Fabricate(:tag, name: "unrelated-tag") }
+      fab!(:tagged_column) do
+        board.columns.create!(title: "Tagged", position: 3, tag_id: column_tag.id)
+      end
+
+      let(:params) do
+        {
+          board_id: board.id,
+          column_id: tagged_column.id,
+          title: "Tagged floater",
+          tag_ids: [sibling_tag.id, unrelated_tag.id],
+        }
+      end
+
+      before { board.columns.create!(title: "Sibling", position: 4, tag_id: sibling_tag.id) }
+
+      it "applies the column tag using the column tag resolution rules" do
+        expect(result[:card].tag_ids).to contain_exactly(column_tag.id, unrelated_tag.id)
+      end
+    end
+
     context "when creating a topic card" do
       let(:params) { { board_id: board.id, column_id: column.id, topic_id: topic.id } }
       let(:dependencies) { { guardian: admin.guardian } }

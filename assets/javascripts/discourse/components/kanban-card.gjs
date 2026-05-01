@@ -67,25 +67,39 @@ export default class KanbanCard extends Component {
     return this.isTopicCard ? this.topic.title : this.args.card.title;
   }
 
+  get columnTagNames() {
+    return new Set(
+      (this.args.columnTags || []).map((tag) => tag.toLowerCase())
+    );
+  }
+
+  get visibleFloaterTags() {
+    const tags = this.args.card.tags || [];
+    if (!tags.length) {
+      return [];
+    }
+
+    return tags.filter((tag) => {
+      const name = typeof tag === "string" ? tag : tag.name;
+      return !this.columnTagNames.has(name?.toLowerCase());
+    });
+  }
+
   get tagsHtml() {
     if (this.isTopicCard) {
       if (!this.args.board.show_tags || !this.topic?.tags) {
         return null;
       }
 
-      const columnTags = new Set(
-        (this.args.columnTags || []).map((t) => t.toLowerCase())
-      );
-
       const filtered = this.topic.tags.filter(
-        (t) => !columnTags.has(t.toLowerCase())
+        (tag) => !this.columnTagNames.has(tag.toLowerCase())
       );
 
       return filtered.length ? renderTags(null, { tags: filtered }) : null;
     }
 
-    const tags = this.args.card.tags;
-    return tags?.length ? renderTags(null, { tags }) : null;
+    const tags = this.visibleFloaterTags;
+    return tags.length ? renderTags(null, { tags }) : null;
   }
 
   get category() {

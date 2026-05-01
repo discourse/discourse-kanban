@@ -111,17 +111,19 @@ module DiscourseKanban
     end
 
     def build_floater_card(board, column, params, guardian)
+      tag_ids = resolve_all_tag_ids(params.tag_ids, params.tag_names, guardian)
       card =
         board.cards.build(
           card_type: :floater,
           title: params.title,
           notes: params.notes,
-          tag_ids: resolve_all_tag_ids(params.tag_ids, params.tag_names, guardian),
+          tag_ids:,
           assigned_to: resolve_assignee(params.assigned_to_name, guardian),
           created_by_id: guardian.user.id,
           updated_by_id: guardian.user.id,
         )
 
+      LooseCardTagMutator.apply_to_card!(card:, column:)
       CardOrdering.append_to_column!(card, column)
       card.save!
       card

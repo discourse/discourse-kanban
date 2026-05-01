@@ -41,29 +41,11 @@ module DiscourseKanban
     end
 
     def self.move_topic_tags(topic, column, guardian)
-      all_column_tag_ids = column.board.columns.filter_map { |c| c.tag_id.presence }.uniq
+      resolved_tag_ids = ColumnTagResolver.resolve_tag_ids(current_tag_ids: topic.tag_ids, column:)
+      return if resolved_tag_ids.sort == topic.tag_ids.sort
 
-      if column.tag_id.present?
-        column_tag = Tag.find_by(id: column.tag_id)
-        return if column_tag.blank?
-
-        sibling_tag_ids = all_column_tag_ids - [column.tag_id]
-        sibling_tag_names = Tag.where(id: sibling_tag_ids).pluck(:name)
-
-        current_tags = topic.tags.map(&:name)
-        updated_tags = (current_tags - sibling_tag_names + [column_tag.name]).uniq
-
-        DiscourseTagging.tag_topic_by_names(topic, guardian, updated_tags)
-      else
-        return if all_column_tag_ids.empty?
-
-        board_tag_names = Tag.where(id: all_column_tag_ids).pluck(:name)
-        current_tags = topic.tags.map(&:name)
-        updated_tags = current_tags - board_tag_names
-        return if updated_tags == current_tags
-
-        DiscourseTagging.tag_topic_by_names(topic, guardian, updated_tags)
-      end
+      updated_tags = Card.ordered_tags(resolved_tag_ids).map(&:name)
+      DiscourseTagging.tag_topic_by_names(topic, guardian, updated_tags)
     end
 
     def self.move_topic_assignment(topic, column, user)
