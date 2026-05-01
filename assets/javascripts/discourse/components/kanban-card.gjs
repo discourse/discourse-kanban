@@ -4,6 +4,7 @@ import { fn } from "@ember/helper";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
 import { getOwner } from "@ember/owner";
+import { cancel } from "@ember/runloop";
 import { service } from "@ember/service";
 import { trustHTML } from "@ember/template";
 import DButton from "discourse/components/d-button";
@@ -15,6 +16,7 @@ import concatClass from "discourse/helpers/concat-class";
 import icon from "discourse/helpers/d-icon";
 import formatDate from "discourse/helpers/format-date";
 import { renderAvatar } from "discourse/helpers/user-avatar";
+import discourseLater from "discourse/lib/later";
 import renderTags from "discourse/lib/render-tags";
 import DiscourseURL from "discourse/lib/url";
 import Category from "discourse/models/category";
@@ -423,7 +425,7 @@ export default class KanbanCard extends Component {
   #scheduleDragSourceHide(cardElement, cardHeight) {
     this.#clearDragHideTimer();
 
-    this.dragHideTimer = setTimeout(() => {
+    this.dragHideTimer = discourseLater(this, () => {
       this.dragHideTimer = null;
 
       if (!this.isDestroying && !this.isDestroyed) {
@@ -432,12 +434,12 @@ export default class KanbanCard extends Component {
         }
         this.dragging = true;
       }
-    }, 0);
+    });
   }
 
   #clearDragHideTimer() {
     if (this.dragHideTimer) {
-      clearTimeout(this.dragHideTimer);
+      cancel(this.dragHideTimer);
       this.dragHideTimer = null;
     }
   }

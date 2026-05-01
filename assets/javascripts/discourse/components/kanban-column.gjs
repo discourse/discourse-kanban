@@ -10,6 +10,7 @@ import DMenu from "discourse/float-kit/components/d-menu";
 import icon from "discourse/helpers/d-icon";
 import { eq } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
+import { autoScrollSpeedForPointer } from "../lib/kanban-auto-scroll";
 import { isRecencyColumn } from "../lib/kanban-card-ordering";
 import { animateCardReorder, captureCardRects } from "../lib/kanban-motion";
 import KanbanCard from "./kanban-card";
@@ -49,6 +50,17 @@ export default class KanbanColumn extends Component {
   @service modal;
 
   @tracked showAllCards = false;
+
+  autoScrollFrame = null;
+  autoScrollSpeed = 0;
+  autoScrollContainer = null;
+  autoScrollHasDocumentListeners = false;
+  stopAutoScroll = () => this.#stopAutoScroll();
+
+  willDestroy() {
+    super.willDestroy(...arguments);
+    this.#stopAutoScroll();
+  }
 
   get cardCount() {
     return this.args.column.cards?.length || 0;
@@ -155,6 +167,7 @@ export default class KanbanColumn extends Component {
     event.preventDefault();
     const dragData = this.args.dragData;
     if (!dragData) {
+      this.#stopAutoScroll();
       return;
     }
 
@@ -164,8 +177,11 @@ export default class KanbanColumn extends Component {
       ".kanban-column__cards"
     );
     if (!cardsContainer) {
+      this.#stopAutoScroll();
       return;
     }
+
+    this.#updateAutoScroll(cardsContainer, event.clientY);
 
     if (this.isRecencySorted && dragData.fromColumnId === this.args.column.id) {
       this.removeDropIndicator(event.currentTarget, { animate: true });
@@ -252,6 +268,7 @@ export default class KanbanColumn extends Component {
     if (!event.currentTarget.contains(event.relatedTarget)) {
       event.currentTarget.classList.remove("drag-target");
       this.removeDropIndicator(event.currentTarget, { animate: true });
+      this.#stopAutoScroll();
     }
   }
 
@@ -259,6 +276,7 @@ export default class KanbanColumn extends Component {
   drop(event) {
     event.preventDefault();
     event.currentTarget.classList.remove("drag-target");
+    this.#stopAutoScroll();
 
     const dragData = this.args.dragData;
     if (!dragData) {
@@ -331,6 +349,88 @@ export default class KanbanColumn extends Component {
         skipCardIds: dragData ? [dragData.cardId] : [],
       });
     }
+  }
+
+  #updateAutoScroll(cardsContainer, clientY) {
+    const speed = autoScrollSpeedForPointer(
+      clientY,
+      cardsContainer.getBoundingClientRect()
+    );
+
+    if (
+      (speed < 0 && cardsContainer.scrollTop <= 0) ||
+      (speed > 0 &&
+        cardsContainer.scrollTop + cardsContainer.clientHeight >=
+          cardsContainer.scrollHeight)
+    ) {
+      this.#stopAutoScroll();
+      return;
+    }
+
+    this.autoScrollSpeed = speed;
+    this.autoScrollContainer = cardsContainer;
+    this.#ensureAutoScrollDocumentListeners();
+
+    if (speed === 0) {
+      this.#stopAutoScroll();
+      return;
+    }
+
+    if (!this.autoScrollFrame) {
+      this.#autoScroll();
+    }
+  }
+
+  #autoScroll() {
+    this.autoScrollFrame = requestAnimationFrame(() => {
+      this.autoScrollFrame = null;
+
+      const container = this.autoScrollContainer;
+      if (!container || this.autoScrollSpeed === 0) {
+        return;
+      }
+
+      const previousScrollTop = container.scrollTop;
+      container.scrollTop += this.autoScrollSpeed;
+
+      if (container.scrollTop === previousScrollTop) {
+        this.#stopAutoScroll();
+        return;
+      }
+
+      this.#autoScroll();
+    });
+  }
+
+  #ensureAutoScrollDocumentListeners() {
+    if (this.autoScrollHasDocumentListeners) {
+      return;
+    }
+
+    document.addEventListener("dragend", this.stopAutoScroll, true);
+    document.addEventListener("drop", this.stopAutoScroll, true);
+    this.autoScrollHasDocumentListeners = true;
+  }
+
+  #removeAutoScrollDocumentListeners() {
+    if (!this.autoScrollHasDocumentListeners) {
+      return;
+    }
+
+    document.removeEventListener("dragend", this.stopAutoScroll, true);
+    document.removeEventListener("drop", this.stopAutoScroll, true);
+    this.autoScrollHasDocumentListeners = false;
+  }
+
+  #stopAutoScroll() {
+    if (this.autoScrollFrame) {
+      cancelAnimationFrame(this.autoScrollFrame);
+      this.autoScrollFrame = null;
+    }
+
+    this.autoScrollSpeed = 0;
+    this.autoScrollContainer = null;
+    this.#removeAutoScrollDocumentListeners();
   }
 
   #indicatorMatchesPosition(cardsContainer, indicator, insertBefore) {

@@ -4,7 +4,7 @@ import { fn } from "@ember/helper";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
 import didInsert from "@ember/render-modifiers/modifiers/did-insert";
-import { schedule } from "@ember/runloop";
+import { cancel, next, schedule } from "@ember/runloop";
 import { service } from "@ember/service";
 import { modifier } from "ember-modifier";
 import DButton from "discourse/components/d-button";
@@ -19,9 +19,12 @@ import discourseTags from "discourse/helpers/discourse-tags";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
 import { bind } from "discourse/lib/decorators";
+import { isTesting } from "discourse/lib/environment";
+import discourseLater from "discourse/lib/later";
 import DiscourseURL from "discourse/lib/url";
 import Category from "discourse/models/category";
 import { i18n } from "discourse-i18n";
+import { autoScrollSpeedForPointer } from "../lib/kanban-auto-scroll";
 import {
   isRecencyColumn,
   sortCardsForColumn,
@@ -104,6 +107,23 @@ export default class KanbanBoardViewer extends Component {
   @tracked dropHighlightCardId = null;
   @tracked fullscreen = false;
 
+  horizontalAutoScrollFrame = null;
+  horizontalAutoScrollSpeed = 0;
+  horizontalAutoScrollContainer = null;
+  horizontalAutoScrollHasDocumentListeners = false;
+  stopHorizontalAutoScroll = () => this.#stopHorizontalAutoScroll();
+  updateHorizontalAutoScroll = (event) => {
+    if (!this.dragData || !this.horizontalAutoScrollContainer) {
+      this.#stopHorizontalAutoScroll();
+      return;
+    }
+
+    this.#updateHorizontalAutoScroll(
+      this.horizontalAutoScrollContainer,
+      event.clientX
+    );
+  };
+
   setupMessageBus = modifier((element) => {
     const channel = `/kanban/boards/${this.board.id}`;
     this.messageBus.subscribe(channel, this.onBoardMessage);
@@ -146,6 +166,7 @@ export default class KanbanBoardViewer extends Component {
     super.willDestroy(...arguments);
     this._clearDropHighlight();
     this._cleanupPromotion();
+    this.#stopHorizontalAutoScroll();
   }
 
   @bind
@@ -334,11 +355,35 @@ export default class KanbanBoardViewer extends Component {
 
   @action
   onDragEnd(cardId) {
-    setTimeout(() => {
+    next(this, () => {
       if (this.dragData?.cardId === cardId) {
         this.dragData = null;
       }
-    }, 0);
+    });
+  }
+
+  @action
+  dragOverBoardContainer(event) {
+    const dragData = this.dragData;
+    if (!dragData) {
+      this.#stopHorizontalAutoScroll();
+      return;
+    }
+
+    event.preventDefault();
+    this.#updateHorizontalAutoScroll(event.currentTarget, event.clientX);
+  }
+
+  @action
+  dragLeaveBoardContainer(event) {
+    if (!this.dragData && !event.currentTarget.contains(event.relatedTarget)) {
+      this.#stopHorizontalAutoScroll();
+    }
+  }
+
+  @action
+  dropBoardContainer() {
+    this.#stopHorizontalAutoScroll();
   }
 
   @action
@@ -463,6 +508,102 @@ export default class KanbanBoardViewer extends Component {
       this.columns = snapshot;
       popupAjaxError(error);
     }
+  }
+
+  #updateHorizontalAutoScroll(container, clientX) {
+    const speed = autoScrollSpeedForPointer(
+      clientX,
+      container.getBoundingClientRect(),
+      "x"
+    );
+
+    if (
+      (speed < 0 && container.scrollLeft <= 0) ||
+      (speed > 0 &&
+        container.scrollLeft + container.clientWidth >= container.scrollWidth)
+    ) {
+      this.#stopHorizontalAutoScroll();
+      return;
+    }
+
+    this.horizontalAutoScrollSpeed = speed;
+    this.horizontalAutoScrollContainer = container;
+    this.#ensureHorizontalAutoScrollDocumentListeners();
+
+    if (speed === 0) {
+      this.#stopHorizontalAutoScroll();
+      return;
+    }
+
+    if (!this.horizontalAutoScrollFrame) {
+      this.#horizontalAutoScroll();
+    }
+  }
+
+  #horizontalAutoScroll() {
+    this.horizontalAutoScrollFrame = requestAnimationFrame(() => {
+      this.horizontalAutoScrollFrame = null;
+
+      const container = this.horizontalAutoScrollContainer;
+      if (!container || this.horizontalAutoScrollSpeed === 0) {
+        return;
+      }
+
+      const previousScrollLeft = container.scrollLeft;
+      container.scrollLeft += this.horizontalAutoScrollSpeed;
+
+      if (container.scrollLeft === previousScrollLeft) {
+        this.#stopHorizontalAutoScroll();
+        return;
+      }
+
+      this.#horizontalAutoScroll();
+    });
+  }
+
+  #ensureHorizontalAutoScrollDocumentListeners() {
+    if (this.horizontalAutoScrollHasDocumentListeners) {
+      return;
+    }
+
+    document.addEventListener(
+      "dragover",
+      this.updateHorizontalAutoScroll,
+      true
+    );
+    document.addEventListener("dragend", this.stopHorizontalAutoScroll, true);
+    document.addEventListener("drop", this.stopHorizontalAutoScroll, true);
+    this.horizontalAutoScrollHasDocumentListeners = true;
+  }
+
+  #removeHorizontalAutoScrollDocumentListeners() {
+    if (!this.horizontalAutoScrollHasDocumentListeners) {
+      return;
+    }
+
+    document.removeEventListener(
+      "dragover",
+      this.updateHorizontalAutoScroll,
+      true
+    );
+    document.removeEventListener(
+      "dragend",
+      this.stopHorizontalAutoScroll,
+      true
+    );
+    document.removeEventListener("drop", this.stopHorizontalAutoScroll, true);
+    this.horizontalAutoScrollHasDocumentListeners = false;
+  }
+
+  #stopHorizontalAutoScroll() {
+    if (this.horizontalAutoScrollFrame) {
+      cancelAnimationFrame(this.horizontalAutoScrollFrame);
+      this.horizontalAutoScrollFrame = null;
+    }
+
+    this.horizontalAutoScrollSpeed = 0;
+    this.horizontalAutoScrollContainer = null;
+    this.#removeHorizontalAutoScrollDocumentListeners();
   }
 
   _checkConstraintMismatches(topic, targetColumn) {
@@ -1173,18 +1314,26 @@ export default class KanbanBoardViewer extends Component {
       }
 
       this.dropHighlightCardId = cardId;
-      this._dropHighlightTimeout = setTimeout(() => {
-        if (this.dropHighlightCardId === cardId) {
-          this.dropHighlightCardId = null;
-        }
-        this._dropHighlightTimeout = null;
-      }, 1000);
+      if (isTesting()) {
+        return;
+      }
+
+      this._dropHighlightTimeout = discourseLater(
+        this,
+        () => {
+          if (this.dropHighlightCardId === cardId) {
+            this.dropHighlightCardId = null;
+          }
+          this._dropHighlightTimeout = null;
+        },
+        1000
+      );
     });
   }
 
   _clearDropHighlight() {
     if (this._dropHighlightTimeout) {
-      clearTimeout(this._dropHighlightTimeout);
+      cancel(this._dropHighlightTimeout);
       this._dropHighlightTimeout = null;
     }
   }
@@ -1295,7 +1444,12 @@ export default class KanbanBoardViewer extends Component {
       </div>
 
       {{#if this.columns.length}}
-        <div class="kanban-board-container">
+        <div
+          class="kanban-board-container"
+          {{on "dragover" this.dragOverBoardContainer}}
+          {{on "dragleave" this.dragLeaveBoardContainer}}
+          {{on "drop" this.dropBoardContainer}}
+        >
           {{#each this.columns key="id" as |column|}}
             <KanbanColumn
               @column={{column}}
