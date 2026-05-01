@@ -821,11 +821,13 @@ export default class KanbanBoardViewer extends Component {
       return null;
     }
 
-    return this._showConstraintFixModal(
+    const constraintFix = await this._showConstraintFixModal(
       { topic: topicData },
       column,
       mismatches
     );
+
+    return constraintFix ?? false;
   }
 
   #isTopicNotFoundError(error) {

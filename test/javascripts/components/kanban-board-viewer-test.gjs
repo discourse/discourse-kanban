@@ -1,5 +1,5 @@
 import { getOwner } from "@ember/owner";
-import { render, triggerEvent } from "@ember/test-helpers";
+import { click, render, triggerEvent } from "@ember/test-helpers";
 import { module, test } from "qunit";
 import sinon from "sinon";
 import { setupRenderingTest } from "discourse/tests/helpers/component-test";
@@ -214,6 +214,46 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
       [101, 102],
       "it sorts the moved card to the top of the recency column"
     );
+  });
+
+  test("canceling the constraint fix while adding a topic card stops creation", async function (assert) {
+    let addTopicAsCardModel;
+    let postRequests = 0;
+
+    const modal = getOwner(this).lookup("service:modal");
+    sinon.stub(modal, "show").callsFake((component, opts) => {
+      if (opts?.model?.onAddTopicAsCard) {
+        addTopicAsCardModel = opts.model;
+      } else if (opts?.model?.mismatches) {
+        opts.model.onCancel();
+      }
+
+      return Promise.resolve();
+    });
+
+    await this.renderBoard([
+      this.makeColumn({ id: 10, title: "Todo", cards: [] }),
+    ]);
+    this.model.board.category_ids = [1];
+    this.model.board.tag_names = [];
+
+    pretender.get("/t/777.json", () => {
+      return response({ id: 777, category_id: 2, tags: [] });
+    });
+
+    pretender.post("/kanban/boards/1/cards", () => {
+      postRequests++;
+      return response({ card: { id: 101, column_id: 10 } });
+    });
+
+    await click(".kanban-column__add-btn");
+    await click(".fk-d-menu li:last-child button");
+    await addTopicAsCardModel.onAddTopicAsCard({
+      topicId: 777,
+      title: "Wrong category",
+    });
+
+    assert.strictEqual(postRequests, 0, "it does not create the card");
   });
 
   test("same-column recency drops are ignored", async function (assert) {
