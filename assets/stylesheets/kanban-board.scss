@@ -191,6 +191,15 @@ body.kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
   overflow-x: auto;
   overflow-y: hidden;
 
+  &.is-drag-scrolling {
+    cursor: grabbing;
+    user-select: none;
+
+    * {
+      pointer-events: none;
+    }
+  }
+
   &__add-column {
     flex-shrink: 0;
     display: flex;
