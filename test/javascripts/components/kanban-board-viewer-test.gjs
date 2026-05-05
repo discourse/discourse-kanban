@@ -256,6 +256,210 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
     assert.strictEqual(postRequests, 0, "it does not create the card");
   });
 
+  test("clicking and dragging on the board scrolls columns horizontally", async function (assert) {
+    await this.renderBoard([
+      this.makeColumn({
+        id: 10,
+        title: "Todo",
+        cards: [
+          this.makeCard({
+            id: 101,
+            columnId: 10,
+            title: "Fix checkout",
+            position: 0,
+          }),
+        ],
+      }),
+      this.makeColumn({
+        id: 20,
+        title: "Done",
+        cards: [
+          this.makeCard({
+            id: 102,
+            columnId: 20,
+            title: "Ship receipts",
+            position: 0,
+          }),
+        ],
+      }),
+      this.makeColumn({
+        id: 30,
+        title: "In Progress",
+        cards: [
+          this.makeCard({
+            id: 103,
+            columnId: 30,
+            title: "Implement login page",
+            position: 0,
+          }),
+        ],
+      }),
+      this.makeColumn({
+        id: 40,
+        title: "Review",
+        cards: [
+          this.makeCard({
+            id: 104,
+            columnId: 40,
+            title: "Write integration test coverage",
+            position: 0,
+          }),
+        ],
+      }),
+      this.makeColumn({
+        id: 50,
+        title: "Deploy",
+        cards: [
+          this.makeCard({
+            id: 105,
+            columnId: 50,
+            title: "Deploy to staging",
+            position: 0,
+          }),
+        ],
+      }),
+      this.makeColumn({
+        id: 60,
+        title: "Done",
+        cards: [
+          this.makeCard({
+            id: 106,
+            columnId: 60,
+            title: "Deploy to production",
+            position: 0,
+          }),
+        ],
+      }),
+      this.makeColumn({
+        id: 70,
+        title: "Cancelled",
+        cards: [
+          this.makeCard({
+            id: 107,
+            columnId: 70,
+            title: "Cancel order",
+            position: 0,
+          }),
+        ],
+      }),
+      this.makeColumn({
+        id: 80,
+        title: "Archived",
+        cards: [
+          this.makeCard({
+            id: 108,
+            columnId: 80,
+            title: "Archive order",
+            position: 0,
+          }),
+        ],
+      }),
+      this.makeColumn({
+        id: 90,
+        title: "On Hold",
+        cards: [
+          this.makeCard({
+            id: 109,
+            columnId: 90,
+            title: "On hold order",
+            position: 0,
+          }),
+        ],
+      }),
+      this.makeColumn({
+        id: 100,
+        title: "Backlog",
+        cards: [
+          this.makeCard({
+            id: 110,
+            columnId: 100,
+            title: "Backlog order",
+            position: 0,
+          }),
+        ],
+      }),
+      this.makeColumn({
+        id: 110,
+        title: "In Progress",
+        cards: [
+          this.makeCard({
+            id: 111,
+            columnId: 110,
+            title: "In progress order",
+            position: 0,
+          }),
+        ],
+      }),
+      this.makeColumn({
+        id: 120,
+        title: "Review",
+        cards: [
+          this.makeCard({
+            id: 112,
+            columnId: 120,
+            title: "Review order",
+            position: 0,
+          }),
+        ],
+      }),
+      this.makeColumn({
+        id: 130,
+        title: "Deploy",
+        cards: [
+          this.makeCard({
+            id: 113,
+            columnId: 130,
+            title: "Deploy order",
+            position: 0,
+          }),
+        ],
+      }),
+      this.makeColumn({
+        id: 140,
+        title: "Done",
+        cards: [
+          this.makeCard({
+            id: 114,
+            columnId: 140,
+            title: "Done order",
+            position: 0,
+          }),
+        ],
+      }),
+    ]);
+
+    const container = document.querySelector(".kanban-board-container");
+
+    await triggerEvent(container, "pointerdown", {
+      pointerId: 1,
+      pointerType: "mouse",
+      button: 0,
+      clientX: 400,
+      clientY: 100,
+    });
+    await triggerEvent(container, "pointermove", {
+      pointerId: 1,
+      pointerType: "mouse",
+      clientX: -600,
+      clientY: 100,
+    });
+
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+
+    assert.strictEqual(
+      container.scrollLeft,
+      1000,
+      "it scrolls the container by the drag distance"
+    );
+
+    await triggerEvent(container, "pointerup", {
+      pointerId: 1,
+      pointerType: "mouse",
+      clientX: 200,
+      clientY: 100,
+    });
+  });
+
   test("same-column recency drops are ignored", async function (assert) {
     const firstCard = this.makeCard({
       id: 101,
