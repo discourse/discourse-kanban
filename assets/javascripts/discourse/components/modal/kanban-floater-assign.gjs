@@ -28,7 +28,7 @@ export default class KanbanFloaterAssign extends Component {
     <DModal
       @closeModal={{@closeModal}}
       @title={{i18n "discourse_kanban.board.assign_card"}}
-      class="kanban-floater-assign-modal"
+      class="discourse-kanban-floater-assign-modal"
     >
       <:body>
         <EmailGroupUserChooser

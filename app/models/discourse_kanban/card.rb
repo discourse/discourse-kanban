@@ -71,6 +71,11 @@ module DiscourseKanban
       recency_at.present? && recency_at >= RECENCY_WINDOW.ago
     end
 
+    def resolved_title
+      return title if topic_id.blank?
+      topic&.title
+    end
+
     private
 
     private_class_method :normalize_tag_id_values!, :tag_ids_missing_from_database

@@ -54,7 +54,7 @@ class KanbanEditableTitleUi extends Component {
         type="text"
         value={{@field.value}}
         placeholder={{@placeholder}}
-        class="kanban-editable-title__input"
+        class="discourse-kanban-editable-title__input"
         id={{@field.id}}
         name={{@field.name}}
         disabled={{@field.disabled}}
@@ -69,7 +69,7 @@ class KanbanEditableTitleUi extends Component {
       {{! template-lint-disable no-invalid-interactive }}
       <div
         class={{concatClass
-          "kanban-editable-title__text"
+          "discourse-kanban-editable-title__text"
           (unless this.hasValue "--empty")
         }}
         {{on "click" this.startEditing}}
@@ -81,7 +81,7 @@ class KanbanEditableTitleUi extends Component {
         @icon="xmark"
         @ariaLabel="modal.close"
         @title="modal.close"
-        class="btn-flat kanban-editable-title__close"
+        class="btn-flat discourse-kanban-editable-title__close"
       />
     {{/if}}
   </template>
@@ -97,7 +97,7 @@ export default class KanbanEditableTitle extends Component {
   }
 
   <template>
-    <div class="kanban-editable-title">
+    <div class="discourse-kanban-editable-title">
       <@form.Field
         @name={{@name}}
         @title={{@title}}

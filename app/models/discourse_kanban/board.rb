@@ -17,6 +17,12 @@ module DiscourseKanban
              inverse_of: :board
     belongs_to :created_by, class_name: "User"
     belongs_to :updated_by, class_name: "User", optional: true
+    has_many :tags, -> { order(:name) }, primary_key: :tag_ids, foreign_key: :id, class_name: "Tag"
+    has_many :categories,
+             -> { order(:name) },
+             primary_key: :category_ids,
+             foreign_key: :id,
+             class_name: "Category"
 
     enum :card_style, { detailed: 0, simple: 1 }, default: :detailed
 
@@ -31,7 +37,7 @@ module DiscourseKanban
     before_validation :normalize_group_ids
 
     def public_read?
-      effective_read_group_ids.empty?
+      allow_read_group_ids.empty?
     end
 
     def effective_read_group_ids

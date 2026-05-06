@@ -20,18 +20,20 @@ export function captureCardRects(container, { skipCardIds = [] } = {}) {
 
   const skipIds = new Set(skipCardIds.map(String));
 
-  container.querySelectorAll(".kanban-card").forEach((cardElement) => {
-    const cardId = cardElement.dataset.cardId;
-    if (!cardId || skipIds.has(cardId)) {
-      return;
-    }
+  container
+    .querySelectorAll(".discourse-kanban-card")
+    .forEach((cardElement) => {
+      const cardId = cardElement.dataset.cardId;
+      if (!cardId || skipIds.has(cardId)) {
+        return;
+      }
 
-    const rect = cardElement.getBoundingClientRect();
-    rects.set(cardId, {
-      top: rect.top,
-      left: rect.left,
+      const rect = cardElement.getBoundingClientRect();
+      rects.set(cardId, {
+        top: rect.top,
+        left: rect.left,
+      });
     });
-  });
 
   return rects;
 }
@@ -47,55 +49,57 @@ export function animateCardReorder(
 
   const skipIds = new Set(skipCardIds.map(String));
 
-  container.querySelectorAll(".kanban-card").forEach((cardElement) => {
-    const cardId = cardElement.dataset.cardId;
-    if (!cardId || skipIds.has(cardId)) {
-      return;
-    }
-
-    const previousRect = previousRects.get(cardId);
-    if (!previousRect) {
-      return;
-    }
-
-    const currentRect = cardElement.getBoundingClientRect();
-    const deltaX = previousRect.left - currentRect.left;
-    const deltaY = previousRect.top - currentRect.top;
-
-    if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1) {
-      return;
-    }
-
-    if (!cardElement.animate) {
-      return;
-    }
-
-    cardElement[REORDER_ANIMATION]?.cancel();
-
-    const animation = cardElement.animate(
-      [
-        {
-          transform: `translate3d(${deltaX}px, ${deltaY}px, 0)`,
-        },
-        {
-          transform: "translate3d(0, 0, 0)",
-        },
-      ],
-      {
-        duration: KANBAN_REORDER_DURATION,
-        easing: KANBAN_MOTION_EASING,
+  container
+    .querySelectorAll(".discourse-kanban-card")
+    .forEach((cardElement) => {
+      const cardId = cardElement.dataset.cardId;
+      if (!cardId || skipIds.has(cardId)) {
+        return;
       }
-    );
 
-    cardElement[REORDER_ANIMATION] = animation;
-
-    const clearAnimation = () => {
-      if (cardElement[REORDER_ANIMATION] === animation) {
-        cardElement[REORDER_ANIMATION] = null;
+      const previousRect = previousRects.get(cardId);
+      if (!previousRect) {
+        return;
       }
-    };
 
-    animation.onfinish = clearAnimation;
-    animation.oncancel = clearAnimation;
-  });
+      const currentRect = cardElement.getBoundingClientRect();
+      const deltaX = previousRect.left - currentRect.left;
+      const deltaY = previousRect.top - currentRect.top;
+
+      if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1) {
+        return;
+      }
+
+      if (!cardElement.animate) {
+        return;
+      }
+
+      cardElement[REORDER_ANIMATION]?.cancel();
+
+      const animation = cardElement.animate(
+        [
+          {
+            transform: `translate3d(${deltaX}px, ${deltaY}px, 0)`,
+          },
+          {
+            transform: "translate3d(0, 0, 0)",
+          },
+        ],
+        {
+          duration: KANBAN_REORDER_DURATION,
+          easing: KANBAN_MOTION_EASING,
+        }
+      );
+
+      cardElement[REORDER_ANIMATION] = animation;
+
+      const clearAnimation = () => {
+        if (cardElement[REORDER_ANIMATION] === animation) {
+          cardElement[REORDER_ANIMATION] = null;
+        }
+      };
+
+      animation.onfinish = clearAnimation;
+      animation.oncancel = clearAnimation;
+    });
 }

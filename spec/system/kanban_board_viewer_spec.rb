@@ -420,18 +420,18 @@ describe "Kanban Board Viewer" do
       board_viewer.click_add_card("To Do")
       expect(board_viewer).to have_card_detail_modal
 
-      find(".kanban-card-detail-modal .kanban-editable-title__input").send_keys(:tab)
+      find(".discourse-kanban-card-detail-modal .discourse-kanban-editable-title__input").send_keys(:tab)
       expect(page.active_element).to eq(
         first(
-          ".kanban-card-detail-modal .form-kit__field[data-name='notes'] .ProseMirror.d-editor-input",
+          ".discourse-kanban-card-detail-modal .form-kit__field[data-name='notes'] .ProseMirror.d-editor-input",
           minimum: 1,
         ),
       )
 
-      find(".kanban-card-detail-modal .d-modal-cancel").send_keys(:tab)
+      find(".discourse-kanban-card-detail-modal .d-modal-cancel").send_keys(:tab)
 
       expect(page.active_element).to eq(
-        find(".kanban-card-detail-modal .kanban-card-detail-modal__close"),
+        find(".discourse-kanban-card-detail-modal .discourse-kanban-card-detail-modal__close"),
       )
     end
 
@@ -557,7 +557,7 @@ describe "Kanban Board Viewer" do
       board_viewer.fill_topic_search("https://other-discourse.example/t/imposter-slug/#{topic.id}")
       board_viewer.submit_topic_search
 
-      expect(page).to have_css(".kanban-add-topic-as-card-modal")
+      expect(page).to have_css(".discourse-kanban-add-topic-as-card-modal")
       expect(board_viewer).to have_no_card_in_column("To Do", "Legit local topic")
       expect(board.cards.where(topic_id: topic.id)).not_to exist
     end
@@ -582,7 +582,7 @@ describe "Kanban Board Viewer" do
       )
       board_viewer.submit_topic_search
 
-      expect(page).to have_css(".kanban-add-topic-as-card-modal")
+      expect(page).to have_css(".discourse-kanban-add-topic-as-card-modal")
       expect(board_viewer).to have_no_card_in_column("To Do", "Other legit topic")
       expect(board.cards.where(topic_id: topic.id)).not_to exist
     end

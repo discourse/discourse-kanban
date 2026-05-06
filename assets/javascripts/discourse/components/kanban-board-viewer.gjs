@@ -64,7 +64,9 @@ const matchLastColumnHeight = modifier((element) => {
   }
 
   const update = () => {
-    const columns = container.querySelectorAll(":scope > .kanban-column");
+    const columns = container.querySelectorAll(
+      ":scope > .discourse-kanban-column"
+    );
     const last = columns[columns.length - 1];
     element.style.height = last ? `${last.offsetHeight}px` : "";
     columns.forEach((col) => ro.observe(col));
@@ -1345,22 +1347,25 @@ export default class KanbanBoardViewer extends Component {
 
   <template>
     {{#if this.fullscreen}}
-      {{bodyClass "kanban-fullscreen"}}
+      {{bodyClass "discourse-kanban-fullscreen"}}
     {{/if}}
 
     <div
-      class="kanban-board-viewer {{if this.fullscreen 'is-fullscreen'}}"
+      class="discourse-kanban-board-viewer
+        {{if this.fullscreen 'is-fullscreen'}}"
       {{this.setupMessageBus}}
       {{onWindowResize calcAvailableHeight}}
       {{didInsert calcAvailableHeight}}
     >
-      <div class="kanban-board-viewer__header">
-        <div class="kanban-board-viewer__title-wrapper">
-          <h2 class="kanban-board-viewer__title">{{this.board.name}}</h2>
+      <div class="discourse-kanban-board-viewer__header">
+        <div class="discourse-kanban-board-viewer__title-wrapper">
+          <h2
+            class="discourse-kanban-board-viewer__title"
+          >{{this.board.name}}</h2>
 
-          <div class="kanban-board-viewer__metadata">
+          <div class="discourse-kanban-board-viewer__metadata">
             {{#if this.hasBoardFilters}}
-              <div class="kanban-board-viewer__constraint">
+              <div class="discourse-kanban-board-viewer__constraint">
                 {{#each this.boardCategories as |category|}}
                   {{boundCategoryLink category link=false}}
                 {{/each}}
@@ -1384,7 +1389,7 @@ export default class KanbanBoardViewer extends Component {
           </div>
         </div>
 
-        <div class="kanban-board-viewer__controls">
+        <div class="discourse-kanban-board-viewer__controls">
           <DMenu
             @identifier="kanban-board-controls"
             @icon="ellipsis"
@@ -1435,7 +1440,7 @@ export default class KanbanBoardViewer extends Component {
               @action={{this.exitFullscreen}}
               @icon="discourse-compress"
               @title="discourse_kanban.board.exit_fullscreen"
-              class="btn-flat kanban-board-viewer__exit-fullscreen"
+              class="btn-flat discourse-kanban-board-viewer__exit-fullscreen"
             />
           {{else}}
             <DButton
@@ -1450,7 +1455,7 @@ export default class KanbanBoardViewer extends Component {
 
       {{#if this.columns.length}}
         <div
-          class="kanban-board-container"
+          class="discourse-kanban-board-container"
           {{on "dragover" this.dragOverBoardContainer}}
           {{on "dragleave" this.dragLeaveBoardContainer}}
           {{on "drop" this.dropBoardContainer}}
@@ -1483,7 +1488,7 @@ export default class KanbanBoardViewer extends Component {
           {{#if this.canManage}}
             <button
               type="button"
-              class="kanban-board-container__add-column"
+              class="discourse-kanban-board-container__add-column"
               title={{i18n "discourse_kanban.board.add_column"}}
               {{on "click" this.openAddColumnModal}}
               {{matchLastColumnHeight}}
@@ -1493,8 +1498,8 @@ export default class KanbanBoardViewer extends Component {
           {{/if}}
         </div>
       {{else}}
-        <div class="kanban-board-viewer__empty">
-          <div class="kanban-board-viewer__empty-column">
+        <div class="discourse-kanban-board-viewer__empty">
+          <div class="discourse-kanban-board-viewer__empty-column">
             {{icon "table-columns"}}
             <h3>{{i18n "discourse_kanban.board.empty_board"}}</h3>
             <p>{{i18n "discourse_kanban.board.empty_board_cta"}}</p>

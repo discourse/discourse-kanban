@@ -11,16 +11,18 @@ import KanbanBoardViewer from "discourse/plugins/discourse-kanban/discourse/comp
 import KanbanFabricators from "discourse/plugins/discourse-kanban/discourse/lib/fabricators";
 
 function columnSelector(columnId) {
-  return `.kanban-column[data-column-id="${columnId}"]`;
+  return `.discourse-kanban-column[data-column-id="${columnId}"]`;
 }
 
 function cardSelector(cardId) {
-  return `.kanban-card[data-card-id="${cardId}"]`;
+  return `.discourse-kanban-card[data-card-id="${cardId}"]`;
 }
 
 function columnCardIds(columnId) {
   return [
-    ...document.querySelectorAll(`${columnSelector(columnId)} .kanban-card`),
+    ...document.querySelectorAll(
+      `${columnSelector(columnId)} .discourse-kanban-card`
+    ),
   ].map((card) => parseInt(card.dataset.cardId, 10));
 }
 
@@ -157,7 +159,7 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
     assert
       .dom(`${columnSelector(20)} ${cardSelector(101)}`)
       .hasClass(
-        "kanban-card--drop-highlighted",
+        "discourse-kanban-card--drop-highlighted",
         "it highlights the dropped card"
       );
   });
@@ -246,7 +248,7 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
       return response({ card: { id: 101, column_id: 10 } });
     });
 
-    await click(".kanban-column__add-btn");
+    await click(".discourse-kanban-column__add-btn");
     await click(".fk-d-menu li:last-child button");
     await addTopicAsCardModel.onAddTopicAsCard({
       topicId: 777,
@@ -428,7 +430,9 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
       }),
     ]);
 
-    const container = document.querySelector(".kanban-board-container");
+    const container = document.querySelector(
+      ".discourse-kanban-board-container"
+    );
 
     await triggerEvent(container, "pointerdown", {
       pointerId: 1,

@@ -10,7 +10,7 @@ import {
 
 function createCard(cardId) {
   const card = document.createElement("div");
-  card.className = "kanban-card";
+  card.className = "discourse-kanban-card";
   card.dataset.cardId = String(cardId);
   return card;
 }

@@ -1,0 +1,39 @@
+.discourse-kanban-onebox.discourse-kanban-board-onebox {
+  .discourse-kanban-onebox__title {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: var(--space-2);
+
+    .discourse-kanban-onebox__type {
+      margin-top: var(--space-1);
+      font-size: var(--font-down-3);
+      font-weight: 400;
+      color: var(--primary-medium);
+    }
+  }
+
+  .discourse-kanban-onebox__columns {
+    margin-top: var(--space-2);
+  }
+
+  .discourse-kanban-onebox__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+    align-items: center;
+    margin-top: var(--space-2);
+  }
+
+  .discourse-kanban-onebox__tags,
+  .discourse-kanban-onebox__categories {
+    .hashtag-cooked {
+      color: var(--tag-text-color);
+      font-size: var(--font-down-2);
+      font-weight: 400;
+
+      &:visited {
+        color: var(--tag-text-color);
+      }
+    }
+  }
+}

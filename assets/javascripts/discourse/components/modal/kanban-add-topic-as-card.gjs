@@ -189,7 +189,7 @@ export default class KanbanAddTopicAsCard extends Component {
       @closeModal={{@closeModal}}
       @title={{i18n "discourse_kanban.board.add_topic_as_card"}}
       @bodyClass="insert-link"
-      class="kanban-add-topic-as-card-modal"
+      class="discourse-kanban-add-topic-as-card-modal"
     >
       <:body>
         <div class="inputs">

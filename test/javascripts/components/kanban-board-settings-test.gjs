@@ -30,9 +30,9 @@ module(
         </template>
       );
 
-      assert.dom(".kanban-board-settings-modal").exists();
-      await click(".kanban-editable-title__text");
-      await fillIn(".kanban-editable-title__input", "Apollo Program");
+      assert.dom(".discourse-kanban-board-settings-modal").exists();
+      await click(".discourse-kanban-editable-title__text");
+      await fillIn(".discourse-kanban-editable-title__input", "Apollo Program");
 
       assert.strictEqual(
         formKit().field("slug").inputElement.placeholder,
