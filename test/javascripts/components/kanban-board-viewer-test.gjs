@@ -24,6 +24,10 @@ function columnCardIds(columnId) {
   ].map((card) => parseInt(card.dataset.cardId, 10));
 }
 
+function recentISO(daysAgo) {
+  return new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString();
+}
+
 function stubCardRect(cardId, { top = 0, height = 48 } = {}) {
   const card = document.querySelector(cardSelector(cardId));
   sinon.stub(card, "getBoundingClientRect").returns({
@@ -173,7 +177,7 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
       id: 102,
       columnId: 20,
       title: "Ship receipts",
-      recencyAt: "2026-04-29T00:00:00.000Z",
+      recencyAt: recentISO(2),
     });
 
     await this.renderBoard([
@@ -195,7 +199,7 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
           id: 101,
           column_id: 20,
           position: -1,
-          recency_at: "2026-04-30T00:00:00.000Z",
+          recency_at: recentISO(1),
         },
       });
     });
@@ -465,13 +469,13 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
       id: 101,
       columnId: 20,
       title: "Fix checkout",
-      recencyAt: "2026-04-30T00:00:00.000Z",
+      recencyAt: recentISO(1),
     });
     const secondCard = this.makeCard({
       id: 102,
       columnId: 20,
       title: "Ship receipts",
-      recencyAt: "2026-04-29T00:00:00.000Z",
+      recencyAt: recentISO(2),
     });
     let putRequests = 0;
 
