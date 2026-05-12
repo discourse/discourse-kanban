@@ -1,5 +1,5 @@
 import { getOwner } from "@ember/owner";
-import { click, render, triggerEvent } from "@ember/test-helpers";
+import { click, render, settled, triggerEvent } from "@ember/test-helpers";
 import { module, test } from "qunit";
 import sinon from "sinon";
 import PermanentlyDeleteConfirmModal from "discourse/components/modal/permanently-delete-confirm";
@@ -517,7 +517,8 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
       "it wires up a didConfirm callback"
     );
 
-    await modalOptions.model.didConfirm();
+    modalOptions.model.didConfirm();
+    await settled();
 
     assert.strictEqual(
       saveRequests,
