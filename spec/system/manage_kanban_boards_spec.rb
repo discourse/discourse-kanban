@@ -10,6 +10,7 @@ describe "Manage Kanban Boards" do
 
   let(:boards_page) { PageObjects::Pages::KanbanManageBoards.new }
   let(:dialog) { PageObjects::Components::Dialog.new }
+  let(:permanently_delete_confirm) { PageObjects::Modals::PermanentlyDeleteConfirm.new }
   let(:toasts) { PageObjects::Components::Toasts.new }
 
   before do
@@ -137,8 +138,8 @@ describe "Manage Kanban Boards" do
       column_component = boards_page.column_by_title(column.title)
       column_component.open_menu
       column_component.click_delete
-      dialog.fill_in_confirmation_phrase(column.title)
-      dialog.click_danger
+      permanently_delete_confirm.fill_in_confirmation_phrase(column.title)
+      permanently_delete_confirm.click_danger
 
       expect(toasts).to have_success(I18n.t("js.saved"))
     end

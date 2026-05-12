@@ -1,7 +1,8 @@
 import { getOwner } from "@ember/owner";
-import { click, render, triggerEvent } from "@ember/test-helpers";
+import { click, render, settled, triggerEvent } from "@ember/test-helpers";
 import { module, test } from "qunit";
 import sinon from "sinon";
+import PermanentlyDeleteConfirmModal from "discourse/components/modal/permanently-delete-confirm";
 import { setupRenderingTest } from "discourse/tests/helpers/component-test";
 import pretender, {
   parsePostData,
@@ -462,6 +463,68 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
       clientX: 200,
       clientY: 100,
     });
+  });
+
+  test("deleting a column with many cards shows the permanently-delete confirm modal", async function (assert) {
+    const cards = Array.from({ length: 6 }, (_, index) =>
+      this.makeCard({
+        id: 200 + index,
+        columnId: 10,
+        title: `Card ${index + 1}`,
+        position: index,
+      })
+    );
+
+    const modal = getOwner(this).lookup("service:modal");
+    let modalComponent;
+    let modalOptions;
+    sinon.stub(modal, "show").callsFake((component, options) => {
+      modalComponent = component;
+      modalOptions = options;
+      return Promise.resolve();
+    });
+
+    let saveRequests = 0;
+    pretender.put("/kanban/boards/1", () => {
+      saveRequests++;
+      return response({ board: { id: 1 } });
+    });
+    pretender.get("/kanban/boards/1.json", () =>
+      response({ board: {}, columns: [] })
+    );
+
+    await this.renderBoard(
+      [this.makeColumn({ id: 10, title: "Done", cards })],
+      { can_manage: true }
+    );
+
+    await click(`${columnSelector(10)} .kanban-column__menu-trigger`);
+    await click(".kanban-column__menu-delete");
+
+    assert.strictEqual(
+      modalComponent,
+      PermanentlyDeleteConfirmModal,
+      "it opens the permanently-delete confirm modal"
+    );
+    assert.strictEqual(
+      modalOptions.model.confirmPhrase,
+      "Done",
+      "it passes the column title as the confirm phrase"
+    );
+    assert.strictEqual(
+      typeof modalOptions.model.didConfirm,
+      "function",
+      "it wires up a didConfirm callback"
+    );
+
+    modalOptions.model.didConfirm();
+    await settled();
+
+    assert.strictEqual(
+      saveRequests,
+      1,
+      "confirming the modal triggers the columns save"
+    );
   });
 
   test("same-column recency drops are ignored", async function (assert) {
