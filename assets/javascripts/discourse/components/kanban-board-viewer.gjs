@@ -8,8 +8,8 @@ import { cancel, next, schedule } from "@ember/runloop";
 import { service } from "@ember/service";
 import { modifier } from "ember-modifier";
 import DButton from "discourse/components/d-button";
-import { buildPermanentlyDeleteConfirmDialogArgs } from "discourse/components/dialog-messages/permanently-delete-confirm";
 import DropdownMenu from "discourse/components/dropdown-menu";
+import PermanentlyDeleteConfirmModal from "discourse/components/modal/permanently-delete-confirm";
 import DMenu from "discourse/float-kit/components/d-menu";
 import DTooltip from "discourse/float-kit/components/d-tooltip";
 import bodyClass from "discourse/helpers/body-class";
@@ -1040,17 +1040,17 @@ export default class KanbanBoardViewer extends Component {
     // Need a bit of a stronger delete confirmation when getting rid
     // of a lot of cards.
     if (column.cards.length > 5) {
-      return this.dialog.confirm(
-        buildPermanentlyDeleteConfirmDialogArgs(
-          i18n("discourse_kanban.board.confirm_delete_column_with_cards", {
+      return this.modal.show(PermanentlyDeleteConfirmModal, {
+        model: {
+          message: i18n("discourse_kanban.board.confirm_delete_column_with_cards", {
             count: column.cards.length,
           }),
-          column.title,
-          () => {
+          confirmPhrase: column.title,
+          didConfirm: () => {
             saveColumns();
-          }
-        )
-      );
+          },
+        },
+      });
     }
 
     this.dialog.confirm({
