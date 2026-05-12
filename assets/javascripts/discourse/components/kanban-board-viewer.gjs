@@ -1042,9 +1042,12 @@ export default class KanbanBoardViewer extends Component {
     if (column.cards.length > 5) {
       return this.modal.show(PermanentlyDeleteConfirmModal, {
         model: {
-          message: i18n("discourse_kanban.board.confirm_delete_column_with_cards", {
-            count: column.cards.length,
-          }),
+          message: i18n(
+            "discourse_kanban.board.confirm_delete_column_with_cards",
+            {
+              count: column.cards.length,
+            }
+          ),
           confirmPhrase: column.title,
           didConfirm: () => {
             saveColumns();
