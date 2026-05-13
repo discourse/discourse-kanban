@@ -36,6 +36,10 @@ module DiscourseKanban
     before_validation :normalize_slug
     before_validation :normalize_group_ids
 
+    def url
+      "#{Discourse.base_url}/kanban/boards/#{slug}/#{id}"
+    end
+
     def public_read?
       allow_read_group_ids.empty?
     end

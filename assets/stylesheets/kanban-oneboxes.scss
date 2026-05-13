@@ -1,4 +1,5 @@
-.discourse-kanban-onebox.discourse-kanban-board-onebox {
+.discourse-kanban-onebox.discourse-kanban-board-onebox,
+.discourse-kanban-onebox.discourse-kanban-card-onebox {
   .discourse-kanban-onebox__title {
     display: flex;
     flex-direction: column;
@@ -24,8 +25,19 @@
     margin-top: var(--space-2);
   }
 
+  .discourse-kanban-onebox__card-board-info {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+
+    .discourse-kanban-onebox__card-board-link {
+      font-size: var(--font-down-2);
+    }
+  }
+
   .discourse-kanban-onebox__tags,
-  .discourse-kanban-onebox__categories {
+  .discourse-kanban-onebox__categories,
+  .discourse-kanban-onebox__column-title {
     .hashtag-cooked {
       color: var(--tag-text-color);
       font-size: var(--font-down-2);
@@ -35,5 +47,9 @@
         color: var(--tag-text-color);
       }
     }
+  }
+
+  .discourse-kanban-onebox__notes {
+    margin-top: var(--space-2);
   }
 }

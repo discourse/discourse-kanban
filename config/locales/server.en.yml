@@ -36,3 +36,4 @@ en:
         other: "%{count} columns"
       board: "Kanban board"
       card: "Kanban card"
+      updated_by: "Updated by %{username}"
