@@ -1,7 +1,8 @@
 import { getOwner } from "@ember/owner";
-import { click, render, triggerEvent } from "@ember/test-helpers";
+import { click, render, settled, triggerEvent } from "@ember/test-helpers";
 import { module, test } from "qunit";
 import sinon from "sinon";
+import PermanentlyDeleteConfirmModal from "discourse/components/modal/permanently-delete-confirm";
 import { setupRenderingTest } from "discourse/tests/helpers/component-test";
 import pretender, {
   parsePostData,
@@ -24,6 +25,10 @@ function columnCardIds(columnId) {
       `${columnSelector(columnId)} .discourse-kanban-card`
     ),
   ].map((card) => parseInt(card.dataset.cardId, 10));
+}
+
+function recentISO(daysAgo) {
+  return new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString();
 }
 
 function stubCardRect(cardId, { top = 0, height = 48 } = {}) {
@@ -175,7 +180,7 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
       id: 102,
       columnId: 20,
       title: "Ship receipts",
-      recencyAt: "2026-04-29T00:00:00.000Z",
+      recencyAt: recentISO(2),
     });
 
     await this.renderBoard([
@@ -197,7 +202,7 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
           id: 101,
           column_id: 20,
           position: -1,
-          recency_at: "2026-04-30T00:00:00.000Z",
+          recency_at: recentISO(1),
         },
       });
     });
@@ -464,18 +469,80 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
     });
   });
 
+  test("deleting a column with many cards shows the permanently-delete confirm modal", async function (assert) {
+    const cards = Array.from({ length: 6 }, (_, index) =>
+      this.makeCard({
+        id: 200 + index,
+        columnId: 10,
+        title: `Card ${index + 1}`,
+        position: index,
+      })
+    );
+
+    const modal = getOwner(this).lookup("service:modal");
+    let modalComponent;
+    let modalOptions;
+    sinon.stub(modal, "show").callsFake((component, options) => {
+      modalComponent = component;
+      modalOptions = options;
+      return Promise.resolve();
+    });
+
+    let saveRequests = 0;
+    pretender.put("/kanban/boards/1", () => {
+      saveRequests++;
+      return response({ board: { id: 1 } });
+    });
+    pretender.get("/kanban/boards/1.json", () =>
+      response({ board: {}, columns: [] })
+    );
+
+    await this.renderBoard(
+      [this.makeColumn({ id: 10, title: "Done", cards })],
+      { can_manage: true }
+    );
+
+    await click(`${columnSelector(10)} .kanban-column__menu-trigger`);
+    await click(".kanban-column__menu-delete");
+
+    assert.strictEqual(
+      modalComponent,
+      PermanentlyDeleteConfirmModal,
+      "it opens the permanently-delete confirm modal"
+    );
+    assert.strictEqual(
+      modalOptions.model.confirmPhrase,
+      "Done",
+      "it passes the column title as the confirm phrase"
+    );
+    assert.strictEqual(
+      typeof modalOptions.model.didConfirm,
+      "function",
+      "it wires up a didConfirm callback"
+    );
+
+    modalOptions.model.didConfirm();
+    await settled();
+
+    assert.strictEqual(
+      saveRequests,
+      1,
+      "confirming the modal triggers the columns save"
+    );
+  });
+
   test("same-column recency drops are ignored", async function (assert) {
     const firstCard = this.makeCard({
       id: 101,
       columnId: 20,
       title: "Fix checkout",
-      recencyAt: "2026-04-30T00:00:00.000Z",
+      recencyAt: recentISO(1),
     });
     const secondCard = this.makeCard({
       id: 102,
       columnId: 20,
       title: "Ship receipts",
-      recencyAt: "2026-04-29T00:00:00.000Z",
+      recencyAt: recentISO(2),
     });
     let putRequests = 0;
 
