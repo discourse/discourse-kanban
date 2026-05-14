@@ -10,7 +10,6 @@ module DiscourseKanban
     belongs_to :created_by, class_name: "User", optional: true
     belongs_to :updated_by, class_name: "User", optional: true
     belongs_to :assigned_to, polymorphic: true, optional: true
-    has_many :tags, -> { order(:name) }, primary_key: :tag_ids, foreign_key: :id, class_name: "Tag"
 
     self.ignored_columns = %w[membership_mode labels]
 
@@ -28,6 +27,10 @@ module DiscourseKanban
 
     scope :with_column, -> { where.not(column_id: nil) }
     scope :ordered, -> { order(:position, :id) }
+
+    def tags
+      Tag.where(id: tag_ids).order(:name)
+    end
 
     def url
       "#{Discourse.base_url}/kanban/boards/#{board.slug}/#{board.id}/cards/#{id}"
