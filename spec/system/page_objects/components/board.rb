@@ -5,7 +5,9 @@ module PageObjects
     class Board < PageObjects::Components::Base
       def board_menu
         PageObjects::Components::DMenu.new(
-          find(".discourse-kanban-board-viewer__controls [data-identifier='kanban-board-controls']"),
+          find(
+            ".discourse-kanban-board-viewer__controls [data-identifier='kanban-board-controls']",
+          ),
         )
       end
 

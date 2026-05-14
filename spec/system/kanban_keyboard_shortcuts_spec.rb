@@ -168,12 +168,14 @@ describe "Kanban Keyboard Shortcuts" do
       first_name = first_selected.find(".discourse-kanban-board-card__name").text
 
       press_key("l")
-      second_name = find(".discourse-kanban-board-card--kb-selected .discourse-kanban-board-card__name").text
+      second_name =
+        find(".discourse-kanban-board-card--kb-selected .discourse-kanban-board-card__name").text
 
       expect(second_name).not_to eq(first_name)
 
       press_key("h")
-      back_name = find(".discourse-kanban-board-card--kb-selected .discourse-kanban-board-card__name").text
+      back_name =
+        find(".discourse-kanban-board-card--kb-selected .discourse-kanban-board-card__name").text
 
       expect(back_name).to eq(first_name)
 

@@ -13,7 +13,9 @@ module PageObjects
       end
 
       def find_by_title(title)
-        find(".discourse-kanban-column__title", text: /#{Regexp.escape(title)}/i).ancestor(".discourse-kanban-column")
+        find(".discourse-kanban-column__title", text: /#{Regexp.escape(title)}/i).ancestor(
+          ".discourse-kanban-column",
+        )
       end
 
       def find_by_id(id)

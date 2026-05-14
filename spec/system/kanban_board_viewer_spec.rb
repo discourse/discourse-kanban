@@ -420,7 +420,9 @@ describe "Kanban Board Viewer" do
       board_viewer.click_add_card("To Do")
       expect(board_viewer).to have_card_detail_modal
 
-      find(".discourse-kanban-card-detail-modal .discourse-kanban-editable-title__input").send_keys(:tab)
+      find(".discourse-kanban-card-detail-modal .discourse-kanban-editable-title__input").send_keys(
+        :tab,
+      )
       expect(page.active_element).to eq(
         first(
           ".discourse-kanban-card-detail-modal .form-kit__field[data-name='notes'] .ProseMirror.d-editor-input",

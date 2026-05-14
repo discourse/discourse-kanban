@@ -50,7 +50,10 @@ module PageObjects
 
       def fill_modal_board_name(name)
         modal = board_settings_modal
-        modal.body.find(".discourse-kanban-editable-title__input, .discourse-kanban-editable-title__text").click
+        modal
+          .body
+          .find(".discourse-kanban-editable-title__input, .discourse-kanban-editable-title__text")
+          .click
         modal.body.find(".discourse-kanban-editable-title__input").fill_in(with: name)
         self
       end

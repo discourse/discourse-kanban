@@ -69,7 +69,9 @@ module PageObjects
       end
 
       def has_category_on_card?(card_title)
-        within(find(".discourse-kanban-card", text: card_title)) { has_css?(".discourse-kanban-card__category") }
+        within(find(".discourse-kanban-card", text: card_title)) do
+          has_css?(".discourse-kanban-card__category")
+        end
       end
 
       def has_activity_indicator?(card_title, type)
@@ -113,12 +115,16 @@ module PageObjects
       end
 
       def fill_topic_search(value)
-        within(".discourse-kanban-add-topic-as-card-modal") { find("input.topic-search-input").set(value) }
+        within(".discourse-kanban-add-topic-as-card-modal") do
+          find("input.topic-search-input").set(value)
+        end
         self
       end
 
       def submit_topic_search
-        within(".discourse-kanban-add-topic-as-card-modal") { find(".d-modal__footer .btn-primary").click }
+        within(".discourse-kanban-add-topic-as-card-modal") do
+          find(".d-modal__footer .btn-primary").click
+        end
         self
       end
 
@@ -234,12 +240,16 @@ module PageObjects
       end
 
       def open_controls_menu
-        find(".discourse-kanban-board-viewer__controls [data-identifier='kanban-board-controls']").click
+        find(
+          ".discourse-kanban-board-viewer__controls [data-identifier='kanban-board-controls']",
+        ).click
         self
       end
 
       def has_no_controls_menu?
-        has_no_css?(".discourse-kanban-board-viewer__controls [data-identifier='kanban-board-controls']")
+        has_no_css?(
+          ".discourse-kanban-board-viewer__controls [data-identifier='kanban-board-controls']",
+        )
       end
 
       def click_fullscreen
@@ -308,7 +318,9 @@ module PageObjects
       end
 
       def has_topic_card_detail_cooked?
-        within(".discourse-kanban-topic-card-detail-modal") { has_css?(".discourse-kanban-topic-card-detail__cooked") }
+        within(".discourse-kanban-topic-card-detail-modal") do
+          has_css?(".discourse-kanban-topic-card-detail__cooked")
+        end
       end
 
       def has_topic_card_detail_category?
@@ -316,11 +328,15 @@ module PageObjects
       end
 
       def has_topic_card_detail_tags?
-        within(".discourse-kanban-topic-card-detail-modal") { has_css?(".discourse-kanban-topic-card-detail__tags") }
+        within(".discourse-kanban-topic-card-detail-modal") do
+          has_css?(".discourse-kanban-topic-card-detail__tags")
+        end
       end
 
       def has_topic_card_detail_reply_count?
-        within(".discourse-kanban-topic-card-detail-modal") { has_css?(".discourse-kanban-topic-card-detail__stats") }
+        within(".discourse-kanban-topic-card-detail-modal") do
+          has_css?(".discourse-kanban-topic-card-detail__stats")
+        end
       end
 
       def click_topic_card_view_topic
