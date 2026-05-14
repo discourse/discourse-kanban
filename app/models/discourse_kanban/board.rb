@@ -17,12 +17,6 @@ module DiscourseKanban
              inverse_of: :board
     belongs_to :created_by, class_name: "User"
     belongs_to :updated_by, class_name: "User", optional: true
-    has_many :tags, -> { order(:name) }, primary_key: :tag_ids, foreign_key: :id, class_name: "Tag"
-    has_many :categories,
-             -> { order(:name) },
-             primary_key: :category_ids,
-             foreign_key: :id,
-             class_name: "Category"
 
     enum :card_style, { detailed: 0, simple: 1 }, default: :detailed
 
@@ -47,6 +41,42 @@ module DiscourseKanban
     def effective_read_group_ids
       (allow_read_group_ids + allow_write_group_ids).uniq
     end
+
+    def tags
+      @tags ||= Tag.where(id: tag_ids).order(:name).to_a
+    end
+
+    def categories
+      @categories ||= Category.where(id: category_ids).order(:name).to_a
+    end
+
+    def self.preload_tags(boards)
+      preload_array_association(boards, :tag_ids, :@tags, Tag)
+    end
+
+    def self.preload_categories(boards)
+      preload_array_association(boards, :category_ids, :@categories, Category)
+    end
+
+    def self.preload_array_association(records, ids_attr, ivar, klass)
+      records = Array(records)
+      return records if records.empty?
+
+      all_ids = records.flat_map(&ids_attr).uniq
+      records_by_id = all_ids.empty? ? {} : klass.where(id: all_ids).index_by(&:id)
+
+      records.each do |record|
+        sorted =
+          record
+            .public_send(ids_attr)
+            .filter_map { |id| records_by_id[id] }
+            .sort_by { |r| r.name.to_s }
+        record.instance_variable_set(ivar, sorted)
+      end
+
+      records
+    end
+    private_class_method :preload_array_association
 
     def tag_names=(names)
       names = Array(names).select(&:present?)

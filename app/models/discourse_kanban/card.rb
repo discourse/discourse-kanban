@@ -28,10 +28,6 @@ module DiscourseKanban
     scope :with_column, -> { where.not(column_id: nil) }
     scope :ordered, -> { order(:position, :id) }
 
-    def tags
-      Tag.where(id: tag_ids).order(:name)
-    end
-
     def url
       "#{Discourse.base_url}/kanban/boards/#{board.slug}/#{board.id}/cards/#{id}"
     end
@@ -53,6 +49,25 @@ module DiscourseKanban
 
       tags_by_id = Tag.where(id: normalized_tag_ids).index_by(&:id)
       normalized_tag_ids.filter_map { |tag_id| tags_by_id[tag_id] }
+    end
+
+    def self.preload_tags(cards)
+      cards = Array(cards)
+      return cards if cards.empty?
+
+      all_tag_ids = cards.flat_map(&:tag_ids).uniq
+      tags_by_id = all_tag_ids.empty? ? {} : Tag.where(id: all_tag_ids).index_by(&:id)
+
+      cards.each do |card|
+        sorted = card.tag_ids.filter_map { |id| tags_by_id[id] }.sort_by { |t| t.name.to_s }
+        card.instance_variable_set(:@tags, sorted)
+      end
+
+      cards
+    end
+
+    def tags
+      @tags ||= Tag.where(id: tag_ids).order(:name).to_a
     end
 
     def self.tag_ids_missing_from_database(tag_ids)

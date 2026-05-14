@@ -195,6 +195,91 @@ RSpec.describe DiscourseKanban::Card do
     end
   end
 
+  describe "#tags" do
+    fab!(:tag_a) { Fabricate(:tag, name: "alpha") }
+    fab!(:tag_b) { Fabricate(:tag, name: "beta") }
+
+    it "returns tags ordered by name" do
+      card =
+        board.cards.create!(
+          card_type: :floater,
+          title: "T",
+          column_id: column.id,
+          position: 0,
+          created_by_id: admin.id,
+          tag_ids: [tag_b.id, tag_a.id],
+        )
+
+      expect(card.tags).to eq([tag_a, tag_b])
+    end
+
+    it "memoizes the result" do
+      card =
+        board.cards.create!(
+          card_type: :floater,
+          title: "T",
+          column_id: column.id,
+          position: 0,
+          created_by_id: admin.id,
+          tag_ids: [tag_a.id],
+        )
+      card.tags
+
+      queries = track_sql_queries { 5.times { card.tags } }
+      expect(queries).to be_empty
+    end
+  end
+
+  describe ".preload_tags" do
+    fab!(:tag_a) { Fabricate(:tag, name: "alpha") }
+    fab!(:tag_b) { Fabricate(:tag, name: "beta") }
+
+    it "loads tags for many cards in a single query" do
+      card_a =
+        board.cards.create!(
+          card_type: :floater,
+          title: "A",
+          column_id: column.id,
+          position: 0,
+          created_by_id: admin.id,
+          tag_ids: [tag_a.id],
+        )
+      card_b =
+        board.cards.create!(
+          card_type: :floater,
+          title: "B",
+          column_id: column.id,
+          position: 1,
+          created_by_id: admin.id,
+          tag_ids: [tag_a.id, tag_b.id],
+        )
+
+      cards = [card_a, card_b]
+      described_class.preload_tags(cards)
+
+      queries = track_sql_queries { cards.each(&:tags) }
+      expect(queries).to be_empty
+      expect(card_a.tags).to eq([tag_a])
+      expect(card_b.tags).to eq([tag_a, tag_b])
+    end
+
+    it "handles empty input and cards without tags" do
+      expect(described_class.preload_tags([])).to eq([])
+
+      card =
+        board.cards.create!(
+          card_type: :floater,
+          title: "T",
+          column_id: column.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      described_class.preload_tags([card])
+
+      expect(card.tags).to eq([])
+    end
+  end
+
   describe "#recency_at" do
     it "uses the later of topic bumped_at and column_changed_at for topic cards" do
       bumped_at = 2.days.ago
