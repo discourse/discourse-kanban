@@ -1,74 +1,59 @@
-<aside class="onebox discourse-kanban-onebox discourse-kanban-card-onebox">
-  <article class="onebox-body discourse-kanban-onebox__body">
-    <h3 class="discourse-kanban-onebox__title">
-      <a href="{{card_url}}">
-        <span class="discourse-kanban-onebox__icon">
-          <svg
-            class="fa d-icon d-icon-file-lines svg-icon svg-string"
+<aside class="onebox">
+  <div class="discourse-kanban-card__row discourse-kanban-card__title-row">
+    <a href="{{card_url}}" class="discourse-kanban-card__title">
+      <svg
+        class="fa d-icon d-icon-far-rectangle-list
+ svg-icon svg-string"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <use href="#far-rectangle-list
+"></use>
+      </svg>
+      {{card_name}}
+    </a>
+  </div>
+
+  <div class="discourse-kanban-card__row">
+    <a href="{{board_url}}" class="discourse-kanban-board-pill"><svg
+            class="fa d-icon d-icon-table-columns svg-icon svg-string"
             xmlns="http://www.w3.org/2000/svg"
           >
-            <use href="#file-lines"></use>
-          </svg>
-        </span>
-        <span class="discourse-kanban-onebox__card-name">{{card_name}}</span>
-      </a>
-      <span class="discourse-kanban-onebox__type">{{onebox_type}}</span>
-    </h3>
-
-    <div class="discourse-kanban-onebox__card-board-info">
-      <span class="discourse-kanban-column-pill">
-        {{#card_column_icon}}
-          <span class="discourse-kanban-onebox__column-icon">
-            <svg
-              class="fa d-icon d-icon-{{icon}} svg-icon svg-string"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <use href="#{{card_column_icon}}"></use>
-            </svg>
-          </span>
-        {{/card_column_icon}}
-        <span class="discourse-kanban-onebox__column-name">
-          {{card_column_title}}
-        </span>
-      </span>
-      <span>•</span>
-      <span class="discourse-kanban-onebox__card-board-link">
-        <a href="{{board_url}}">{{board_name}}</a>
-      </span>
-    </div>
-
-    {{#tags_preview}}
-      <div class="discourse-kanban-onebox__tags">{{{board_tags}}}</div>
-    {{/tags_preview}}
-
-    <hr class="discourse-kanban-onebox__separator" />
-
-    <div class="discourse-kanban-onebox__meta">
-      <span class="discourse-kanban-onebox__updated">
-        <a
-          class="trigger-user-card discourse-kanban-badge"
-          data-user-card="{{updater_username}}"
-          aria-hidden="true"
-          tabindex="-1"
+            <use href="#table-columns"></use>
+          </svg>{{board_name}}</a>
+              <span class="discourse-kanban-column-pill">
+      {{#card_column_icon}}
+        <svg
+          class="fa d-icon d-icon-{{card_column_icon}} svg-icon svg-string"
+          xmlns="http://www.w3.org/2000/svg"
         >
-          <img
-            loading="lazy"
-            alt="{{updater_username}}"
-            width="12"
-            height="12"
-            src="{{updater_avatar_url}}"
-            class="avatar"
-          ><span>{{updated_by}}</span>
-          <span
-            class="discourse-kanban-onebox__updated-at relative-date"
-            data-time="{{updated_at_ms}}"
-            data-format="tiny"
-            title="{{updated_at_title}}"
-          >{{updated_at_title}}</span>
-        </a>
-      </span>
-    </div>
+          <use href="#{{card_column_icon}}"></use>
+        </svg>
+      {{/card_column_icon}}
+      {{card_column_title}}
+    </span>
+  </div>
 
-    <div class="discourse-kanban-onebox__notes">{{{notes}}}</div>
-  </article>
+  {{#tags_preview}}
+    <div class="discourse-kanban-card__row discourse-kanban-card__tags">
+      {{{card_tags}}}
+    </div>
+  {{/tags_preview}}
+
+  {{#has_notes}}
+    <div class="discourse-kanban-card__notes">
+      {{{notes}}}
+    </div>
+  {{/has_notes}}
+
+  <div class="discourse-kanban-card__row discourse-kanban-card__detail-row">
+    <div class="discourse-kanban-card__last-post-by">
+      <span
+        class="relative-date"
+        data-time="{{updated_at_ms}}"
+        data-format="tiny"
+        title="{{updated_at_title}}"
+      >{{updated_at_tiny}}</span>
+      ({{updater_username}})
+    </div>
+  </div>
 </aside>

@@ -37,15 +37,22 @@ module DiscourseKanban
         creator_avatar_url: card.created_by.small_avatar_url,
         updater_username: card.updated_by.username,
         updater_avatar_url: card.updated_by.small_avatar_url,
-        notes: PrettyText.excerpt(PrettyText.cook(card.notes), 2000),
+        notes:
+          PrettyText.excerpt(
+            PrettyText.cook(card.notes),
+            SiteSetting.post_onebox_maxlength,
+            keep_svg: true,
+          ),
         created_by:
           I18n.t("discourse_kanban.onebox.created_by", username: card.created_by.display_name),
         updated_by:
           I18n.t("discourse_kanban.onebox.updated_by", username: card.updated_by.display_name),
         updated_at_ms: (updated_at.to_f * 1000).to_i,
-        updated_at_title: "(#{I18n.l(updated_at, format: :long)})",
+        updated_at_title: I18n.l(updated_at, format: :long),
+        updated_at_tiny: AgeWords.age_words((Time.now - updated_at).to_i),
         onebox_type: I18n.t("discourse_kanban.onebox.card"),
         tags_preview: card.tags.any?,
+        has_notes: card.notes.present?,
         restricted: false,
       }
 
@@ -92,6 +99,7 @@ module DiscourseKanban
         onebox_type: I18n.t("discourse_kanban.onebox.board"),
         tags_preview: board.tags.any?,
         categories_preview: board.categories.any?,
+        has_constraints: board.tags.any? || board.categories.any?,
         columns_preview: board.columns.any?,
         restricted: board.allow_read_group_ids.any?,
       }

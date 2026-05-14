@@ -1,82 +1,75 @@
-<aside class="onebox discourse-kanban-onebox discourse-kanban-board-onebox">
-  <article class="onebox-body discourse-kanban-onebox__body">
-    <h3 class="discourse-kanban-onebox__title">
-      <a href="{{board_url}}">
-        <span class="discourse-kanban-onebox__icon">
-          <svg
+<aside class="onebox">
+  <div class="discourse-kanban-board-card__header">
+    <a href="{{board_url}}" class="discourse-kanban-board-card__name">
+      <svg
             class="fa d-icon d-icon-table-columns svg-icon svg-string"
             xmlns="http://www.w3.org/2000/svg"
           >
             <use href="#table-columns"></use>
-          </svg>
-        </span>
-        <span class="discourse-kanban-onebox__board-name">{{board_name}}</span>
-      </a>
-      <span class="discourse-kanban-onebox__type">{{onebox_type}}</span>
-    </h3>
+          </svg> {{board_name}}
+    </a>
+  </div>
 
-    {{#tags_preview}}
-      <div class="discourse-kanban-onebox__tags">
-        {{{board_tags}}}
-      </div>
-    {{/tags_preview}}
-
-    {{#categories_preview}}
-      <div class="discourse-kanban-onebox__categories">
+  {{#has_constraints}}
+    <div class="discourse-kanban-board-card__constraints">
+      {{#categories_preview}}
         {{{board_categories}}}
-      </div>
-    {{/categories_preview}}
-
-    {{#columns_preview}}
-      <div class="discourse-kanban-onebox__columns">
-        {{#board_columns}}
-          <span class="discourse-kanban-column-pill">
-            {{#icon}}
-              <span class="discourse-kanban-onebox__column-icon">
-                <svg
-                  class="fa d-icon d-icon-{{icon}} svg-icon svg-string"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <use href="#{{icon}}"></use>
-                </svg>
-              </span>
-            {{/icon}}
-            <span class="discourse-kanban-onebox__column-name">{{name}}</span>
-          </span>
-        {{/board_columns}}
-      </div>
-    {{/columns_preview}}
-
-    <hr class="discourse-kanban-onebox__separator" />
-
-    <div class="discourse-kanban-onebox__meta">
-      <a
-        class="trigger-user-card discourse-kanban-badge"
-        data-user-card="{{creator_username}}"
-        aria-hidden="true"
-        tabindex="-1"
-      >
-        <img
-          loading="lazy"
-          alt="{{creator_username}}"
-          width="12"
-          height="12"
-          src="{{creator_avatar_url}}"
-          class="avatar"
-        >
-        <span>{{created_by}}</span>
-      </a>
-      <span class="discourse-kanban-badge">{{column_count}}</span>
-      {{#restricted}}
-        <span class="discourse-kanban-badge discourse-kanban-badge--restricted">
-          <svg
-            class="fa d-icon d-icon-lock svg-icon svg-string"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <use href="#lock"></use>
-          </svg>
-        </span>
-      {{/restricted}}
+      {{/categories_preview}}
+      {{#tags_preview}}
+        <div class="list-tags">{{{board_tags}}}</div>
+      {{/tags_preview}}
     </div>
-  </article>
+  {{/has_constraints}}
+
+  {{#columns_preview}}
+    <div class="discourse-kanban-board-card__columns">
+      {{#board_columns}}
+        <span class="discourse-kanban-column-pill">
+          {{#icon}}
+            <svg
+              class="fa d-icon d-icon-{{icon}} svg-icon svg-string"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="#{{icon}}"></use>
+            </svg>
+          {{/icon}}
+          {{name}}
+        </span>
+      {{/board_columns}}
+    </div>
+  {{/columns_preview}}
+
+  <div class="discourse-kanban-board-card__footer">
+    <a
+      class="discourse-kanban-board-card__creator discourse-kanban-badge trigger-user-card"
+      data-user-card="{{creator_username}}"
+      aria-hidden="true"
+      tabindex="-1"
+    >
+      {{created_by}}
+      <img
+        loading="lazy"
+        alt="{{creator_username}}"
+        width="12"
+        height="12"
+        src="{{creator_avatar_url}}"
+        class="avatar"
+      >
+    </a>
+
+    <span class="discourse-kanban-badge">{{column_count}}</span>
+
+    {{#restricted}}
+      <span
+        class="discourse-kanban-badge discourse-kanban-badge--restricted"
+      >
+        <svg
+          class="fa d-icon d-icon-lock svg-icon svg-string"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <use href="#lock"></use>
+        </svg>
+      </span>
+    {{/restricted}}
+  </div>
 </aside>

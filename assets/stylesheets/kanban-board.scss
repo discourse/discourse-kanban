@@ -619,6 +619,34 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
   }
 }
 
+.onebox .discourse-kanban-card {
+  &__title {
+    font-size: var(--font-up-1);
+    font-weight: 700;
+  }
+
+  &__row {
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+  }
+
+  &__row .discourse-kanban-board-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    padding: 0.15em 0.5em;
+    background: var(--primary-very-low);
+    border-radius: var(--d-border-radius);
+    font-size: var(--font-down-2);
+    color: var(--primary-high);
+
+    &:hover {
+      background: var(--primary-low);
+    }
+  }
+}
+
 .discourse-kanban-card--drag-image {
   position: fixed;
   box-sizing: border-box;

@@ -206,7 +206,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.25em;
+    margin-bottom: var(--space-1);
   }
 
   &__name {
@@ -252,7 +252,17 @@
     align-items: center;
     margin-top: auto;
     padding-top: 0.5em;
-    border-top: 1px solid var(--primary-very-low);
+    border-top: 1px solid var(--content-border-color);
+  }
+}
+
+.onebox .discourse-kanban-board-card {
+  &__header {
+    margin-bottom: var(--space-2);
+  }
+
+  &__name {
+    color: var(--tertiary);
   }
 }
 
