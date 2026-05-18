@@ -65,10 +65,8 @@ RSpec.describe DiscourseKanban::InlineOneboxHandler do
       end
 
       it "returns nil when the guardian denies board read access" do
-        fake_guardian = instance_double(Guardian)
-        allow(fake_guardian).to receive(:can_read_board?).with(board).and_return(false)
-        allow(Guardian).to receive(:new).with(no_args).and_return(fake_guardian)
-
+        private_group = Fabricate(:group)
+        board.update!(allow_read_group_ids: [private_group.id])
         expect(
           described_class.handle("#{base_url}/boards/x/#{board.id}", route_board_only),
         ).to be_nil
@@ -125,10 +123,8 @@ RSpec.describe DiscourseKanban::InlineOneboxHandler do
       end
 
       it "returns nil when the guardian denies board read access" do
-        fake_guardian = instance_double(Guardian)
-        allow(fake_guardian).to receive(:can_read_board?).with(board).and_return(false)
-        allow(Guardian).to receive(:new).with(no_args).and_return(fake_guardian)
-
+        private_group = Fabricate(:group)
+        board.update!(allow_read_group_ids: [private_group.id])
         expect(
           described_class.handle(
             "#{base_url}/boards/x/#{board.id}/card/#{floater_card.id}",

@@ -42,6 +42,12 @@ module DiscourseKanban
       (allow_read_group_ids + allow_write_group_ids).uniq
     end
 
+    def reload(options = nil)
+      @tags = nil
+      @categories = nil
+      super
+    end
+
     def tags
       @tags ||= Tag.where(id: tag_ids).order(:name).to_a
     end
