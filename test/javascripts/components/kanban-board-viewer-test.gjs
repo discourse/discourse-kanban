@@ -502,8 +502,8 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
       { can_manage: true }
     );
 
-    await click(`${columnSelector(10)} .kanban-column__menu-trigger`);
-    await click(".kanban-column__menu-delete");
+    await click(`${columnSelector(10)} .discourse-kanban-column__menu-trigger`);
+    await click(".discourse-kanban-column__menu-delete");
 
     assert.strictEqual(
       modalComponent,

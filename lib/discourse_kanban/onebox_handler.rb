@@ -53,7 +53,6 @@ module DiscourseKanban
         onebox_type: I18n.t("discourse_kanban.onebox.card"),
         tags_preview: card.tags.any?,
         has_notes: card.notes.present?,
-        restricted: false,
       }
 
       Mustache.render(DiscourseKanban.card_onebox_template, args)

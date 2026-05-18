@@ -24,6 +24,7 @@ module DiscourseKanban
 
     before_validation :normalize_card_type
     before_validation :initialize_column_changed_at, on: :create
+    before_create :set_updated_by_id
 
     scope :with_column, -> { where.not(column_id: nil) }
     scope :ordered, -> { order(:position, :id) }
@@ -102,6 +103,10 @@ module DiscourseKanban
     private
 
     private_class_method :normalize_tag_id_values!, :tag_ids_missing_from_database
+
+    def set_updated_by_id
+      self.updated_by_id = created_by_id
+    end
 
     def initialize_column_changed_at
       return if column_changed_at.present? || column_id.blank?

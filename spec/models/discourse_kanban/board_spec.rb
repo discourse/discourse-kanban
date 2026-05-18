@@ -67,19 +67,14 @@ RSpec.describe DiscourseKanban::Board do
     fab!(:tag_b) { Fabricate(:tag, name: "beta") }
 
     it "returns tags ordered by name" do
-      board =
-        described_class.create!(name: "B", slug: "b", tag_ids: [tag_b.id, tag_a.id])
+      board = described_class.create!(name: "B", slug: "b", tag_ids: [tag_b.id, tag_a.id])
 
       expect(board.tags).to eq([tag_a, tag_b])
     end
 
     it "returns categories ordered by name" do
       board =
-        described_class.create!(
-          name: "B",
-          slug: "b",
-          category_ids: [category_b.id, category_a.id],
-        )
+        described_class.create!(name: "B", slug: "b", category_ids: [category_b.id, category_a.id])
 
       expect(board.categories).to eq([category_a, category_b])
     end
@@ -118,8 +113,7 @@ RSpec.describe DiscourseKanban::Board do
 
     it "preloads tags for many boards in a single query" do
       board_a = described_class.create!(name: "A", slug: "a", tag_ids: [tag_a.id])
-      board_b =
-        described_class.create!(name: "B", slug: "b", tag_ids: [tag_a.id, tag_b.id])
+      board_b = described_class.create!(name: "B", slug: "b", tag_ids: [tag_a.id, tag_b.id])
 
       boards = [board_a, board_b]
       described_class.preload_tags(boards)
@@ -131,14 +125,9 @@ RSpec.describe DiscourseKanban::Board do
     end
 
     it "preloads categories for many boards in a single query" do
-      board_a =
-        described_class.create!(name: "A", slug: "a", category_ids: [category_a.id])
+      board_a = described_class.create!(name: "A", slug: "a", category_ids: [category_a.id])
       board_b =
-        described_class.create!(
-          name: "B",
-          slug: "b",
-          category_ids: [category_a.id, category_b.id],
-        )
+        described_class.create!(name: "B", slug: "b", category_ids: [category_a.id, category_b.id])
 
       boards = [board_a, board_b]
       described_class.preload_categories(boards)
