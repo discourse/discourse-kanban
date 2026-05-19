@@ -105,6 +105,7 @@ export default class KanbanBoardViewer extends Component {
   @service modal;
   @service router;
   @service toasts;
+  @service topicSidebar;
 
   @tracked board;
   @tracked columns;
@@ -1293,6 +1294,7 @@ export default class KanbanBoardViewer extends Component {
       ? KanbanTopicCardDetailModal
       : KanbanCardDetailModal;
     let navigatedAway = false;
+    this.topicSidebar.clearSelectedTopic();
 
     const column = this.columns.find((col) => col.id === card.column_id);
     const model = isTopicCard
@@ -1307,11 +1309,24 @@ export default class KanbanBoardViewer extends Component {
         }
       : { card, canWrite: this.canWrite, onUpdateCard: this.onUpdateCard };
 
+    if (isTopicCard) {
+      this.topicSidebar.selectTopic(card.topic_id);
+      return;
+    }
+
     this.modal.show(ModalComponent, { model }).finally(() => {
       if (!navigatedAway && !this.isDestroying && !this.isDestroyed) {
         DiscourseURL.replaceState(boardUrl);
       }
     });
+  }
+
+  @action
+  onCardClick(card) {
+    this.topicSidebar.clearSelectedTopic();
+    if (card.topic_id) {
+      this.topicSidebar.selectTopic(card.topic_id);
+    }
   }
 
   _highlightDroppedCard(cardId) {
@@ -1351,6 +1366,10 @@ export default class KanbanBoardViewer extends Component {
   <template>
     {{#if this.fullscreen}}
       {{bodyClass "discourse-kanban-fullscreen"}}
+    {{/if}}
+
+    {{#if this.topicSidebar.selectedTopicId}}
+      {{bodyClass "topic-kanban-card-open"}}
     {{/if}}
 
     <div
@@ -1466,6 +1485,7 @@ export default class KanbanBoardViewer extends Component {
         >
           {{#each this.columns key="id" as |column|}}
             <KanbanColumn
+              @onCardClick={{this.onCardClick}}
               @column={{column}}
               @board={{this.board}}
               @canWrite={{this.canWrite}}

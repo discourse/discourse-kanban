@@ -11,7 +11,6 @@ import DButton from "discourse/components/d-button";
 import DropdownMenu from "discourse/components/dropdown-menu";
 import TopicStatus from "discourse/components/topic-status";
 import DMenu from "discourse/float-kit/components/d-menu";
-import bodyClass from "discourse/helpers/body-class";
 import categoryBadge from "discourse/helpers/category-badge";
 import concatClass from "discourse/helpers/concat-class";
 import icon from "discourse/helpers/d-icon";
@@ -38,10 +37,8 @@ export default class KanbanCard extends Component {
   @service currentUser;
   @service modal;
   @service siteSettings;
-  @service topicSidebar;
 
   @tracked dragging = false;
-  @tracked cardOpen = false;
   dragHideTimer = null;
   dragImageElement = null;
 
@@ -264,7 +261,6 @@ export default class KanbanCard extends Component {
     const board = this.args.board;
     const boardUrl = kanbanBoardUrl(board);
     const cardUrlPath = kanbanCardUrl(board, this.args.card.id);
-    this.cardOpen = false;
 
     DiscourseURL.replaceState(cardUrlPath);
 
@@ -289,29 +285,27 @@ export default class KanbanCard extends Component {
     const boardUrl = kanbanBoardUrl(board);
     const cardUrlPath = kanbanCardUrl(board, this.args.card.id);
     let navigatedAway = false;
-    this.topicSidebar.selectTopic(this.args.card.topic_id);
-    this.cardOpen = true;
 
     DiscourseURL.replaceState(cardUrlPath);
 
-    this.modal
-      .show(KanbanTopicCardDetailModal, {
-        model: {
-          card: this.args.card,
-          columnTitle: this.args.columnTitle,
-          columnIcon: this.args.columnIcon,
-          onNavigateAway: (url) => {
-            navigatedAway = true;
-            DiscourseURL.routeTo(url);
-          },
-        },
-      })
-      .finally(() => {
-        this.cardOpen = false;
-        if (!navigatedAway && !this.isDestroying && !this.isDestroyed) {
-          DiscourseURL.replaceState(boardUrl);
-        }
-      });
+    // this.modal
+    //   .show(KanbanTopicCardDetailModal, {
+    //     model: {
+    //       card: this.args.card,
+    //       columnTitle: this.args.columnTitle,
+    //       columnIcon: this.args.columnIcon,
+    //       onNavigateAway: (url) => {
+    //         navigatedAway = true;
+    //         DiscourseURL.routeTo(url);
+    //       },
+    //     },
+    //   })
+    //   .finally(() => {
+    //     this.cardOpen = false;
+    //     if (!navigatedAway && !this.isDestroying && !this.isDestroyed) {
+    //       DiscourseURL.replaceState(boardUrl);
+    //     }
+    //   });
   }
 
   @action
@@ -396,6 +390,8 @@ export default class KanbanCard extends Component {
     } else {
       this.openDetailModal();
     }
+
+    this.args.onCardClick(this.args.card);
   }
 
   @action
@@ -521,9 +517,6 @@ export default class KanbanCard extends Component {
   }
 
   <template>
-    {{#if this.cardOpen}}
-      {{bodyClass "kanban-card-open"}}
-    {{/if}}
     {{! template-lint-disable no-invalid-interactive }}
     <div
       class={{concatClass

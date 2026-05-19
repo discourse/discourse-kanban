@@ -39,7 +39,7 @@ body.discourse-kanban-board {
     }
   }
 
-  &.kanban-card-open #main-outlet-wrapper {
+  &.topic-kanban-card-open #main-outlet-wrapper {
     grid-template-columns: var(--d-sidebar-width) minmax(0, 1fr) var(
         --topic-sidebar-block-width
       );
