@@ -10,10 +10,10 @@ import { autoScrollSpeedForPointer } from "discourse/plugins/discourse-kanban/di
 
 function createDropTarget() {
   const column = document.createElement("div");
-  column.className = "kanban-column";
+  column.className = "discourse-kanban-column";
 
   const cardsContainer = document.createElement("div");
-  cardsContainer.className = "kanban-column__cards";
+  cardsContainer.className = "discourse-kanban-column__cards";
 
   column.append(cardsContainer);
   return column;
@@ -71,7 +71,7 @@ module("Discourse Kanban | Unit | Components | kanban drop", function (hooks) {
 
     const sourceIndicator = document.createElement("div");
     sourceIndicator.className =
-      "kanban-column__drop-indicator kanban-column__drop-indicator--source";
+      "discourse-kanban-column__drop-indicator discourse-kanban-column__drop-indicator--source";
     root.append(sourceIndicator);
 
     assert.true(
@@ -80,7 +80,7 @@ module("Discourse Kanban | Unit | Components | kanban drop", function (hooks) {
     );
 
     const liveIndicator = document.createElement("div");
-    liveIndicator.className = "kanban-column__drop-indicator";
+    liveIndicator.className = "discourse-kanban-column__drop-indicator";
     root.append(liveIndicator);
 
     assert.false(
@@ -91,9 +91,11 @@ module("Discourse Kanban | Unit | Components | kanban drop", function (hooks) {
 
   test("recency drop indicator target falls before the show older button when all cards are hidden", function (assert) {
     const target = createDropTarget();
-    const cardsContainer = target.querySelector(".kanban-column__cards");
+    const cardsContainer = target.querySelector(
+      ".discourse-kanban-column__cards"
+    );
     const showAllButton = document.createElement("button");
-    showAllButton.className = "kanban-column__show-all";
+    showAllButton.className = "discourse-kanban-column__show-all";
     cardsContainer.append(showAllButton);
 
     assert.strictEqual(

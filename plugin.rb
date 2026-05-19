@@ -12,6 +12,7 @@ enabled_site_setting :discourse_kanban_enabled
 
 register_asset "stylesheets/kanban-manage.scss"
 register_asset "stylesheets/kanban-board.scss"
+register_asset "stylesheets/kanban-oneboxes.scss"
 register_svg_icon "table-columns"
 
 module ::DiscourseKanban
@@ -77,6 +78,14 @@ after_initialize do
     DiscourseKanban::TopicSync.remove_topic(topic.id)
   rescue StandardError => e
     Rails.logger.warn("DiscourseKanban: failed to remove topic #{topic&.id}: #{e.message}")
+  end
+
+  Oneboxer.register_local_handler("discourse_kanban/boards") do |url, route|
+    ::DiscourseKanban::OneboxHandler.handle(url, route)
+  end
+
+  InlineOneboxer.register_local_handler("discourse_kanban/boards") do |url, route|
+    ::DiscourseKanban::InlineOneboxHandler.handle(url, route)
   end
 
   if defined?(Assignment)

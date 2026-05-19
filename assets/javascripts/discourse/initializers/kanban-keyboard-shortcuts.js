@@ -1,19 +1,19 @@
 import { ajax } from "discourse/lib/ajax";
 import { withPluginApi } from "discourse/lib/plugin-api";
 
-const SELECTED_CLASS = "kanban-card--kb-selected";
-const BOARD_SELECTED_CLASS = "kanban-board-card--kb-selected";
+const SELECTED_CLASS = "discourse-kanban-card--kb-selected";
+const BOARD_SELECTED_CLASS = "discourse-kanban-board-card--kb-selected";
 
 function getColumns() {
-  return [...document.querySelectorAll(".kanban-column")];
+  return [...document.querySelectorAll(".discourse-kanban-column")];
 }
 
 function getCards(columnEl) {
-  return [...columnEl.querySelectorAll(".kanban-card")];
+  return [...columnEl.querySelectorAll(".discourse-kanban-card")];
 }
 
 function getBoardCards() {
-  return [...document.querySelectorAll(".kanban-board-card")];
+  return [...document.querySelectorAll(".discourse-kanban-board-card")];
 }
 
 function clearSelection() {
@@ -71,7 +71,9 @@ function moveCard(container, cardId, toColumnId, afterCardId) {
     },
   }).then((result) => {
     if (result?.card) {
-      const boardViewer = document.querySelector(".kanban-board-viewer");
+      const boardViewer = document.querySelector(
+        ".discourse-kanban-board-viewer"
+      );
       if (boardViewer) {
         boardViewer.dispatchEvent(
           new CustomEvent("kanban:card-moved", { detail: result.card })
@@ -82,8 +84,8 @@ function moveCard(container, cardId, toColumnId, afterCardId) {
   });
 }
 
-const BOARD_CONTEXT = ".kanban-board-viewer";
-const BOARDS_LIST_CONTEXT = ".kanban-boards-grid";
+const BOARD_CONTEXT = ".discourse-kanban-board-viewer";
+const BOARDS_LIST_CONTEXT = ".discourse-kanban-boards-grid";
 
 export default {
   name: "kanban-keyboard-shortcuts",
@@ -164,7 +166,9 @@ export default {
         "enter",
         () => {
           document
-            .querySelector(`.${BOARD_SELECTED_CLASS} a.kanban-board-card__name`)
+            .querySelector(
+              `.${BOARD_SELECTED_CLASS} a.discourse-kanban-board-card__name`
+            )
             ?.click();
         },
         { context: BOARDS_LIST_CONTEXT }
@@ -270,7 +274,7 @@ export default {
           if (!selected) {
             return;
           }
-          const link = selected.querySelector("a.kanban-card__title");
+          const link = selected.querySelector("a.discourse-kanban-card__title");
           if (link) {
             link.click();
             return;

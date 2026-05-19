@@ -95,7 +95,7 @@ export default class KanbanTopicCardDetail extends Component {
     <DModal
       @title={{this.topic.title}}
       @closeModal={{@closeModal}}
-      class="kanban-topic-card-detail-modal"
+      class="discourse-kanban-topic-card-detail-modal"
     >
       <:body>
         {{! template-lint-disable no-invalid-interactive }}
@@ -107,35 +107,35 @@ export default class KanbanTopicCardDetail extends Component {
             this.columnData
           )
         }}
-          <div class="kanban-topic-card-detail__meta">
+          <div class="discourse-kanban-topic-card-detail__meta">
             {{#if this.category}}
               {{categoryBadge this.category link=true}}
             {{/if}}
             {{#if this.tagsHtml}}
-              <span class="kanban-topic-card-detail__tags">
+              <span class="discourse-kanban-topic-card-detail__tags">
                 {{trustHTML this.tagsHtml}}
               </span>
             {{/if}}
             {{#if this.allAssignedUsers.length}}
-              <span class="kanban-topic-card-detail__assigned">
+              <span class="discourse-kanban-topic-card-detail__assigned">
                 {{icon "user-plus"}}
                 {{#each this.allAssignedUsers as |user|}}
                   <a
                     href="/u/{{user.username}}/activity/assigned"
-                    class="kanban-topic-card-detail__username"
+                    class="discourse-kanban-topic-card-detail__username"
                   >{{user.username}}</a>
                 {{/each}}
               </span>
             {{else if this.assignedGroupName}}
-              <span class="kanban-topic-card-detail__assigned">
+              <span class="discourse-kanban-topic-card-detail__assigned">
                 {{icon "group-plus"}}
                 <span
-                  class="kanban-topic-card-detail__username"
+                  class="discourse-kanban-topic-card-detail__username"
                 >{{this.assignedGroupName}}</span>
               </span>
             {{/if}}
             {{#if this.columnData}}
-              <span class="kanban-column__title">
+              <span class="discourse-kanban-column__title">
                 {{#if this.columnData.icon}}{{icon this.columnData.icon}}{{/if}}
                 {{this.columnData.title}}
               </span>
@@ -145,11 +145,11 @@ export default class KanbanTopicCardDetail extends Component {
 
         <ConditionalLoadingSpinner @condition={{this.loading}}>
           {{#if this.loadError}}
-            <div class="kanban-topic-card-detail__error">
+            <div class="discourse-kanban-topic-card-detail__error">
               {{i18n "discourse_kanban.board.topic_load_error"}}
             </div>
           {{else}}
-            <div class="kanban-topic-card-detail__cooked">
+            <div class="discourse-kanban-topic-card-detail__cooked">
               <DecoratedHtml
                 @html={{trustHTML this.cooked}}
                 @className="cooked"
@@ -159,14 +159,16 @@ export default class KanbanTopicCardDetail extends Component {
         </ConditionalLoadingSpinner>
 
         {{#if this.replyCount}}
-          <div class="kanban-topic-card-detail__stats">
+          <div class="discourse-kanban-topic-card-detail__stats">
             {{icon "comments"}}
             {{i18n
               "discourse_kanban.board.topic_reply_count"
               count=this.replyCount
             }}
             {{#if this.lastPoster}}
-              <span class="kanban-topic-card-detail__separator">·</span>
+              <span
+                class="discourse-kanban-topic-card-detail__separator"
+              >·</span>
               {{i18n
                 "discourse_kanban.board.topic_last_reply"
                 username=this.lastPoster.username

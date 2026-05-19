@@ -76,7 +76,7 @@ describe "Kanban Keyboard Shortcuts" do
 
       press_key("j")
 
-      expect(page).to have_css(".kanban-card--kb-selected")
+      expect(page).to have_css(".discourse-kanban-card--kb-selected")
     end
 
     it "moves selection down with j and up with k" do
@@ -84,15 +84,15 @@ describe "Kanban Keyboard Shortcuts" do
       board_viewer.visit_board(board)
 
       press_key("j")
-      first_selected = find(".kanban-card--kb-selected").text
+      first_selected = find(".discourse-kanban-card--kb-selected").text
 
       press_key("j")
-      second_selected = find(".kanban-card--kb-selected").text
+      second_selected = find(".discourse-kanban-card--kb-selected").text
 
       expect(first_selected).not_to eq(second_selected)
 
       press_key("k")
-      back_to_first = find(".kanban-card--kb-selected").text
+      back_to_first = find(".discourse-kanban-card--kb-selected").text
 
       expect(back_to_first).to eq(first_selected)
     end
@@ -103,20 +103,20 @@ describe "Kanban Keyboard Shortcuts" do
 
       # Start in first column
       press_key("j")
-      first_col_card = find(".kanban-card--kb-selected")
-      first_column = first_col_card.ancestor(".kanban-column")
+      first_col_card = find(".discourse-kanban-card--kb-selected")
+      first_column = first_col_card.ancestor(".discourse-kanban-column")
 
       # Move to second column
       press_key("l")
-      second_col_card = find(".kanban-card--kb-selected")
-      second_column = second_col_card.ancestor(".kanban-column")
+      second_col_card = find(".discourse-kanban-card--kb-selected")
+      second_column = second_col_card.ancestor(".discourse-kanban-column")
 
       expect(first_column).not_to eq(second_column)
 
       # Move back
       press_key("h")
-      back_card = find(".kanban-card--kb-selected")
-      back_column = back_card.ancestor(".kanban-column")
+      back_card = find(".discourse-kanban-card--kb-selected")
+      back_column = back_card.ancestor(".discourse-kanban-column")
 
       expect(back_column).to eq(first_column)
     end
@@ -126,10 +126,10 @@ describe "Kanban Keyboard Shortcuts" do
       board_viewer.visit_board(board)
 
       press_key("j")
-      expect(page).to have_css(".kanban-card--kb-selected")
+      expect(page).to have_css(".discourse-kanban-card--kb-selected")
 
       press_key(:escape)
-      expect(page).to have_no_css(".kanban-card--kb-selected")
+      expect(page).to have_no_css(".discourse-kanban-card--kb-selected")
     end
 
     it "does not interfere with input fields" do
@@ -137,10 +137,10 @@ describe "Kanban Keyboard Shortcuts" do
       board_viewer.visit_board(board)
 
       board_viewer.click_add_card("To Do")
-      find(".kanban-editable-title__input").send_keys("hjkl")
+      find(".discourse-kanban-editable-title__input").send_keys("hjkl")
 
-      expect(find(".kanban-editable-title__input").value).to eq("hjkl")
-      expect(page).to have_no_css(".kanban-card--kb-selected")
+      expect(find(".discourse-kanban-editable-title__input").value).to eq("hjkl")
+      expect(page).to have_no_css(".discourse-kanban-card--kb-selected")
     end
   end
 
@@ -159,21 +159,23 @@ describe "Kanban Keyboard Shortcuts" do
       sign_in(user)
       visit "/kanban"
 
-      expect(page).to have_css(".kanban-board-card", count: 3)
+      expect(page).to have_css(".discourse-kanban-board-card", count: 3)
 
       press_key("l")
-      expect(page).to have_css(".kanban-board-card--kb-selected")
+      expect(page).to have_css(".discourse-kanban-board-card--kb-selected")
 
-      first_selected = find(".kanban-board-card--kb-selected")
-      first_name = first_selected.find(".kanban-board-card__name").text
+      first_selected = find(".discourse-kanban-board-card--kb-selected")
+      first_name = first_selected.find(".discourse-kanban-board-card__name").text
 
       press_key("l")
-      second_name = find(".kanban-board-card--kb-selected .kanban-board-card__name").text
+      second_name =
+        find(".discourse-kanban-board-card--kb-selected .discourse-kanban-board-card__name").text
 
       expect(second_name).not_to eq(first_name)
 
       press_key("h")
-      back_name = find(".kanban-board-card--kb-selected .kanban-board-card__name").text
+      back_name =
+        find(".discourse-kanban-board-card--kb-selected .discourse-kanban-board-card__name").text
 
       expect(back_name).to eq(first_name)
 
@@ -196,7 +198,7 @@ describe "Kanban Keyboard Shortcuts" do
 
       # Select the card
       press_key("j")
-      expect(page).to have_css(".kanban-card--kb-selected")
+      expect(page).to have_css(".discourse-kanban-card--kb-selected")
 
       # Move it right
       press_key(:shift, "l")

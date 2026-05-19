@@ -33,7 +33,7 @@ export function autoScrollSpeedForPointer(pointerPosition, rect, axis = "y") {
 }
 
 const DRAG_SCROLL_SKIP_SELECTOR =
-  ".kanban-card, button, a, input, textarea, select, [contenteditable=''], [contenteditable='true']";
+  ".discourse-kanban-card, button, a, input, textarea, select, [contenteditable=''], [contenteditable='true']";
 
 const DRAG_SCROLL_MOMENTUM_FRICTION = 0.92;
 const DRAG_SCROLL_MOMENTUM_MAX_PX_PER_FRAME = 4;

@@ -144,7 +144,7 @@ export default class KanbanColumnSettings extends Component {
     <DModal
       @closeModal={{@closeModal}}
       @hideHeader={{true}}
-      class="kanban-column-settings-modal"
+      class="discourse-kanban-column-settings-modal"
     >
       <:body>
         <Form @data={{this.formData}} @onSubmit={{this.save}} as |form data|>
@@ -158,7 +158,7 @@ export default class KanbanColumnSettings extends Component {
             @validate={{this.validateTitle}}
             @onClose={{@closeModal}}
           />
-          <div class="kanban-column-settings-modal__wrapper">
+          <div class="discourse-kanban-column-settings-modal__wrapper">
             <form.Section>
               <form.Field
                 @name="icon"
@@ -199,7 +199,7 @@ export default class KanbanColumnSettings extends Component {
                     @onChange={{fn this.onTagChange field}}
                     @options={{hash maximum=1 allowCreate=true}}
                   />
-                  <p class="kanban-column-settings__help">
+                  <p class="discourse-kanban-column-settings__help">
                     {{i18n "discourse_kanban.manage.columns.tag_help"}}
                   </p>
                 </field.Control>
@@ -281,9 +281,9 @@ export default class KanbanColumnSettings extends Component {
           </div>
 
           <form.Actions>
-            <form.Submit class="kanban-column-settings-modal__save" />
+            <form.Submit class="discourse-kanban-column-settings-modal__save" />
             <form.Button
-              class="btn-flat d-modal-cancel kanban-column-settings-modal__cancel"
+              class="btn-flat d-modal-cancel discourse-kanban-column-settings-modal__cancel"
               @action={{@closeModal}}
               @label="cancel"
             />

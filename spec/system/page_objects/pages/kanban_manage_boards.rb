@@ -18,15 +18,15 @@ module PageObjects
       end
 
       def has_board_listed?(name)
-        has_css?(".kanban-board-card", text: name)
+        has_css?(".discourse-kanban-board-card", text: name)
       end
 
       def has_no_board_listed?(name)
-        has_no_css?(".kanban-board-card", text: name)
+        has_no_css?(".discourse-kanban-board-card", text: name)
       end
 
       def has_empty_state?
-        has_css?(".kanban-boards-empty")
+        has_css?(".discourse-kanban-boards-empty")
       end
 
       def has_new_board_button?
@@ -38,20 +38,23 @@ module PageObjects
       end
 
       def click_board(board_name)
-        find(".kanban-board-card__name", text: board_name).click
+        find(".discourse-kanban-board-card__name", text: board_name).click
         self
       end
 
       # Board settings modal interactions
 
       def board_settings_modal
-        PageObjects::Modals::Base.new(modal_selector: ".kanban-board-settings-modal")
+        PageObjects::Modals::Base.new(modal_selector: ".discourse-kanban-board-settings-modal")
       end
 
       def fill_modal_board_name(name)
         modal = board_settings_modal
-        modal.body.find(".kanban-editable-title__input, .kanban-editable-title__text").click
-        modal.body.find(".kanban-editable-title__input").fill_in(with: name)
+        modal
+          .body
+          .find(".discourse-kanban-editable-title__input, .discourse-kanban-editable-title__text")
+          .click
+        modal.body.find(".discourse-kanban-editable-title__input").fill_in(with: name)
         self
       end
 
@@ -75,29 +78,29 @@ module PageObjects
 
       def save_board_modal
         modal = board_settings_modal
-        modal.body.find(".kanban-board-settings-modal__save-board").click
+        modal.body.find(".discourse-kanban-board-settings-modal__save-board").click
         self
       end
 
       def delete_from_board_modal
         modal = board_settings_modal
-        modal.body.find(".kanban-board-settings-modal__delete-board").click
+        modal.body.find(".discourse-kanban-board-settings-modal__delete-board").click
         self
       end
 
       # Column settings modal interactions
 
       def column_settings_modal
-        PageObjects::Modals::Base.new(modal_selector: ".kanban-column-settings-modal")
+        PageObjects::Modals::Base.new(modal_selector: ".discourse-kanban-column-settings-modal")
       end
 
       def fill_modal_column_title(title)
         modal = column_settings_modal
-        if modal.body.has_css?(".kanban-editable-title__input", wait: 0)
-          modal.body.find(".kanban-editable-title__input").fill_in(with: title)
+        if modal.body.has_css?(".discourse-kanban-editable-title__input", wait: 0)
+          modal.body.find(".discourse-kanban-editable-title__input").fill_in(with: title)
         else
-          modal.body.find(".kanban-editable-title__text").click
-          modal.body.find(".kanban-editable-title__input").fill_in(with: title)
+          modal.body.find(".discourse-kanban-editable-title__text").click
+          modal.body.find(".discourse-kanban-editable-title__input").fill_in(with: title)
         end
         self
       end
@@ -124,7 +127,7 @@ module PageObjects
 
       def save_column_modal
         modal = column_settings_modal
-        modal.body.find(".kanban-column-settings-modal__save").click
+        modal.body.find(".discourse-kanban-column-settings-modal__save").click
         self
       end
 

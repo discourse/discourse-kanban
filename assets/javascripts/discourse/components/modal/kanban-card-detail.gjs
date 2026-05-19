@@ -75,7 +75,7 @@ export default class KanbanCardDetail extends Component {
       @closeModal={{@closeModal}}
       @submitOnEnter={{false}}
       @hideHeader={{true}}
-      class="kanban-card-detail-modal"
+      class="discourse-kanban-card-detail-modal"
     >
       <:body>
         <Form @data={{this.formData}} @onSubmit={{this.save}} as |form data|>
@@ -148,7 +148,7 @@ export default class KanbanCardDetail extends Component {
           @icon="xmark"
           @ariaLabel="modal.close"
           @title="modal.close"
-          class="btn-flat kanban-card-detail-modal__close"
+          class="btn-flat discourse-kanban-card-detail-modal__close"
         />
       </:body>
     </DModal>

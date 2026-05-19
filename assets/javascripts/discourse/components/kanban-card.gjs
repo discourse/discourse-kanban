@@ -29,7 +29,7 @@ import KanbanTopicCardDetailModal from "./modal/kanban-topic-card-detail";
 
 export function shouldInsertSourceDropIndicator(root = document) {
   return !root.querySelector(
-    ".kanban-column__drop-indicator:not(.kanban-column__drop-indicator--source)"
+    ".discourse-kanban-column__drop-indicator:not(.discourse-kanban-column__drop-indicator--source)"
   );
 }
 
@@ -377,8 +377,8 @@ export default class KanbanCard extends Component {
   @action
   onCardClick(event) {
     if (
-      event.target.closest(".kanban-card__actions-trigger") ||
-      event.target.closest(".kanban-card__assign-btn") ||
+      event.target.closest(".discourse-kanban-card__actions-trigger") ||
+      event.target.closest(".discourse-kanban-card__assign-btn") ||
       event.target.closest("[data-content]") ||
       event.target.closest("a")
     ) {
@@ -466,8 +466,8 @@ export default class KanbanCard extends Component {
     this.#cleanupDragImage();
 
     const dragImage = cardElement.cloneNode(true);
-    dragImage.classList.remove("kanban-card--dragging");
-    dragImage.classList.add("kanban-card--drag-image");
+    dragImage.classList.remove("discourse-kanban-card--dragging");
+    dragImage.classList.add("discourse-kanban-card--drag-image");
     dragImage.style.width = `${cardRect.width}px`;
     dragImage.style.height = `${cardRect.height}px`;
     dragImage.setAttribute("aria-hidden", "true");
@@ -490,7 +490,9 @@ export default class KanbanCard extends Component {
   }
 
   #insertSourceDropIndicator(cardElement, cardHeight) {
-    const cardsContainer = cardElement.closest(".kanban-column__cards");
+    const cardsContainer = cardElement.closest(
+      ".discourse-kanban-column__cards"
+    );
     if (!cardsContainer) {
       return;
     }
@@ -499,7 +501,7 @@ export default class KanbanCard extends Component {
 
     const indicator = document.createElement("div");
     indicator.className =
-      "kanban-column__drop-indicator kanban-column__drop-indicator--source";
+      "discourse-kanban-column__drop-indicator discourse-kanban-column__drop-indicator--source";
     indicator.style.height = `${cardHeight}px`;
 
     cardsContainer.insertBefore(indicator, cardElement);
@@ -507,7 +509,7 @@ export default class KanbanCard extends Component {
 
   #removeDropIndicators() {
     document
-      .querySelectorAll(".kanban-column__drop-indicator")
+      .querySelectorAll(".discourse-kanban-column__drop-indicator")
       .forEach((indicator) => indicator.remove());
   }
 
@@ -515,10 +517,10 @@ export default class KanbanCard extends Component {
     {{! template-lint-disable no-invalid-interactive }}
     <div
       class={{concatClass
-        "kanban-card"
-        (if this.dragging "kanban-card--dragging")
-        (unless this.isTopicCard "kanban-card--floater")
-        (if @isDropHighlighted "kanban-card--drop-highlighted")
+        "discourse-kanban-card"
+        (if this.dragging "discourse-kanban-card--dragging")
+        (unless this.isTopicCard "discourse-kanban-card--floater")
+        (if @isDropHighlighted "discourse-kanban-card--drop-highlighted")
         this.activityClass
       }}
       draggable={{if @canWrite "true" "false"}}
@@ -531,16 +533,18 @@ export default class KanbanCard extends Component {
       {{on "click" this.onCardClick}}
       {{on "keydown" this.onCardKeydown}}
     >
-      <div class="kanban-card__row kanban-card__title-row">
+      <div class="discourse-kanban-card__row discourse-kanban-card__title-row">
         {{#if this.topicStatusModel}}
           <TopicStatus @topic={{this.topicStatusModel}} />
         {{/if}}
         {{#if this.isTopicCard}}
-          <span class="kanban-card__title kanban-card__title--topic">
+          <span
+            class="discourse-kanban-card__title discourse-kanban-card__title--topic"
+          >
             {{this.cardTitle}}
           </span>
         {{else}}
-          <span class="kanban-card__title"><AutoLinkedText
+          <span class="discourse-kanban-card__title"><AutoLinkedText
               @text={{this.cardTitle}}
             /></span>
         {{/if}}
@@ -548,7 +552,7 @@ export default class KanbanCard extends Component {
           <DMenu
             @identifier="kanban-card-actions"
             @icon="ellipsis"
-            @triggerClass="btn-flat btn-small kanban-card__actions-trigger"
+            @triggerClass="btn-flat btn-small discourse-kanban-card__actions-trigger"
           >
             <:content>
               <DropdownMenu as |dropdown|>
@@ -584,7 +588,7 @@ export default class KanbanCard extends Component {
         {{/if}}
         {{#unless this.isDetailed}}
           {{#if this.activityDate}}
-            <span class="kanban-card__date">
+            <span class="discourse-kanban-card__date">
               {{formatDate this.activityDate format="tiny" noTitle="true"}}
             </span>
           {{/if}}
@@ -593,8 +597,13 @@ export default class KanbanCard extends Component {
 
       {{#unless this.isTopicCard}}
         {{#if @card.notes}}
-          <div class="kanban-card__row kanban-card__indicators">
-            <span class="kanban-card__notes-indicator" title={{@card.notes}}>
+          <div
+            class="discourse-kanban-card__row discourse-kanban-card__indicators"
+          >
+            <span
+              class="discourse-kanban-card__notes-indicator"
+              title={{@card.notes}}
+            >
               {{icon "file-lines"}}
             </span>
           </div>
@@ -602,14 +611,14 @@ export default class KanbanCard extends Component {
       {{/unless}}
 
       {{#if this.tagsHtml}}
-        <div class="kanban-card__row kanban-card__tags">
+        <div class="discourse-kanban-card__row discourse-kanban-card__tags">
           {{trustHTML this.tagsHtml}}
         </div>
       {{/if}}
 
-      <div class="kanban-card__row">
+      <div class="discourse-kanban-card__row">
         {{#if this.category}}
-          <div class="kanban-card__category">
+          <div class="discourse-kanban-card__category">
             {{categoryBadge this.category}}
           </div>
         {{/if}}
@@ -617,8 +626,10 @@ export default class KanbanCard extends Component {
       </div>
 
       {{#if this.isDetailed}}
-        <div class="kanban-card__row kanban-card__detail-row">
-          <div class="kanban-card__last-post-by">
+        <div
+          class="discourse-kanban-card__row discourse-kanban-card__detail-row"
+        >
+          <div class="discourse-kanban-card__last-post-by">
             {{#if this.activityDate}}
               {{formatDate this.activityDate format="tiny" noTitle="true"}}
             {{/if}}
@@ -631,8 +642,13 @@ export default class KanbanCard extends Component {
       {{/if}}
 
       {{#if this.showImage}}
-        <div class="kanban-card__row kanban-card__thumbnail-row">
-          <img class="kanban-card__thumbnail" src={{this.topic.image_url}} />
+        <div
+          class="discourse-kanban-card__row discourse-kanban-card__thumbnail-row"
+        >
+          <img
+            class="discourse-kanban-card__thumbnail"
+            src={{this.topic.image_url}}
+          />
         </div>
       {{/if}}
 
@@ -640,7 +656,7 @@ export default class KanbanCard extends Component {
         {{#if this.isAssigned}}
           <DMenu
             @identifier="kanban-card-assignment"
-            @triggerClass="kanban-card__assign-btn"
+            @triggerClass="discourse-kanban-card__assign-btn"
             @class="btn-small btn-flat"
           >
             <:trigger>
@@ -689,7 +705,7 @@ export default class KanbanCard extends Component {
             @action={{this.handleAssign}}
             @icon="user-plus"
             @title="discourse_kanban.board.assign"
-            class="btn-flat btn-small kanban-card__assign-btn"
+            class="btn-flat btn-small discourse-kanban-card__assign-btn"
           />
         {{/if}}
       {{/if}}

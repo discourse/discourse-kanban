@@ -13,11 +13,13 @@ module PageObjects
       end
 
       def find_by_title(title)
-        find(".kanban-column__title", text: /#{Regexp.escape(title)}/i).ancestor(".kanban-column")
+        find(".discourse-kanban-column__title", text: /#{Regexp.escape(title)}/i).ancestor(
+          ".discourse-kanban-column",
+        )
       end
 
       def find_by_id(id)
-        find(".kanban-column[data-column-id='#{id}']")
+        find(".discourse-kanban-column[data-column-id='#{id}']")
       end
 
       def find_column
@@ -35,7 +37,7 @@ module PageObjects
 
       def menu
         PageObjects::Components::DMenu.new(
-          find_column.find(".kanban-column__menu-trigger", visible: :all),
+          find_column.find(".discourse-kanban-column__menu-trigger", visible: :all),
         )
       end
 
@@ -45,7 +47,7 @@ module PageObjects
       end
 
       def click_delete
-        menu.option(".kanban-column__menu-delete").click
+        menu.option(".discourse-kanban-column__menu-delete").click
       end
     end
   end

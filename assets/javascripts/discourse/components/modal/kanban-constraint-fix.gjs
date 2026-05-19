@@ -101,26 +101,26 @@ export default class KanbanConstraintFix extends Component {
     <DModal
       @closeModal={{this.cancel}}
       @title={{i18n "discourse_kanban.board.constraint_fix_title"}}
-      class="kanban-constraint-fix-modal"
+      class="discourse-kanban-constraint-fix-modal"
     >
       <:body>
-        <p class="kanban-constraint-fix__description">
+        <p class="discourse-kanban-constraint-fix__description">
           {{i18n "discourse_kanban.board.constraint_fix_description"}}
         </p>
 
         {{#if @model.mismatches.needsCategory}}
-          <div class="kanban-constraint-fix__field">
+          <div class="discourse-kanban-constraint-fix__field">
             <label>{{i18n
                 "discourse_kanban.board.constraint_fix_category"
               }}</label>
-            <div class="kanban-constraint-fix__options">
+            <div class="discourse-kanban-constraint-fix__options">
               {{#each this.categoryOptions as |cat|}}
                 <DButton
                   @action={{fn this.selectCategory cat.id}}
                   @translatedLabel={{cat.name}}
                   class={{if
                     (eq this.selectedCategoryId cat.id)
-                    "btn-primary kanban-constraint-fix__option--selected"
+                    "btn-primary discourse-kanban-constraint-fix__option--selected"
                     "btn-default"
                   }}
                 />
@@ -130,16 +130,16 @@ export default class KanbanConstraintFix extends Component {
         {{/if}}
 
         {{#if @model.mismatches.needsTags}}
-          <div class="kanban-constraint-fix__field">
+          <div class="discourse-kanban-constraint-fix__field">
             <label>{{i18n "discourse_kanban.board.constraint_fix_tags"}}</label>
-            <div class="kanban-constraint-fix__options">
+            <div class="discourse-kanban-constraint-fix__options">
               {{#each this.tagOptions as |tagName|}}
                 <DButton
                   @action={{fn this.toggleTag tagName}}
                   @translatedLabel={{tagName}}
                   class={{if
                     (includes this.selectedTagNames tagName)
-                    "btn-primary kanban-constraint-fix__option--selected"
+                    "btn-primary discourse-kanban-constraint-fix__option--selected"
                     "btn-default"
                   }}
                 />

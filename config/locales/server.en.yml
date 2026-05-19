@@ -27,3 +27,13 @@ en:
       cannot_use_same_tag_multiple_times: "You cannot use the same tag (%{tag_name}) multiple times for columns in the same board."
       cannot_reorder_recency_column: "Cards in recency-sorted columns cannot be reordered."
       invalid_column_sort: "Invalid column sort: %{sort}"
+    onebox:
+      inline_to_card: "Card '%{card_name}' on board '%{board_name}'"
+      inline_to_board: "Board '%{board_name}'"
+      created_by: "Created by %{username}"
+      column_count:
+        one: "%{count} column"
+        other: "%{count} columns"
+      board: "Kanban board"
+      card: "Kanban card"
+      updated_by: "Updated by %{username}"

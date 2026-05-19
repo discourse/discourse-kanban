@@ -10,7 +10,6 @@ import boundCategoryLink from "discourse/helpers/bound-category-link";
 import icon from "discourse/helpers/d-icon";
 import discourseTags from "discourse/helpers/discourse-tags";
 import { ajax } from "discourse/lib/ajax";
-import { formatUsername } from "discourse/lib/utilities";
 import Category from "discourse/models/category";
 import { eq, or } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
@@ -81,21 +80,21 @@ export default class KanbanBoardsPage extends Component {
       </div>
 
       {{#if @boards.length}}
-        <div class="kanban-boards-grid">
+        <div class="discourse-kanban-boards-grid">
           {{#each @boards as |board|}}
-            <div class="kanban-board-card">
-              <div class="kanban-board-card__header">
+            <div class="discourse-kanban-board-card">
+              <div class="discourse-kanban-board-card__header">
                 <LinkTo
                   @route="kanbanBoard"
                   @models={{array board.slug board.id}}
-                  class="kanban-board-card__name"
+                  class="discourse-kanban-board-card__name"
                 >
                   {{board.name}}
                 </LinkTo>
               </div>
 
               {{#if (or board.category_ids.length board.tag_names.length)}}
-                <div class="kanban-board-card__constraints">
+                <div class="discourse-kanban-board-card__constraints">
                   {{#each (boardCategories board) as |category|}}
                     {{boundCategoryLink category link=false}}
                   {{/each}}
@@ -107,10 +106,10 @@ export default class KanbanBoardsPage extends Component {
                 </div>
               {{/if}}
 
-              <div class="kanban-board-card__columns">
+              <div class="discourse-kanban-board-card__columns">
                 {{#if board.columns.length}}
                   {{#each board.columns as |column|}}
-                    <span class="kanban-board-card__column-pill">
+                    <span class="discourse-kanban-column-pill">
                       {{#if column.icon}}
                         {{icon column.icon}}
                       {{/if}}
@@ -118,35 +117,35 @@ export default class KanbanBoardsPage extends Component {
                     </span>
                   {{/each}}
                 {{else}}
-                  <span class="kanban-board-card__no-columns">
+                  <span class="discourse-kanban-board-card__no-columns">
                     {{i18n "discourse_kanban.manage.no_columns"}}
                   </span>
                 {{/if}}
               </div>
 
-              <div class="kanban-board-card__footer">
+              <div class="discourse-kanban-board-card__footer">
                 <UserLink
-                  class="kanban-board-card__creator kanban-board-card__badge"
+                  class="discourse-kanban-board-card__creator discourse-kanban-badge"
                   @user={{board.created_by}}
                 >
                   {{i18n "discourse_kanban.board.created_by"}}
                   {{avatar board.created_by imageSize="micro"}}
                 </UserLink>
 
-                <span class="kanban-board-card__badge">
+                <span class="discourse-kanban-badge">
                   {{i18n
                     "discourse_kanban.manage.column_count"
                     count=board.columns.length
                   }}
                 </span>
                 {{#if (eq board.card_style "simple")}}
-                  <span class="kanban-board-card__badge">
+                  <span class="discourse-kanban-badge">
                     {{i18n "discourse_kanban.manage.card_style_simple"}}
                   </span>
                 {{/if}}
                 {{#if board.allow_read_group_ids.length}}
                   <span
-                    class="kanban-board-card__badge kanban-board-card__badge--restricted"
+                    class="discourse-kanban-badge discourse-kanban-badge--restricted"
                     title={{i18n "discourse_kanban.manage.restricted_access"}}
                   >
                     {{icon "lock"}}
@@ -157,7 +156,7 @@ export default class KanbanBoardsPage extends Component {
           {{/each}}
         </div>
       {{else}}
-        <div class="kanban-boards-empty">
+        <div class="discourse-kanban-boards-empty">
           {{icon "table-columns"}}
           <h3>{{i18n "discourse_kanban.manage.empty_title"}}</h3>
           <p>{{i18n "discourse_kanban.manage.get_started"}}</p>

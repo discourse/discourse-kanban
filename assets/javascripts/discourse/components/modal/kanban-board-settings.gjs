@@ -264,7 +264,7 @@ export default class KanbanBoardSettings extends Component {
       @closeModal={{@closeModal}}
       @hideHeader={{true}}
       @inline={{@inline}}
-      class="kanban-board-settings-modal"
+      class="discourse-kanban-board-settings-modal"
     >
       <:body>
         <Form
@@ -281,7 +281,7 @@ export default class KanbanBoardSettings extends Component {
             @onClose={{@closeModal}}
             @showClose={{true}}
           />
-          <div class="kanban-board-settings-modal__wrapper">
+          <div class="discourse-kanban-board-settings-modal__wrapper">
 
             <form.Section>
               <form.Field
@@ -480,10 +480,12 @@ export default class KanbanBoardSettings extends Component {
           </div>
 
           <form.Actions>
-            <form.Submit class="kanban-board-settings-modal__save-board" />
+            <form.Submit
+              class="discourse-kanban-board-settings-modal__save-board"
+            />
             {{#unless this.isNew}}
               <form.Button
-                class="btn-danger kanban-board-settings-modal__delete-board"
+                class="btn-danger discourse-kanban-board-settings-modal__delete-board"
                 @action={{this.onDelete}}
                 @label="discourse_kanban.board.delete_board"
               />

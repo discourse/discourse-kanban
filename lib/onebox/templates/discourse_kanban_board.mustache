@@ -1,0 +1,75 @@
+<aside class="onebox">
+  <div class="discourse-kanban-board-card__header">
+    <a href="{{board_url}}" class="discourse-kanban-board-card__name">
+      <svg
+            class="fa d-icon d-icon-table-columns svg-icon svg-string"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <use href="#table-columns"></use>
+          </svg> {{board_name}}
+    </a>
+  </div>
+
+  {{#has_constraints}}
+    <div class="discourse-kanban-board-card__constraints">
+      {{#categories_preview}}
+        {{{board_categories}}}
+      {{/categories_preview}}
+      {{#tags_preview}}
+        <div class="list-tags">{{{board_tags}}}</div>
+      {{/tags_preview}}
+    </div>
+  {{/has_constraints}}
+
+  {{#columns_preview}}
+    <div class="discourse-kanban-board-card__columns">
+      {{#board_columns}}
+        <span class="discourse-kanban-column-pill">
+          {{#icon}}
+            <svg
+              class="fa d-icon d-icon-{{icon}} svg-icon svg-string"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <use href="#{{icon}}"></use>
+            </svg>
+          {{/icon}}
+          {{name}}
+        </span>
+      {{/board_columns}}
+    </div>
+  {{/columns_preview}}
+
+  <div class="discourse-kanban-board-card__footer">
+    <a
+      class="discourse-kanban-board-card__creator discourse-kanban-badge trigger-user-card"
+      data-user-card="{{creator_username}}"
+      aria-hidden="true"
+      tabindex="-1"
+    >
+      {{created_by}}
+      <img
+        loading="lazy"
+        alt="{{creator_username}}"
+        width="12"
+        height="12"
+        src="{{creator_avatar_url}}"
+        class="avatar"
+      >
+    </a>
+
+    <span class="discourse-kanban-badge">{{column_count}}</span>
+
+    {{#restricted}}
+      <span
+        class="discourse-kanban-badge discourse-kanban-badge--restricted"
+      >
+        <svg
+          class="fa d-icon d-icon-lock svg-icon svg-string"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <use href="#lock"></use>
+        </svg>
+      </span>
+    {{/restricted}}
+  </div>
+</aside>

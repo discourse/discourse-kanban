@@ -35,7 +35,7 @@ module DiscourseKanban
 
     def can_write_board?(board)
       return false if anonymous?
-      return true if is_admin?
+      return true if is_admin? && !user.is_system_user?
 
       user.in_any_groups?(board.allow_write_group_ids)
     end

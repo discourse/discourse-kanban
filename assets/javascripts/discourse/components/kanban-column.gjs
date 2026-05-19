@@ -33,7 +33,7 @@ export function recencyDropIndicatorInsertBefore(
     cardElements.find((cardEl) => {
       const elCardId = parseInt(cardEl.dataset.cardId, 10);
       return elCardId !== draggedCardId;
-    }) || cardsContainer.querySelector(".kanban-column__show-all")
+    }) || cardsContainer.querySelector(".discourse-kanban-column__show-all")
   );
 }
 
@@ -174,7 +174,7 @@ export default class KanbanColumn extends Component {
     event.currentTarget.classList.add("drag-target");
 
     const cardsContainer = event.currentTarget.querySelector(
-      ".kanban-column__cards"
+      ".discourse-kanban-column__cards"
     );
     if (!cardsContainer) {
       this.#stopAutoScroll();
@@ -189,16 +189,18 @@ export default class KanbanColumn extends Component {
     }
 
     let indicator = cardsContainer.querySelector(
-      ".kanban-column__drop-indicator"
+      ".discourse-kanban-column__drop-indicator"
     );
     const hadIndicator = !!indicator;
     if (!indicator) {
       indicator = document.createElement("div");
-      indicator.className = "kanban-column__drop-indicator";
+      indicator.className = "discourse-kanban-column__drop-indicator";
     }
     indicator.style.height = `${dragData.cardHeight}px`;
 
-    const cardElements = [...cardsContainer.querySelectorAll(".kanban-card")];
+    const cardElements = [
+      ...cardsContainer.querySelectorAll(".discourse-kanban-card"),
+    ];
     let insertBefore = null;
 
     if (this.isRecencySorted) {
@@ -221,7 +223,9 @@ export default class KanbanColumn extends Component {
       }
     }
 
-    const emptyMsg = cardsContainer.querySelector(".kanban-column__empty");
+    const emptyMsg = cardsContainer.querySelector(
+      ".discourse-kanban-column__empty"
+    );
     if (emptyMsg) {
       emptyMsg.hidden = true;
     }
@@ -245,7 +249,9 @@ export default class KanbanColumn extends Component {
         })
       : null;
 
-    indicator.classList.remove("kanban-column__drop-indicator--source");
+    indicator.classList.remove(
+      "discourse-kanban-column__drop-indicator--source"
+    );
 
     if (insertBefore) {
       cardsContainer.insertBefore(indicator, insertBefore);
@@ -290,12 +296,14 @@ export default class KanbanColumn extends Component {
     }
 
     const cardsContainer = event.currentTarget.querySelector(
-      ".kanban-column__cards"
+      ".discourse-kanban-column__cards"
     );
     let afterCardId = null;
 
     if (cardsContainer && !this.isRecencySorted) {
-      const cardElements = [...cardsContainer.querySelectorAll(".kanban-card")];
+      const cardElements = [
+        ...cardsContainer.querySelectorAll(".discourse-kanban-card"),
+      ];
       for (const cardEl of cardElements) {
         const elCardId = parseInt(cardEl.dataset.cardId, 10);
         if (elCardId === dragData.cardId) {
@@ -319,13 +327,17 @@ export default class KanbanColumn extends Component {
   }
 
   removeDropIndicator(columnEl, { animate = false } = {}) {
-    const cardsContainer = columnEl.querySelector(".kanban-column__cards");
-    const indicator = columnEl.querySelector(".kanban-column__drop-indicator");
+    const cardsContainer = columnEl.querySelector(
+      ".discourse-kanban-column__cards"
+    );
+    const indicator = columnEl.querySelector(
+      ".discourse-kanban-column__drop-indicator"
+    );
     const dragData = this.args.dragData;
 
     if (!indicator) {
       columnEl
-        .querySelector(".kanban-column__empty")
+        .querySelector(".discourse-kanban-column__empty")
         ?.removeAttribute("hidden");
       return;
     }
@@ -339,7 +351,7 @@ export default class KanbanColumn extends Component {
 
     indicator.remove();
 
-    const emptyMsg = columnEl.querySelector(".kanban-column__empty");
+    const emptyMsg = columnEl.querySelector(".discourse-kanban-column__empty");
     if (emptyMsg) {
       emptyMsg.hidden = false;
     }
@@ -447,20 +459,20 @@ export default class KanbanColumn extends Component {
 
   <template>
     <div
-      class="kanban-column"
+      class="discourse-kanban-column"
       data-column-id={{@column.id}}
       data-default-sort={{@column.default_sort}}
       {{on "dragover" this.dragOver}}
       {{on "dragleave" this.dragLeave}}
       {{on "drop" this.drop}}
     >
-      <div class="kanban-column__header">
-        <span class="kanban-column__header-content">
-          <span class="kanban-column__title">
+      <div class="discourse-kanban-column__header">
+        <span class="discourse-kanban-column__header-content">
+          <span class="discourse-kanban-column__title">
             {{#if @column.icon}}{{icon @column.icon}}{{/if}}
             {{@column.title}}
           </span>
-          <span class="kanban-column__count">
+          <span class="discourse-kanban-column__count">
             {{this.cardCount}}
           </span>
         </span>
@@ -469,7 +481,7 @@ export default class KanbanColumn extends Component {
             @identifier="kanban-column-controls"
             @icon="ellipsis"
             @title="discourse_kanban.board.column_controls"
-            @triggerClass="btn-flat btn-small kanban-column__menu-trigger"
+            @triggerClass="btn-flat btn-small discourse-kanban-column__menu-trigger"
           >
             <:content as |args|>
               <DropdownMenu as |dropdown|>
@@ -478,7 +490,7 @@ export default class KanbanColumn extends Component {
                     @action={{fn this.editColumn args.close}}
                     @icon="pencil"
                     @label="discourse_kanban.board.edit_column"
-                    class="btn-transparent kanban-column__menu-edit"
+                    class="btn-transparent discourse-kanban-column__menu-edit"
                   />
                 </dropdown.item>
                 <dropdown.item>
@@ -487,7 +499,7 @@ export default class KanbanColumn extends Component {
                     @icon="arrow-left"
                     @label="discourse_kanban.board.move_left"
                     @disabled={{eq this.columnIndex 0}}
-                    class="btn-transparent kanban-column__menu-move-left"
+                    class="btn-transparent discourse-kanban-column__menu-move-left"
                   />
                 </dropdown.item>
                 <dropdown.item>
@@ -496,7 +508,7 @@ export default class KanbanColumn extends Component {
                     @icon="arrow-right"
                     @label="discourse_kanban.board.move_right"
                     @disabled={{eq this.columnIndex this.lastColumnIndex}}
-                    class="btn-transparent kanban-column__menu-move-right"
+                    class="btn-transparent discourse-kanban-column__menu-move-right"
                   />
                 </dropdown.item>
                 <dropdown.item>
@@ -505,7 +517,7 @@ export default class KanbanColumn extends Component {
                     @icon="xmark"
                     @label="discourse_kanban.board.clear_column"
                     @disabled={{eq this.cardCount 0}}
-                    class="btn-transparent kanban-column__menu-clear"
+                    class="btn-transparent discourse-kanban-column__menu-clear"
                   />
                 </dropdown.item>
                 <dropdown.item>
@@ -513,7 +525,7 @@ export default class KanbanColumn extends Component {
                     @action={{fn this.deleteColumn args.close}}
                     @icon="trash-can"
                     @label="discourse_kanban.board.delete_column"
-                    class="btn-transparent btn-danger kanban-column__menu-delete"
+                    class="btn-transparent btn-danger discourse-kanban-column__menu-delete"
                   />
                 </dropdown.item>
               </DropdownMenu>
@@ -522,7 +534,7 @@ export default class KanbanColumn extends Component {
         {{/if}}
       </div>
 
-      <div class="kanban-column__cards">
+      <div class="discourse-kanban-column__cards">
         {{#if this.visibleCards.length}}
           {{#each this.visibleCards key="id" as |card|}}
             <KanbanCard
@@ -543,7 +555,7 @@ export default class KanbanColumn extends Component {
             />
           {{/each}}
         {{else if (eq this.cardCount 0)}}
-          <div class="kanban-column__empty">
+          <div class="discourse-kanban-column__empty">
             {{i18n "discourse_kanban.board.no_cards"}}
           </div>
         {{/if}}
@@ -551,7 +563,7 @@ export default class KanbanColumn extends Component {
         {{#if this.hiddenCardCount}}
           <button
             type="button"
-            class="kanban-column__show-all"
+            class="discourse-kanban-column__show-all"
             {{on "click" this.showAllOlderCards}}
           >
             {{i18n
@@ -563,12 +575,12 @@ export default class KanbanColumn extends Component {
       </div>
 
       {{#if @canWrite}}
-        <div class="kanban-column__footer">
+        <div class="discourse-kanban-column__footer">
           <DMenu
             @identifier="kanban-column-add"
             @icon="plus"
             @label={{i18n "discourse_kanban.board.add_card"}}
-            @triggerClass="kanban-column__add-btn"
+            @triggerClass="discourse-kanban-column__add-btn"
           >
             <:content as |args|>
               <DropdownMenu as |dropdown|>

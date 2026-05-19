@@ -21,8 +21,8 @@ module("Integration | Component | KanbanCard", function (hooks) {
         <KanbanCard @card={{this.card}} @board={{this.board}} />
       </template>
     );
-    assert.dom(".kanban-card").exists();
-    assert.dom(".kanban-card__title").hasText(this.card.title);
+    assert.dom(".discourse-kanban-card").exists();
+    assert.dom(".discourse-kanban-card__title").hasText(this.card.title);
   });
 
   test("suppresses column tags on floater cards", async function (assert) {
@@ -42,8 +42,8 @@ module("Integration | Component | KanbanCard", function (hooks) {
       </template>
     );
 
-    assert.dom(".kanban-card__tags").hasText("unrelated");
-    assert.dom(".kanban-card__tags").doesNotContainText("todo");
+    assert.dom(".discourse-kanban-card__tags").hasText("unrelated");
+    assert.dom(".discourse-kanban-card__tags").doesNotContainText("todo");
   });
 });
 
@@ -72,7 +72,7 @@ module(
           />
         </template>
       );
-      assert.dom(".kanban-card__assign-btn").doesNotExist();
+      assert.dom(".discourse-kanban-card__assign-btn").doesNotExist();
     });
 
     test("renders assign button for a floating card", async function (assert) {
@@ -86,7 +86,7 @@ module(
           />
         </template>
       );
-      assert.dom(".kanban-card__assign-btn").exists();
+      assert.dom(".discourse-kanban-card__assign-btn").exists();
     });
 
     test("renders assign button for a topic card", async function (assert) {
@@ -104,7 +104,7 @@ module(
           />
         </template>
       );
-      assert.dom(".kanban-card__assign-btn").exists();
+      assert.dom(".discourse-kanban-card__assign-btn").exists();
     });
 
     test("does not render assignment for a closed topic card", async function (assert) {
@@ -123,7 +123,7 @@ module(
           />
         </template>
       );
-      assert.dom(".kanban-card__assign-btn").doesNotExist();
+      assert.dom(".discourse-kanban-card__assign-btn").doesNotExist();
     });
   }
 );
