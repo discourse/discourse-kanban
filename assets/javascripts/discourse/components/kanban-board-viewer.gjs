@@ -106,6 +106,7 @@ export default class KanbanBoardViewer extends Component {
   @service router;
   @service toasts;
   @service topicSidebar;
+  @service rightSidebar;
 
   @tracked board;
   @tracked columns;
@@ -1311,6 +1312,7 @@ export default class KanbanBoardViewer extends Component {
 
     if (isTopicCard) {
       this.topicSidebar.selectTopic(card.topic_id);
+      this.rightSidebar.isOpen = true;
       return;
     }
 
@@ -1326,6 +1328,7 @@ export default class KanbanBoardViewer extends Component {
     this.topicSidebar.clearSelectedTopic();
     if (card.topic_id) {
       this.topicSidebar.selectTopic(card.topic_id);
+      this.rightSidebar.isOpen = true;
     }
   }
 
