@@ -1,0 +1,59 @@
+.kanban-right-sidebar-panel {
+  border-left: 1px solid var(--content-border-color);
+
+  --d-control-height: var(--space-6);
+
+  &__title-content {
+    overflow: hidden;
+  }
+
+  &__title {
+    font-size: var(--base-font-size);
+    margin-right: var(--space-2);
+    margin-bottom: 0;
+    font-weight: 700;
+
+    @include ellipsis;
+  }
+
+  &__category {
+    font-size: var(--font-down-1);
+  }
+
+  &__header {
+    padding: var(--space-2);
+    border-bottom: 1px solid var(--content-border-color);
+    position: sticky;
+    top: 0;
+    background: var(--secondary);
+    z-index: z("header");
+  }
+
+  &__header-content {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  &__nav-menu-trigger {
+    margin-left: auto;
+  }
+
+  .topic-category {
+    column-gap: var(--space-2);
+    row-gap: 0;
+  }
+
+  &__topic {
+    padding: var(--space-2);
+  }
+
+  .topic-body,
+  .topic-avatar {
+    border-top: 0;
+  }
+
+  .topic-post.sticky-avatar > article > .row > .topic-avatar {
+    top: var(--right-sidebar-header-height);
+  }
+}

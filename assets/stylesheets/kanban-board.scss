@@ -874,13 +874,3 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     font-size: $font-down-2;
   }
 }
-
-.kanban-right-sidebar-panel {
-  &__title {
-    font-size: var(--font-0);
-  }
-
-  &__header {
-    padding: var(--space-2) var(--space-2) 0 var(--space-2);
-  }
-}

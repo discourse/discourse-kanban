@@ -12,7 +12,7 @@ enabled_site_setting :discourse_kanban_enabled
 
 register_asset "stylesheets/kanban-manage.scss"
 register_asset "stylesheets/kanban-board.scss"
-register_asset "stylesheets/kanban-oneboxes.scss"
+register_asset "stylesheets/kanban-right-sidebar-panel.scss"
 register_svg_icon "table-columns"
 
 module ::DiscourseKanban
