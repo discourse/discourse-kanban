@@ -1,10 +1,15 @@
 .kanban-right-sidebar-panel {
   border-left: 1px solid var(--content-border-color);
 
-  --d-control-height: var(--space-6);
+  --topic-avatar-width: var(--space-8);
 
   &__title-content {
     overflow: hidden;
+  }
+
+  .post-avatar .avatar {
+    width: var(--topic-avatar-width);
+    height: var(--topic-avatar-width);
   }
 
   &__title {
@@ -21,6 +26,7 @@
   }
 
   &__header {
+    --d-control-height: var(--space-6);
     padding: var(--space-2);
     border-bottom: 1px solid var(--content-border-color);
     position: sticky;
