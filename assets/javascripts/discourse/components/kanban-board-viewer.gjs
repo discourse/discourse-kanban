@@ -154,6 +154,10 @@ export default class KanbanBoardViewer extends Component {
     this.board = { ...this.args.model.board };
     this.columns = this.args.model.columns;
 
+    this._unregisterSidebarClose = this.topicSidebar.registerCloseHandler(
+      () => this.onSidebarClose()
+    );
+
     if (this.args.initialCardId) {
       schedule("afterRender", () => {
         if (this.isDestroying || this.isDestroyed) {
@@ -171,9 +175,21 @@ export default class KanbanBoardViewer extends Component {
 
   willDestroy() {
     super.willDestroy(...arguments);
+    this._unregisterSidebarClose?.();
     this._clearDropHighlight();
     this._cleanupPromotion();
     this.#stopHorizontalAutoScroll();
+  }
+
+  onSidebarClose() {
+    if (this.isDestroying || this.isDestroyed) {
+      return;
+    }
+    if (this.router.currentRouteName === "kanbanBoardCard") {
+      this.router.transitionTo("kanbanBoard", this.board.slug, this.board.id);
+    } else {
+      DiscourseURL.replaceState(kanbanBoardUrl(this.board));
+    }
   }
 
   @bind

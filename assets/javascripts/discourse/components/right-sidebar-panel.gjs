@@ -54,44 +54,33 @@ export default class RightSidebarPanel extends Component {
   }
 
   <template>
-    <div class="kanban-right-sidebar-panel">
-      <div
-        class="kanban-right-sidebar-panel__header"
-        {{this.trackHeaderHeight}}
-      >
+    {{#if this.topic}}
+      <div class="kanban-right-sidebar-panel">
+        <div
+          class="kanban-right-sidebar-panel__header"
+          {{this.trackHeaderHeight}}
+        >
 
-        <div class="kanban-right-sidebar-panel__header-content">
+          <div class="kanban-right-sidebar-panel__header-content">
 
-          <DButton
-            @action={{this.close}}
-            @icon="angles-right"
-            @title="close"
-            class="btn-transparent topic-sidebar-block__close"
-          />
-          <div class="kanban-right-sidebar-panel__title-content">
-            <h2 class="kanban-right-sidebar-panel__title">
-              {{this.panelTitle}}
-            </h2>
-            <div class="kanban-right-sidebar-panel__category">
-              <TopicCategory @topic={{this.topic}} class="topic-category" />
+            <div class="kanban-right-sidebar-panel__title-content">
+              <h2 class="kanban-right-sidebar-panel__title">
+                {{this.panelTitle}}
+              </h2>
+              <div class="kanban-right-sidebar-panel__category">
+                <TopicCategory @topic={{this.topic}} class="topic-category" />
+              </div>
             </div>
+            <DButton
+              @action={{this.close}}
+              @icon="angles-right"
+              @title="close"
+              class="btn-transparent kanban-right-sidebar-panel__close"
+            />
           </div>
-          <DButton @icon="reply" @title="Discussion" @class="btn-transparent" />
-          <DButton
-            @icon="far-rectangle-list"
-            @title="Details"
-            @class="btn-transparent"
-          />
-          <DButton
-            @icon="bars-staggered"
-            @title="Activity"
-            @class="btn-transparent"
-          />
-        </div>
 
-      </div>
-      <div class="kanban-right-sidebar-panel__content">
-        {{#if this.topic}}
+        </div>
+        <div class="kanban-right-sidebar-panel__content">
           <div class="kanban-right-sidebar-panel__topic">
 
             <PostStream
@@ -104,8 +93,8 @@ export default class RightSidebarPanel extends Component {
               @onSubmit={{this.onComposerSubmit}}
             />
           </div>
-        {{/if}}
+        </div>
       </div>
-    </div>
+    {{/if}}
   </template>
 }
