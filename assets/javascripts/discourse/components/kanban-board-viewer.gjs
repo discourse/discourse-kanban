@@ -33,6 +33,7 @@ import {
   sortCardsForColumn,
 } from "../lib/kanban-card-ordering";
 import { kanbanBoardUrl } from "../lib/kanban-urls";
+import { withSidebarViewTransition } from "../lib/sidebar-transition";
 import KanbanColumn from "./kanban-column";
 import KanbanBoardSettings from "./modal/kanban-board-settings";
 import KanbanCardDetailModal from "./modal/kanban-card-detail";
@@ -1327,8 +1328,10 @@ export default class KanbanBoardViewer extends Component {
       : { card, canWrite: this.canWrite, onUpdateCard: this.onUpdateCard };
 
     if (isTopicCard) {
-      this.topicSidebar.selectTopic(card.topic_id);
-      this.rightSidebar.isOpen = true;
+      withSidebarViewTransition(() => {
+        this.topicSidebar.selectTopic(card.topic_id);
+        this.rightSidebar.isOpen = true;
+      });
       return;
     }
 
@@ -1341,10 +1344,14 @@ export default class KanbanBoardViewer extends Component {
 
   @action
   onCardClick(card) {
-    this.topicSidebar.clearSelectedTopic();
     if (card.topic_id) {
-      this.topicSidebar.selectTopic(card.topic_id);
-      this.rightSidebar.isOpen = true;
+      withSidebarViewTransition(() => {
+        this.topicSidebar.clearSelectedTopic();
+        this.topicSidebar.selectTopic(card.topic_id);
+        this.rightSidebar.isOpen = true;
+      });
+    } else {
+      this.topicSidebar.clearSelectedTopic();
     }
   }
 

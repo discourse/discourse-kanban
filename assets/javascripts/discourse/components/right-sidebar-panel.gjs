@@ -8,6 +8,7 @@ import PostStream from "discourse/components/post-stream";
 import TopicCategory from "discourse/components/topic-category";
 import Post from "discourse/models/post";
 import DButton from "discourse/ui-kit/d-button";
+import { withSidebarViewTransition } from "../lib/sidebar-transition";
 
 export default class RightSidebarPanel extends Component {
   @service topicSidebar;
@@ -39,7 +40,9 @@ export default class RightSidebarPanel extends Component {
 
   @action
   close() {
-    this.topicSidebar.clearSelectedTopic();
+    withSidebarViewTransition(() => {
+      this.topicSidebar.clearSelectedTopic();
+    });
   }
 
   @action

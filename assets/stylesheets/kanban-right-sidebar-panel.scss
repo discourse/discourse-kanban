@@ -1,5 +1,6 @@
 .kanban-right-sidebar-panel {
   border-left: 1px solid var(--content-border-color);
+  view-transition-name: kanban-right-sidebar;
 
   --topic-avatar-width: var(--space-8);
 
@@ -62,4 +63,37 @@
   .topic-post.sticky-avatar > article > .row > .topic-avatar {
     top: var(--right-sidebar-header-height);
   }
+}
+
+@keyframes kanban-sidebar-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes kanban-sidebar-slide-out {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(100%);
+  }
+}
+
+::view-transition-old(kanban-right-sidebar) {
+  animation: kanban-sidebar-slide-out 250ms ease forwards;
+}
+
+::view-transition-new(kanban-right-sidebar) {
+  animation: kanban-sidebar-slide-in 250ms ease forwards;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
 }
