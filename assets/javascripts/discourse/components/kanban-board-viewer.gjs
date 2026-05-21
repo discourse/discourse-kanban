@@ -1312,7 +1312,6 @@ export default class KanbanBoardViewer extends Component {
       ? KanbanTopicCardDetailModal
       : KanbanCardDetailModal;
     let navigatedAway = false;
-    this.topicSidebar.clearSelectedTopic();
 
     const column = this.columns.find((col) => col.id === card.column_id);
     const model = isTopicCard
@@ -1346,7 +1345,6 @@ export default class KanbanBoardViewer extends Component {
   onCardClick(card) {
     if (card.topic_id) {
       withSidebarViewTransition(() => {
-        this.topicSidebar.clearSelectedTopic();
         this.topicSidebar.selectTopic(card.topic_id);
         this.rightSidebar.isOpen = true;
       });
