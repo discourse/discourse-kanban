@@ -567,21 +567,27 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
   &__assign-btn {
     display: block;
     margin-left: auto;
-
-    .avatar {
-      height: var(--font-down-1-rem);
-      width: var(--font-down-1-rem);
-    }
   }
 
   &__assign-btn .avatar {
-    height: var(--font-down-1-rem);
-    width: var(--font-down-1-rem);
+    width: 18px;
+    height: 18px;
   }
 
   &__assign-btn .avatar + .avatar {
     margin-left: calc(var(--space-half) * -1);
     outline: 2px solid var(--secondary);
+  }
+
+  &__meta-data {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__row-item {
+    display: flex;
+    width: 100%;
+    align-items: center;
   }
 
   &__assign-btn:hover .avatar + .avatar {
@@ -610,12 +616,6 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     border-radius: var(--d-border-radius);
     font-size: $font-down-2;
     color: var(--primary-high);
-  }
-
-  &__notes-indicator {
-    margin-left: auto;
-    color: var(--primary-medium);
-    font-size: $font-down-2;
   }
 }
 
