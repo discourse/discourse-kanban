@@ -13,9 +13,9 @@ import { popupAjaxError } from "discourse/lib/ajax-error";
 import discourseDebounce from "discourse/lib/debounce";
 import { slugify } from "discourse/lib/utilities";
 import CategorySelector from "discourse/select-kit/components/category-selector";
-import GroupChooser from "discourse/select-kit/components/group-chooser";
 import { eq, or } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
+import KanbanBoardAccess from "../kanban-board-access";
 import KanbanEditableTitle from "../kanban-editable-title";
 
 const CONSTRAINT_TYPE_OPTIONS = [
@@ -84,10 +84,12 @@ export default class KanbanBoardSettings extends Component {
         show_tags: board.show_tags ?? false,
         show_topic_thumbnail: board.show_topic_thumbnail ?? false,
         require_confirmation: board.require_confirmation ?? false,
-        allow_read_group_ids: board.allow_read_group_ids || [],
-        allow_write_group_ids: isEmpty(board.allow_write_group_ids)
-          ? this.discourseKanbanManageBoardAllowedGroupIds
-          : board.allow_write_group_ids,
+        access: this.buildAccess(
+          board.allow_read_group_ids,
+          isEmpty(board.allow_write_group_ids)
+            ? this.discourseKanbanManageBoardAllowedGroupIds
+            : board.allow_write_group_ids
+        ),
       };
     }
 
@@ -102,9 +104,27 @@ export default class KanbanBoardSettings extends Component {
       show_tags: true,
       show_topic_thumbnail: false,
       require_confirmation: false,
-      allow_read_group_ids: [],
-      allow_write_group_ids: this.discourseKanbanManageBoardAllowedGroupIds,
+      access: this.buildAccess(
+        [],
+        this.discourseKanbanManageBoardAllowedGroupIds
+      ),
     };
+  }
+
+  // Build the unified access list from the two stored group-id arrays. Editor
+  // wins on overlap (writers can always read).
+  buildAccess(readIds, writeIds) {
+    const editorIds = writeIds || [];
+    const seen = new Set(editorIds);
+    const access = editorIds.map((id) => ({ group_id: id, level: "editor" }));
+
+    (readIds || []).forEach((id) => {
+      if (!seen.has(id)) {
+        access.push({ group_id: id, level: "viewer" });
+      }
+    });
+
+    return access;
   }
 
   get isNew() {
@@ -171,14 +191,13 @@ export default class KanbanBoardSettings extends Component {
   }
 
   @action
-  setGroupIds(field, groupIds) {
-    field.set(groupIds || []);
-  }
-
-  @action
-  onCloseWriteGroupChooser(field) {
-    if (field.name === "allow_write_group_ids" && isEmpty(field.value)) {
-      field.set(this.discourseKanbanManageBoardAllowedGroupIds);
+  validateAccess(name, value, { addError }) {
+    const hasEditor = (value || []).some((entry) => entry.level === "editor");
+    if (!hasEditor) {
+      addError(name, {
+        title: i18n("discourse_kanban.manage.board_access"),
+        message: i18n("discourse_kanban.manage.board_access_requires_editor"),
+      });
     }
   }
 
@@ -231,15 +250,32 @@ export default class KanbanBoardSettings extends Component {
 
   @action
   async save(data) {
+    const payload = this._withGroupIds(data);
+
     if (this.constraintWarning) {
       this.dialog.confirm({
         message: this.constraintWarning,
-        didConfirm: () => this._performSave(data),
+        didConfirm: () => this._performSave(payload),
       });
       return;
     }
 
-    await this._performSave(data);
+    await this._performSave(payload);
+  }
+
+  // Map the unified access list back onto the two group-id arrays the backend
+  // stores, dropping the synthetic `access` key.
+  _withGroupIds(data) {
+    const { access = [], ...rest } = data;
+    return {
+      ...rest,
+      allow_write_group_ids: access
+        .filter((entry) => entry.level === "editor")
+        .map((entry) => entry.group_id),
+      allow_read_group_ids: access
+        .filter((entry) => entry.level === "viewer")
+        .map((entry) => entry.group_id),
+    };
   }
 
   async _performSave(data) {
@@ -296,41 +332,21 @@ export default class KanbanBoardSettings extends Component {
 
             <form.Section>
               <form.Field
-                @name="allow_read_group_ids"
-                @title={{i18n "discourse_kanban.manage.allow_read_groups"}}
+                @name="access"
+                @title={{i18n "discourse_kanban.manage.board_access"}}
+                @description={{i18n
+                  "discourse_kanban.manage.board_access_description"
+                }}
                 @format="max"
                 @type="custom"
-                @description={{i18n
-                  "discourse_kanban.manage.allow_read_groups_description"
-                }}
+                @validate={{this.validateAccess}}
                 as |field|
               >
                 <field.Control>
-                  <GroupChooser
-                    @content={{this.site.groups}}
-                    @value={{data.allow_read_group_ids}}
-                    @onChange={{fn this.setGroupIds field}}
-                  />
-                </field.Control>
-              </form.Field>
-
-              <form.Field
-                @name="allow_write_group_ids"
-                @title={{i18n "discourse_kanban.manage.allow_write_groups"}}
-                @format="max"
-                @type="custom"
-                @validation="required"
-                @description={{i18n
-                  "discourse_kanban.manage.allow_write_groups_description"
-                }}
-                as |field|
-              >
-                <field.Control>
-                  <GroupChooser
-                    @content={{this.site.groups}}
-                    @value={{data.allow_write_group_ids}}
-                    @onChange={{fn this.setGroupIds field}}
-                    @onClose={{fn this.onCloseWriteGroupChooser field}}
+                  <KanbanBoardAccess
+                    @groups={{this.site.groups}}
+                    @value={{field.value}}
+                    @onChange={{field.set}}
                   />
                 </field.Control>
               </form.Field>

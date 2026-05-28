@@ -30,8 +30,13 @@ module DiscourseKanban
       return false if anonymous?
       return true if can_write_board?(board)
 
-      # Board writers can read it as well
-      user.in_any_groups?(board.effective_read_group_ids)
+      group_ids = board.effective_read_group_ids
+
+      # Anonymous visitors have no group memberships and are granted access only
+      # through the anonymous auto-group.
+      return group_ids.include?(Group::AUTO_GROUPS[:anonymous]) if anonymous?
+
+      user.in_any_groups?(group_ids)
     end
 
     def can_write_board?(board)

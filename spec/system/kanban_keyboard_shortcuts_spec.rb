@@ -150,6 +150,7 @@ describe "Kanban Keyboard Shortcuts" do
         DiscourseKanban::Board.create!(
           name: "Board #{i + 1}",
           slug: "board-#{i + 1}",
+          allow_write_group_ids: [write_group.id],
           created_by_id: admin.id,
         )
       end

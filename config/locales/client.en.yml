@@ -88,10 +88,13 @@ en:
         show_tags: "Show tags"
         show_topic_thumbnail: "Show topic thumbnail"
         require_confirmation: "Require confirmation on moves"
-        allow_read_groups: "Who can see this board?"
-        allow_read_groups_description: "Leave blank to allow public visibility for anonymous and logged in users. Admins can always see all boards."
-        allow_write_groups: "Who can edit this board?"
-        allow_write_groups_description: "Groups which can modify and move cards and board settings for this board. Admins can always edit all boards."
+        board_access: "Who can access this board?"
+        board_access_description: 'Editors can move cards and change board settings. Viewers have read-only access. Add "Anonymous (public)" for public access or "All members" for any logged-in user. Admins can always manage all boards.'
+        board_access_requires_editor: "Select at least one group that can edit this board."
+        access_level_editor: "Editor"
+        access_level_viewer: "Viewer"
+        access_anonymous: "Anonymous (public)"
+        access_members: "All members"
         constraint_warning:
           one: "Warning: %{count} card will be removed because it no longer matches the board constraints"
           other: "Warning: %{count} cards will be removed because they no longer match the board constraints"

@@ -6,6 +6,7 @@ RSpec.describe DiscourseKanban::GuardianExtensions do
   fab!(:reader, :user)
   fab!(:writer, :user)
   fab!(:outsider, :user)
+  fab!(:member) { Fabricate(:user, refresh_auto_groups: true) }
   fab!(:read_group, :group)
   fab!(:write_group, :group)
   let(:anonymous_guardian) { Guardian.new }
@@ -18,11 +19,12 @@ RSpec.describe DiscourseKanban::GuardianExtensions do
   end
 
   describe "#can_read_board?" do
-    it "allows all anonymous and logged in users to read when no read_group_ids are set" do
+    it "denies read to non-editors when no read or write groups are set" do
       board = DiscourseKanban::Board.create!(name: "Roadmap", slug: "roadmap")
-      expect(reader.guardian.can_read_board?(board)).to eq(true)
-      expect(outsider.guardian.can_read_board?(board)).to eq(true)
-      expect(anonymous_guardian.can_read_board?(board)).to eq(true)
+
+      expect(reader.guardian.can_read_board?(board)).to eq(false)
+      expect(outsider.guardian.can_read_board?(board)).to eq(false)
+      expect(anonymous_guardian.can_read_board?(board)).to eq(false)
     end
 
     it "does not allow anonymous users to read when read_group_ids are set" do
@@ -56,6 +58,33 @@ RSpec.describe DiscourseKanban::GuardianExtensions do
         )
 
       expect(writer.guardian.can_read_board?(board)).to eq(true)
+    end
+
+    it "grants public read to anonymous and logged in users via the anonymous and trust level 0 groups" do
+      board =
+        DiscourseKanban::Board.create!(
+          name: "Public",
+          slug: "public",
+          allow_read_group_ids: [
+            Group::AUTO_GROUPS[:anonymous],
+            Group::AUTO_GROUPS[:trust_level_0],
+          ],
+        )
+
+      expect(anonymous_guardian.can_read_board?(board)).to eq(true)
+      expect(member.guardian.can_read_board?(board)).to eq(true)
+    end
+
+    it "grants members-only read via trust level 0 while excluding anonymous users" do
+      board =
+        DiscourseKanban::Board.create!(
+          name: "Members",
+          slug: "members",
+          allow_read_group_ids: [Group::AUTO_GROUPS[:trust_level_0]],
+        )
+
+      expect(member.guardian.can_read_board?(board)).to eq(true)
+      expect(anonymous_guardian.can_read_board?(board)).to eq(false)
     end
   end
 

@@ -145,14 +145,14 @@ export default class KanbanBoardsPage extends Component {
                     {{i18n "discourse_kanban.manage.card_style_simple"}}
                   </span>
                 {{/if}}
-                {{#if board.allow_read_group_ids.length}}
+                {{#unless board.public_read}}
                   <span
                     class="discourse-kanban-badge discourse-kanban-badge--restricted"
                     title={{i18n "discourse_kanban.manage.restricted_access"}}
                   >
                     {{icon "lock"}}
                   </span>
-                {{/if}}
+                {{/unless}}
               </div>
             </div>
           {{/each}}

@@ -100,7 +100,7 @@ module DiscourseKanban
         categories_preview: board.categories.any?,
         has_constraints: board.tags.any? || board.categories.any?,
         columns_preview: board.columns.any?,
-        restricted: board.allow_read_group_ids.any?,
+        restricted: !board.public_read?,
       }
 
       Mustache.render(DiscourseKanban.board_onebox_template, args)

@@ -35,7 +35,9 @@ module DiscourseKanban
     end
 
     def public_read?
-      allow_read_group_ids.empty?
+      # A board is public when it is readable without authentication, i.e. the
+      # anonymous auto-group is among its read/write groups.
+      effective_read_group_ids.include?(Group::AUTO_GROUPS[:anonymous])
     end
 
     def effective_read_group_ids

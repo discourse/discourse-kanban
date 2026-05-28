@@ -43,6 +43,9 @@ describe "Kanban Board Viewer" do
           require_confirmation: true,
           show_tags: true,
           category_ids: [category.id],
+          # Make the board readable by the signed-in actors (a write_group
+          # member and a manage_group member). Move tests override write access.
+          allow_read_group_ids: [write_group.id, manage_group.id],
         }.merge(attrs),
       )
 

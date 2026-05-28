@@ -38,6 +38,7 @@ module DiscourseKanban
         tag_names: board.tag_ids.filter_map { |id| tag_name_map[id] }.sort,
         allow_read_group_ids: board.allow_read_group_ids,
         allow_write_group_ids: board.allow_write_group_ids,
+        public_read: board.public_read?,
         require_confirmation: board.require_confirmation,
         show_tags: board.show_tags,
         card_style: board.card_style,

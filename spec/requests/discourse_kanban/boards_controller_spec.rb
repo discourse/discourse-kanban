@@ -114,7 +114,12 @@ RSpec.describe DiscourseKanban::BoardsController do
 
     it "includes can_manage for users in the manage group" do
       board =
-        DiscourseKanban::Board.create!(name: "Test", slug: "test-manage", created_by_id: admin.id)
+        DiscourseKanban::Board.create!(
+          name: "Test",
+          slug: "test-manage",
+          allow_write_group_ids: [manage_group.id],
+          created_by_id: admin.id,
+        )
       board.columns.create!(title: "Col", position: 0)
 
       sign_in(manager)
@@ -211,6 +216,7 @@ RSpec.describe DiscourseKanban::BoardsController do
         DiscourseKanban::Board.create!(
           name: "Mixed",
           slug: "mixed",
+          allow_read_group_ids: [read_group.id],
           category_ids: [category.id, private_category.id],
           created_by_id: admin.id,
         )
@@ -310,6 +316,34 @@ RSpec.describe DiscourseKanban::BoardsController do
       get "/kanban/boards/#{board.id}.json"
 
       expect(response.status).to eq(403)
+    end
+
+    it "reports public_read based on the anonymous group" do
+      public_board =
+        DiscourseKanban::Board.create!(
+          name: "Public",
+          slug: "public",
+          allow_read_group_ids: [Group::AUTO_GROUPS[:anonymous]],
+          created_by_id: admin.id,
+        )
+      public_board.columns.create!(title: "Col", position: 0)
+
+      restricted_board =
+        DiscourseKanban::Board.create!(
+          name: "Restricted",
+          slug: "restricted",
+          allow_read_group_ids: [read_group.id],
+          created_by_id: admin.id,
+        )
+      restricted_board.columns.create!(title: "Col", position: 0)
+
+      sign_in(admin)
+
+      get "/kanban/boards/#{public_board.id}.json"
+      expect(response.parsed_body["board"]["public_read"]).to eq(true)
+
+      get "/kanban/boards/#{restricted_board.id}.json"
+      expect(response.parsed_body["board"]["public_read"]).to eq(false)
     end
   end
 
