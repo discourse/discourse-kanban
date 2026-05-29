@@ -624,7 +624,7 @@ export default class KanbanCard extends Component {
                 {{#if this.isAssigned}}
                   <DMenu
                     @identifier="kanban-card-assignment"
-                    @triggerClass="discourse-kanban-card__assign-btn"
+                    @triggerClass="discourse-kanban-card__assign-trigger"
                     @class="btn-flat"
                   >
                     <:trigger>

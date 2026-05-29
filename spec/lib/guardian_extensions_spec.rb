@@ -25,6 +25,16 @@ RSpec.describe DiscourseKanban::GuardianExtensions do
       expect(anonymous_guardian.can_read_board?(board)).to eq(true)
     end
 
+    it "does not allow anonymous users to read when read_group_ids are set" do
+      board =
+        DiscourseKanban::Board.create!(
+          name: "Roadmap",
+          slug: "roadmap",
+          allow_read_group_ids: [read_group.id],
+        )
+      expect(anonymous_guardian.can_read_board?(board)).to eq(false)
+    end
+
     it "grants read through read groups" do
       board =
         DiscourseKanban::Board.create!(
