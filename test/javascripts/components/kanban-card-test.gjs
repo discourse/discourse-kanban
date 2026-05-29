@@ -56,6 +56,7 @@ module(
       this.fabricators = new KanbanFabricators(getOwner(this));
       this.card = this.fabricators.card();
       this.board = this.fabricators.board();
+      this.board.card_style = "detailed";
       this.card.board_id = this.board.id;
       this.currentUser.can_assign = true;
       this.siteSettings.assign_enabled = true;
