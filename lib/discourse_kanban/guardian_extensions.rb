@@ -27,6 +27,7 @@ module DiscourseKanban
 
     def can_read_board?(board)
       return true if board.public_read?
+      return false if anonymous?
       return true if can_write_board?(board)
 
       # Board writers can read it as well

@@ -12,6 +12,7 @@ import discourseTags from "discourse/helpers/discourse-tags";
 import { ajax } from "discourse/lib/ajax";
 import Category from "discourse/models/category";
 import { eq, or } from "discourse/truth-helpers";
+import DPageHeader from "discourse/ui-kit/d-page-header";
 import { i18n } from "discourse-i18n";
 import KanbanBoardSettings from "./modal/kanban-board-settings";
 
@@ -64,20 +65,21 @@ export default class KanbanBoardsPage extends Component {
 
   <template>
     <div class="discourse-kanban-manage">
-      <div class="discourse-kanban-manage__header">
-        <div>
-          <h2>{{i18n "discourse_kanban.manage.title"}}</h2>
-          <p>{{i18n "discourse_kanban.manage.description"}}</p>
-        </div>
-        {{#if @canManageBoards}}
-          <DButton
-            @action={{this.openNewBoardModal}}
-            @icon="plus"
-            @label="discourse_kanban.manage.new"
-            class="btn-primary discourse-kanban-manage__new-board"
-          />
-        {{/if}}
-      </div>
+      <DPageHeader
+        @titleLabel={{i18n "discourse_kanban.manage.title"}}
+        @descriptionLabel={{i18n "discourse_kanban.manage.description"}}
+      >
+        <:actions as |actions|>
+          {{#if @canManageBoards}}
+            <actions.Primary
+              @action={{this.openNewBoardModal}}
+              @icon="plus"
+              @label="discourse_kanban.manage.new"
+              class="btn-primary discourse-kanban-manage__new-board"
+            />
+          {{/if}}
+        </:actions>
+      </DPageHeader>
 
       {{#if @boards.length}}
         <div class="discourse-kanban-boards-grid">
@@ -159,8 +161,8 @@ export default class KanbanBoardsPage extends Component {
         <div class="discourse-kanban-boards-empty">
           {{icon "table-columns"}}
           <h3>{{i18n "discourse_kanban.manage.empty_title"}}</h3>
-          <p>{{i18n "discourse_kanban.manage.get_started"}}</p>
           {{#if @canManageBoards}}
+            <p>{{i18n "discourse_kanban.manage.get_started"}}</p>
             <DButton
               @action={{this.openNewBoardModal}}
               @icon="plus"

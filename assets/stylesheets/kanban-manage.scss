@@ -143,13 +143,6 @@
 }
 
 .discourse-kanban-manage {
-  &__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 1em;
-  }
-
   .discourse-kanban-boards-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
