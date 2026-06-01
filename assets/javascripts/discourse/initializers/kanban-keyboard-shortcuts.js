@@ -148,7 +148,7 @@ export default {
         },
         {
           context: BOARDS_LIST_CONTEXT,
-          help: shortcutHelp("navigate_boards", {
+          help: shortcutHelp("navigate_boards_columns", {
             keys1: ["h"],
             keys2: ["l"],
             shortcutsDelimiter: "slash",
@@ -189,9 +189,6 @@ export default {
         },
         {
           context: BOARDS_LIST_CONTEXT,
-          help: shortcutHelp("open_board", {
-            keys1: ["enter"],
-          }),
         }
       );
 
@@ -211,14 +208,7 @@ export default {
           }
           selectCard(columns[colIndex], cardIndex);
         },
-        {
-          context: BOARD_CONTEXT,
-          help: shortcutHelp("navigate_columns", {
-            keys1: ["h"],
-            keys2: ["l"],
-            shortcutsDelimiter: "slash",
-          }),
-        }
+        { context: BOARD_CONTEXT }
       );
 
       api.addKeyboardShortcut(
@@ -294,9 +284,6 @@ export default {
         },
         {
           context: BOARD_CONTEXT,
-          help: shortcutHelp("open_card", {
-            keys1: ["enter"],
-          }),
         }
       );
 
@@ -311,12 +298,7 @@ export default {
             resetCursor();
           }
         },
-        {
-          context: BOARD_CONTEXT,
-          help: shortcutHelp("clear_selection", {
-            keys1: ["esc"],
-          }),
-        }
+        { context: BOARD_CONTEXT }
       );
 
       api.addKeyboardShortcut(

@@ -11,26 +11,14 @@ acceptance("Kanban keyboard shortcuts help", function (needs) {
     await triggerKeyEvent(document, "keypress", "?".charCodeAt(0));
 
     assert.dom(".shortcut-category-kanban h2").hasText("Kanban");
-    assert.dom(".shortcut-category-kanban tbody tr").exists({ count: 8 });
+    assert.dom(".shortcut-category-kanban tbody tr").exists({ count: 4 });
 
     assert
       .dom(".shortcut-category-kanban tbody")
-      .includesText("Navigate between boards");
-    assert
-      .dom(".shortcut-category-kanban tbody")
-      .includesText("Open selected board");
-    assert
-      .dom(".shortcut-category-kanban tbody")
-      .includesText("Navigate between columns");
+      .includesText("Navigate boards / columns");
     assert
       .dom(".shortcut-category-kanban tbody")
       .includesText("Navigate between cards");
-    assert
-      .dom(".shortcut-category-kanban tbody")
-      .includesText("Open selected card");
-    assert
-      .dom(".shortcut-category-kanban tbody")
-      .includesText("Clear selection");
     assert
       .dom(".shortcut-category-kanban tbody")
       .includesText("Move selected card to an adjacent column");

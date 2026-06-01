@@ -133,12 +133,8 @@ en:
     keyboard_shortcuts_help:
       kanban:
         title: "Kanban"
-        navigate_boards: "Navigate between boards"
-        open_board: "Open selected board"
-        navigate_columns: "Navigate between columns"
+        navigate_boards_columns: "Navigate boards / columns"
         navigate_cards: "Navigate between cards"
-        open_card: "Open selected card"
-        clear_selection: "Clear selection"
         move_card_column: "Move selected card to an adjacent column"
         move_card_position: "Reorder selected card within a manually sorted column"
   admin_js:
