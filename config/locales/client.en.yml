@@ -63,12 +63,6 @@ en:
         constraint_tooltip: "Only topics with these categories and tags are allowed on this board."
         created_by: "Created by"
         show_older_cards: "Show %{count} older cards"
-      keyboard_shortcuts:
-        navigate_columns: "Navigate between columns"
-        navigate_cards: "Navigate between cards"
-        open_card: "Open selected card"
-        move_card_column: "Move card to adjacent column"
-        move_card_position: "Reorder card within column"
       manage:
         title: "Kanban boards"
         description: "Create and manage kanban boards with columns."
@@ -136,6 +130,17 @@ en:
           move_to_status_closed: "Closed"
           show_advanced: "Show advanced options"
           hide_advanced: "Hide advanced options"
+    keyboard_shortcuts_help:
+      kanban:
+        title: "Kanban"
+        navigate_boards: "Navigate between boards"
+        open_board: "Open selected board"
+        navigate_columns: "Navigate between columns"
+        navigate_cards: "Navigate between cards"
+        open_card: "Open selected card"
+        clear_selection: "Clear selection"
+        move_card_column: "Move selected card to an adjacent column"
+        move_card_position: "Reorder selected card within a manually sorted column"
   admin_js:
     admin:
       site_settings:

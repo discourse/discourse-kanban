@@ -86,6 +86,15 @@ function moveCard(container, cardId, toColumnId, afterCardId) {
 
 const BOARD_CONTEXT = ".discourse-kanban-board-viewer";
 const BOARDS_LIST_CONTEXT = ".discourse-kanban-boards-grid";
+const SHORTCUT_HELP_CATEGORY = "kanban";
+
+function shortcutHelp(name, definition) {
+  return {
+    category: SHORTCUT_HELP_CATEGORY,
+    name: `${SHORTCUT_HELP_CATEGORY}.${name}`,
+    definition,
+  };
+}
 
 export default {
   name: "kanban-keyboard-shortcuts",
@@ -137,7 +146,14 @@ export default {
             behavior: "smooth",
           });
         },
-        { context: BOARDS_LIST_CONTEXT }
+        {
+          context: BOARDS_LIST_CONTEXT,
+          help: shortcutHelp("navigate_boards", {
+            keys1: ["h"],
+            keys2: ["l"],
+            shortcutsDelimiter: "slash",
+          }),
+        }
       );
 
       api.addKeyboardShortcut(
@@ -171,7 +187,12 @@ export default {
             )
             ?.click();
         },
-        { context: BOARDS_LIST_CONTEXT }
+        {
+          context: BOARDS_LIST_CONTEXT,
+          help: shortcutHelp("open_board", {
+            keys1: ["enter"],
+          }),
+        }
       );
 
       // Board viewer: h/l move between columns, j/k move within column
@@ -192,16 +213,11 @@ export default {
         },
         {
           context: BOARD_CONTEXT,
-          help: {
-            category: "kanban",
-            name: "discourse_kanban.keyboard_shortcuts.navigate_columns",
-            definition: {
-              keys1: ["h"],
-              keys2: ["l"],
-              keysDelimiter: "space",
-              shortcutsDelimiter: "slash",
-            },
-          },
+          help: shortcutHelp("navigate_columns", {
+            keys1: ["h"],
+            keys2: ["l"],
+            shortcutsDelimiter: "slash",
+          }),
         }
       );
 
@@ -239,16 +255,11 @@ export default {
         },
         {
           context: BOARD_CONTEXT,
-          help: {
-            category: "kanban",
-            name: "discourse_kanban.keyboard_shortcuts.navigate_cards",
-            definition: {
-              keys1: ["j"],
-              keys2: ["k"],
-              keysDelimiter: "space",
-              shortcutsDelimiter: "slash",
-            },
-          },
+          help: shortcutHelp("navigate_cards", {
+            keys1: ["j"],
+            keys2: ["k"],
+            shortcutsDelimiter: "slash",
+          }),
         }
       );
 
@@ -283,13 +294,9 @@ export default {
         },
         {
           context: BOARD_CONTEXT,
-          help: {
-            category: "kanban",
-            name: "discourse_kanban.keyboard_shortcuts.open_card",
-            definition: {
-              keys1: ["enter"],
-            },
-          },
+          help: shortcutHelp("open_card", {
+            keys1: ["enter"],
+          }),
         }
       );
 
@@ -304,7 +311,12 @@ export default {
             resetCursor();
           }
         },
-        { context: BOARD_CONTEXT }
+        {
+          context: BOARD_CONTEXT,
+          help: shortcutHelp("clear_selection", {
+            keys1: ["esc"],
+          }),
+        }
       );
 
       api.addKeyboardShortcut(
@@ -380,16 +392,11 @@ export default {
         },
         {
           context: BOARD_CONTEXT,
-          help: {
-            category: "kanban",
-            name: "discourse_kanban.keyboard_shortcuts.move_card_column",
-            definition: {
-              keys1: ["shift", "h"],
-              keys2: ["shift", "l"],
-              keysDelimiter: "plus",
-              shortcutsDelimiter: "slash",
-            },
-          },
+          help: shortcutHelp("move_card_column", {
+            keys1: ["shift", "h"],
+            keys2: ["shift", "l"],
+            shortcutsDelimiter: "slash",
+          }),
         }
       );
 
@@ -470,16 +477,11 @@ export default {
         },
         {
           context: BOARD_CONTEXT,
-          help: {
-            category: "kanban",
-            name: "discourse_kanban.keyboard_shortcuts.move_card_position",
-            definition: {
-              keys1: ["shift", "j"],
-              keys2: ["shift", "k"],
-              keysDelimiter: "plus",
-              shortcutsDelimiter: "slash",
-            },
-          },
+          help: shortcutHelp("move_card_position", {
+            keys1: ["shift", "j"],
+            keys2: ["shift", "k"],
+            shortcutsDelimiter: "slash",
+          }),
         }
       );
 
