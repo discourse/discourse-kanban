@@ -1,13 +1,11 @@
 import Component from "@glimmer/component";
-import { fn } from "@ember/helper";
+import { tracked } from "@glimmer/tracking";
+import { fn, hash } from "@ember/helper";
 import { action } from "@ember/object";
 import { service } from "@ember/service";
-import DMenu from "discourse/float-kit/components/d-menu";
-import GroupChooser from "discourse/select-kit/components/group-chooser";
-import { eq } from "discourse/truth-helpers";
+import ComboBox from "discourse/select-kit/components/combo-box";
 import DButton from "discourse/ui-kit/d-button";
-import DDropdownMenu from "discourse/ui-kit/d-dropdown-menu";
-import dIcon from "discourse/ui-kit/helpers/d-icon";
+import DSelect from "discourse/ui-kit/d-select";
 import { i18n } from "discourse-i18n";
 
 // The anonymous (4) and trust_level_0 (10) auto-groups let a board be made
@@ -19,22 +17,32 @@ const SPECIAL_GROUP_IDS = new Set([ANONYMOUS_GROUP_ID, TRUST_LEVEL_0_GROUP_ID]);
 
 const DEFAULT_LEVEL = "editor";
 const LEVELS = ["editor", "viewer"];
+const REMOVE_ACTION = "remove";
 
 export default class KanbanBoardAccess extends Component {
   @service site;
+
+  @tracked addingGroup = false;
 
   get value() {
     return this.args.value || [];
   }
 
   get levelOptions() {
-    return LEVELS.map((level) => ({
-      id: level,
-      name: this.#levelLabel(level),
-    }));
+    return [
+      ...LEVELS.map((level) => ({
+        id: level,
+        name: this.#levelLabel(level),
+      })),
+      {
+        id: REMOVE_ACTION,
+        name: i18n("discourse_kanban.manage.access_level_remove"),
+      },
+    ];
   }
 
-  get chooserContent() {
+  get availableGroups() {
+    const taken = new Set(this.selectedGroupIds);
     const special = [
       {
         id: ANONYMOUS_GROUP_ID,
@@ -49,7 +57,7 @@ export default class KanbanBoardAccess extends Component {
     return [
       ...special,
       ...(this.args.groups || []).filter((g) => !SPECIAL_GROUP_IDS.has(g.id)),
-    ];
+    ].filter((g) => !taken.has(g.id));
   }
 
   get selectedGroupIds() {
@@ -60,7 +68,6 @@ export default class KanbanBoardAccess extends Component {
     return this.value.map((entry) => ({
       groupId: entry.group_id,
       level: entry.level,
-      levelLabel: this.#levelLabel(entry.level),
       name: this.#nameFor(entry.group_id),
     }));
   }
@@ -79,79 +86,90 @@ export default class KanbanBoardAccess extends Component {
     return this.site.groupsById[groupId]?.name ?? `#${groupId}`;
   }
 
-  // GroupChooser emits a fresh array of integer ids. Preserve the level of
-  // groups that are still selected; new groups default to editor (anonymous to
-  // viewer, since anonymous users can never be editors). Always hand a brand
-  // new array of objects to onChange — FormKit freezes the draft state.
   @action
-  onGroupsChange(groupIds) {
-    const byId = new Map(this.value.map((entry) => [entry.group_id, entry]));
-
-    const next = (groupIds || []).map(
-      (id) =>
-        byId.get(id) ?? {
-          group_id: id,
-          level: id === ANONYMOUS_GROUP_ID ? "viewer" : DEFAULT_LEVEL,
-        }
-    );
-
-    this.args.onChange(next);
+  startAdding() {
+    this.addingGroup = true;
   }
 
   @action
-  onLevelChange(groupId, level, menu) {
+  onGroupChosen(groupId) {
+    if (groupId == null) {
+      this.addingGroup = false;
+      return;
+    }
+
+    const next = [
+      ...this.value,
+      {
+        group_id: groupId,
+        level: groupId === ANONYMOUS_GROUP_ID ? "viewer" : DEFAULT_LEVEL,
+      },
+    ];
+
+    this.args.onChange(next);
+    this.addingGroup = false;
+  }
+
+  @action
+  onLevelChange(groupId, level) {
+    if (level === REMOVE_ACTION) {
+      this.args.onChange(
+        this.value.filter((entry) => entry.group_id !== groupId)
+      );
+      return;
+    }
+
     const next = this.value.map((entry) =>
       entry.group_id === groupId ? { group_id: entry.group_id, level } : entry
     );
-
     this.args.onChange(next);
-    menu?.close();
   }
 
   <template>
     <div class="kanban-board-access">
-      <GroupChooser
-        class="kanban-board-access__chooser"
-        @content={{this.chooserContent}}
-        @value={{this.selectedGroupIds}}
-        @onChange={{this.onGroupsChange}}
-      />
-
       {{#if this.rows.length}}
         <div class="kanban-board-access__rows">
           {{#each this.rows key="groupId" as |row|}}
             <div class="kanban-board-access__row" data-group-id={{row.groupId}}>
               <span class="kanban-board-access__group-name">{{row.name}}</span>
-              <DMenu
-                @identifier="kanban-board-access-level"
-                @triggerClass="kanban-board-access__level btn-transparent"
-                @label={{row.levelLabel}}
-                @icon="angle-down"
+              <DSelect
+                class="kanban-board-access__level"
+                @value={{row.level}}
+                @includeNone={{false}}
+                @onChange={{fn this.onLevelChange row.groupId}}
+                as |s|
               >
-                <:content as |menu|>
-                  <DDropdownMenu as |dropdown|>
-                    {{#each this.levelOptions as |option|}}
-                      <dropdown.item
-                        class={{if (eq option.id row.level) "--selected"}}
-                      >
-                        <DButton
-                          class="kanban-board-access__level-{{option.id}}"
-                          @translatedLabel={{option.name}}
-                          @action={{fn
-                            this.onLevelChange
-                            row.groupId
-                            option.id
-                            menu
-                          }}
-                        />
-                      </dropdown.item>
-                    {{/each}}
-                  </DDropdownMenu>
-                </:content>
-              </DMenu>
+                {{#each this.levelOptions as |option|}}
+                  <s.Option
+                    @value={{option.id}}
+                    class="kanban-board-access__level-{{option.id}}"
+                  >{{option.name}}</s.Option>
+                {{/each}}
+              </DSelect>
             </div>
           {{/each}}
         </div>
+      {{/if}}
+
+      {{#if this.addingGroup}}
+        <ComboBox
+          class="kanban-board-access__chooser"
+          @value={{null}}
+          @content={{this.availableGroups}}
+          @onChange={{this.onGroupChosen}}
+          @options={{hash
+            none="discourse_kanban.manage.add_group"
+            expandedOnInsert=true
+            filterable=true
+          }}
+        />
+      {{else}}
+        <DButton
+          class="kanban-board-access__add btn-default"
+          @icon="plus"
+          @label="discourse_kanban.manage.add_group"
+          @action={{this.startAdding}}
+        />
       {{/if}}
     </div>
   </template>
