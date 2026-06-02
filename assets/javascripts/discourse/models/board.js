@@ -15,7 +15,6 @@ export default class Board {
   @tracked id;
   @tracked name;
   @tracked require_confirmation;
-  @tracked show_activity_indicators;
   @tracked show_tags;
   @tracked show_topic_thumbnail;
   @tracked slug;

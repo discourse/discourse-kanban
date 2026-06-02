@@ -3,7 +3,7 @@
 module DiscourseKanban
   class Board < ActiveRecord::Base
     self.table_name = "discourse_kanban_boards"
-    self.ignored_columns = ["base_filter_query"]
+    self.ignored_columns = %w[base_filter_query show_activity_indicators]
 
     has_many :columns,
              -> { order(:position, :id) },
@@ -201,22 +201,21 @@ end
 #
 # Table name: discourse_kanban_boards
 #
-#  id                       :bigint           not null, primary key
-#  allow_read_group_ids     :integer          default([]), not null, is an Array
-#  allow_write_group_ids    :integer          default([]), not null, is an Array
-#  card_style               :integer          default("detailed"), not null
-#  category_ids             :integer          default([]), not null, is an Array
-#  name                     :string           not null
-#  require_confirmation     :boolean          default(TRUE), not null
-#  show_activity_indicators :boolean          default(FALSE), not null
-#  show_tags                :boolean          default(FALSE), not null
-#  show_topic_thumbnail     :boolean          default(FALSE), not null
-#  slug                     :string           not null
-#  tag_ids                  :integer          default([]), not null, is an Array
-#  created_at               :datetime         not null
-#  updated_at               :datetime         not null
-#  created_by_id            :bigint
-#  updated_by_id            :bigint
+#  id                    :bigint           not null, primary key
+#  allow_read_group_ids  :integer          default([]), not null, is an Array
+#  allow_write_group_ids :integer          default([]), not null, is an Array
+#  card_style            :integer          default("detailed"), not null
+#  category_ids          :integer          default([]), not null, is an Array
+#  name                  :string           not null
+#  require_confirmation  :boolean          default(TRUE), not null
+#  show_tags             :boolean          default(FALSE), not null
+#  show_topic_thumbnail  :boolean          default(FALSE), not null
+#  slug                  :string           not null
+#  tag_ids               :integer          default([]), not null, is an Array
+#  created_at            :datetime         not null
+#  updated_at            :datetime         not null
+#  created_by_id         :bigint
+#  updated_by_id         :bigint
 #
 # Indexes
 #
