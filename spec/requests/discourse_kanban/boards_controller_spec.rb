@@ -74,7 +74,6 @@ RSpec.describe DiscourseKanban::BoardsController do
           slug: "sprint",
           show_tags: true,
           card_style: "detailed",
-          show_activity_indicators: true,
           allow_write_group_ids: [write_group.id],
           category_ids: [category.id],
           created_by_id: admin.id,

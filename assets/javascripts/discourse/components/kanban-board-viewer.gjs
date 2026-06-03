@@ -1196,7 +1196,6 @@ export default class KanbanBoardViewer extends Component {
         card_style: this.board.card_style,
         show_tags: this.board.show_tags,
         show_topic_thumbnail: this.board.show_topic_thumbnail,
-        show_activity_indicators: this.board.show_activity_indicators,
         require_confirmation: this.board.require_confirmation,
         allow_read_group_ids: this.board.allow_read_group_ids || [],
         allow_write_group_ids: this.board.allow_write_group_ids || [],

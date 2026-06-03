@@ -42,7 +42,6 @@ describe "Kanban Board Viewer" do
           created_by_id: admin.id,
           require_confirmation: true,
           show_tags: true,
-          show_activity_indicators: true,
           category_ids: [category.id],
         }.merge(attrs),
       )
@@ -209,35 +208,6 @@ describe "Kanban Board Viewer" do
 
       expect(board_viewer).to have_tag_on_card("Refine frontend labeling workflow", "frontend")
       expect(board_viewer).to have_no_tag_on_card("Refine frontend labeling workflow", "priority")
-    end
-  end
-
-  context "when show_activity_indicators is enabled" do
-    it "shows stale indicator for old topics" do
-      result =
-        create_board(
-          { show_activity_indicators: true },
-          with_columns: [{ title: "To Do", position: 0 }],
-        )
-      board = result.board
-
-      topic_1 =
-        Fabricate(
-          :topic,
-          title: "Audit inactive onboarding checklist",
-          category: category,
-          bumped_at: 25.days.ago,
-        )
-      card = add_topic_card(board, result.column("To Do"), topic_1)
-      card.update_columns(column_changed_at: 25.days.ago)
-
-      sign_in(user)
-      board_viewer.visit_board(board)
-
-      expect(board_viewer).to have_activity_indicator(
-        "Audit inactive onboarding checklist",
-        "card-stale",
-      )
     end
   end
 

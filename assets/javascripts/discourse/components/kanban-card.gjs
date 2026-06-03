@@ -180,21 +180,6 @@ export default class KanbanCard extends Component {
     );
   }
 
-  get activityClass() {
-    if (!this.args.board.show_activity_indicators || !this.activityDate) {
-      return "";
-    }
-
-    const date = moment(this.activityDate);
-    if (date < moment().add(-20, "days")) {
-      return "card-stale";
-    }
-    if (date < moment().add(-7, "days")) {
-      return "card-no-recent-activity";
-    }
-    return "";
-  }
-
   get topicStatusModel() {
     if (!this.isTopicCard) {
       return null;
@@ -521,7 +506,6 @@ export default class KanbanCard extends Component {
         (if this.dragging "discourse-kanban-card--dragging")
         (unless this.isTopicCard "discourse-kanban-card--floater")
         (if @isDropHighlighted "discourse-kanban-card--drop-highlighted")
-        this.activityClass
       }}
       draggable={{if @canWrite "true" "false"}}
       role="button"

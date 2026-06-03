@@ -83,7 +83,6 @@ export default class KanbanBoardSettings extends Component {
         card_style: board.card_style || "detailed",
         show_tags: board.show_tags ?? false,
         show_topic_thumbnail: board.show_topic_thumbnail ?? false,
-        show_activity_indicators: board.show_activity_indicators ?? false,
         require_confirmation: board.require_confirmation ?? false,
         allow_read_group_ids: board.allow_read_group_ids || [],
         allow_write_group_ids: isEmpty(board.allow_write_group_ids)
@@ -102,7 +101,6 @@ export default class KanbanBoardSettings extends Component {
       card_style: "detailed",
       show_tags: true,
       show_topic_thumbnail: false,
-      show_activity_indicators: false,
       require_confirmation: false,
       allow_read_group_ids: [],
       allow_write_group_ids: this.discourseKanbanManageBoardAllowedGroupIds,
@@ -450,17 +448,6 @@ export default class KanbanBoardSettings extends Component {
                 <form.Field
                   @name="show_topic_thumbnail"
                   @title={{i18n "discourse_kanban.manage.show_topic_thumbnail"}}
-                  @type="checkbox"
-                  as |field|
-                >
-                  <field.Control />
-                </form.Field>
-
-                <form.Field
-                  @name="show_activity_indicators"
-                  @title={{i18n
-                    "discourse_kanban.manage.show_activity_indicators"
-                  }}
                   @type="checkbox"
                   as |field|
                 >

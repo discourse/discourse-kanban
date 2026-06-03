@@ -87,7 +87,6 @@ en:
         card_style_simple: "Simple"
         show_tags: "Show tags"
         show_topic_thumbnail: "Show topic thumbnail"
-        show_activity_indicators: "Show activity indicators"
         require_confirmation: "Require confirmation on moves"
         allow_read_groups: "Who can see this board?"
         allow_read_groups_description: "Leave blank to allow public visibility for anonymous and logged in users. Admins can always see all boards."

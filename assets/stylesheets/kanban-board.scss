@@ -465,18 +465,6 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     background: var(--tertiary-very-low);
   }
 
-  &.card-no-recent-activity {
-    box-shadow: inset 5px 0 0 0 var(--danger-low);
-    border-left: 0;
-    padding-left: var(--space-4);
-  }
-
-  &.card-stale {
-    box-shadow: inset 5px 0 0 0 var(--danger-medium);
-    border-left: 0;
-    padding-left: var(--space-4);
-  }
-
   &__row {
     display: flex;
     align-items: baseline;
