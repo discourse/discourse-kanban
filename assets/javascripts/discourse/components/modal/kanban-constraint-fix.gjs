@@ -123,6 +123,7 @@ export default class KanbanConstraintFix extends Component {
                     "btn-primary discourse-kanban-constraint-fix__option--selected"
                     "btn-default"
                   }}
+                  data-category-id={{cat.id}}
                 />
               {{/each}}
             </div>
@@ -142,6 +143,7 @@ export default class KanbanConstraintFix extends Component {
                     "btn-primary discourse-kanban-constraint-fix__option--selected"
                     "btn-default"
                   }}
+                  data-tag-name={{tagName}}
                 />
               {{/each}}
             </div>

@@ -116,8 +116,13 @@ module PageObjects
 
       def fill_topic_search(value)
         within(".discourse-kanban-add-topic-as-card-modal") do
-          find("input.topic-search-input").set(value)
+          find("input.topic-search-input").fill_in(with: value)
         end
+        self
+      end
+
+      def select_topic_search_result(topic_id)
+        find(".internal-link-results a[data-topic-id='#{topic_id}']").click
         self
       end
 
@@ -341,6 +346,27 @@ module PageObjects
 
       def click_topic_card_view_topic
         within(".discourse-kanban-topic-card-detail-modal") { find(".btn-primary").click }
+        self
+      end
+
+      def has_constraint_fix_modal?
+        has_css?(".discourse-kanban-constraint-fix-modal")
+      end
+
+      def click_constraint_fix_category(category_id)
+        find(".discourse-kanban-constraint-fix-modal [data-category-id='#{category_id}']").click
+        self
+      end
+
+      def click_constraint_fix_tag(tag_name)
+        find(".discourse-kanban-constraint-fix-modal [data-tag-name='#{tag_name}']").click
+        self
+      end
+
+      def click_constraint_fix_confirm
+        PageObjects::Modals::Base.new(
+          body_selector: ".discourse-kanban-constraint-fix-modal",
+        ).click_primary_button
         self
       end
     end
