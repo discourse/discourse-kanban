@@ -5,7 +5,6 @@ describe "Manage Kanban Boards" do
   fab!(:manager, :user)
   fab!(:regular_user, :user)
   fab!(:manage_group, :group)
-  fab!(:category)
   fab!(:todo_tag, :tag) { Fabricate(:tag, name: "todo") }
 
   let(:boards_page) { PageObjects::Pages::KanbanManageBoards.new }

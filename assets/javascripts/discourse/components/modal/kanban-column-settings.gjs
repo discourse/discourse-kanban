@@ -67,6 +67,14 @@ export default class KanbanColumnSettings extends Component {
     return ASSIGNED_OPTIONS;
   }
 
+  // NOTE: We are aware this is not ideal because a board
+  // can have multiple categories, but we only support one
+  // for now because server-side the tag search is limited
+  // to one category at a time.
+  get tagChooserCategoryId() {
+    return this.args.model.board?.category_ids?.[0] || null;
+  }
+
   @action
   onDefaultSortChange(field, value) {
     field.set(value || "priority");
@@ -197,7 +205,11 @@ export default class KanbanColumnSettings extends Component {
                   <MiniTagChooser
                     @value={{tagToArray data.tag_name}}
                     @onChange={{fn this.onTagChange field}}
-                    @options={{hash maximum=1 allowCreate=true}}
+                    @options={{hash
+                      maximum=1
+                      allowCreate=true
+                      categoryId=this.tagChooserCategoryId
+                    }}
                   />
                   <p class="discourse-kanban-column-settings__help">
                     {{i18n "discourse_kanban.manage.columns.tag_help"}}
