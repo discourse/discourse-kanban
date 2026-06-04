@@ -52,6 +52,12 @@ RSpec.describe DiscourseKanban::CreateCard do
         expect(card.column_changed_at).to be_present
         expect(card.created_by_id).to eq(writer.id)
       end
+
+      it "creates a card history record" do
+        expect { result }.to change {
+          DiscourseKanban::CardHistory.where(action: :card_created).count
+        }.by(1)
+      end
     end
 
     context "when creating a floater card in a column sorted by recency" do
