@@ -5,6 +5,7 @@ module DiscourseKanban
     self.table_name = "discourse_kanban_card_histories"
 
     belongs_to :card, class_name: "DiscourseKanban::Card"
+    belongs_to :board, class_name: "DiscourseKanban::Board"
     belongs_to :acting_user, class_name: "User"
 
     validates :action, presence: true
