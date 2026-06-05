@@ -6,25 +6,19 @@ module DiscourseKanban
 
     params { attribute :id, :integer }
 
+    policy :is_logged_in
     model :card
-    policy :card_not_already_viewed_today
     policy :can_view_card
     step :create_view_history
 
     private
 
-    def fetch_card(params:)
-      DiscourseKanban::Card.find_by(id: params.id)
+    def is_logged_in(guardian:)
+      guardian.authenticated?
     end
 
-    def card_not_already_viewed_today(card:, guardian:)
-      RateLimiter.new(
-        guardian.user,
-        "kanban_card_viewed_#{card.id}",
-        1,
-        24.hours,
-        apply_limit_to_staff: true,
-      ).performed!(raise_error: false)
+    def fetch_card(params:)
+      DiscourseKanban::Card.find_by(id: params.id)
     end
 
     def can_view_card(guardian:, card:)
@@ -38,6 +32,9 @@ module DiscourseKanban
         action: CardHistory.actions[:card_viewed],
         board_id: card.board_id,
       )
+    rescue ActiveRecord::RecordNotUnique
+      # We only want to record one view per user per card per day,
+      # see the index_discourse_kanban_card_histories_one_view_per_user_day index.
     end
   end
 end

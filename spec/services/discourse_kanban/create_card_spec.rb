@@ -57,6 +57,10 @@ RSpec.describe DiscourseKanban::CreateCard do
         expect { result }.to change {
           DiscourseKanban::CardHistory.where(action: :card_created).count
         }.by(1)
+        expect(DiscourseKanban::CardHistory.where(action: :card_created).last).to have_attributes(
+          acting_user_id: writer.id,
+          board_id: board.id,
+        )
       end
     end
 

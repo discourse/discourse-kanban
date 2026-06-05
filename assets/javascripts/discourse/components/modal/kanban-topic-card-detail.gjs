@@ -2,6 +2,7 @@ import Component from "@glimmer/component";
 import { tracked } from "@glimmer/tracking";
 import { action } from "@ember/object";
 import didInsert from "@ember/render-modifiers/modifiers/did-insert";
+import { service } from "@ember/service";
 import { trustHTML } from "@ember/template";
 import ConditionalLoadingSpinner from "discourse/components/conditional-loading-spinner";
 import DButton from "discourse/components/d-button";
@@ -17,6 +18,8 @@ import { or } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
 
 export default class KanbanTopicCardDetail extends Component {
+  @service currentUser;
+
   @tracked loading = true;
   @tracked cooked = null;
   @tracked loadError = false;
@@ -95,8 +98,13 @@ export default class KanbanTopicCardDetail extends Component {
 
   @action
   viewCard() {
+    if (!this.currentUser) {
+      return;
+    }
+
     ajax(
-      `/kanban/boards/${this.args.model.card.board_id}/cards/${this.args.model.card.id}`
+      `/kanban/boards/${this.args.model.card.board_id}/cards/${this.args.model.card.id}/view`,
+      { method: "POST" }
     ).catch(() => {
       // No error message should be shown if this fails,
       // it's purely for history logging.

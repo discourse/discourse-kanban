@@ -37,27 +37,41 @@ RSpec.describe DiscourseKanban::ViewCard do
       read_group.add(reader)
     end
 
-    context "when card is not found" do
-      let(:params) { { id: 0 } }
+    context "when user is not logged in" do
+      let(:dependencies) { { guardian: Guardian.new } }
 
-      it { is_expected.to fail_to_find_a_model(:card) }
+      it { is_expected.to fail_a_policy(:is_logged_in) }
     end
 
-    context "when card was already viewed today" do
-      before do
-        RateLimiter.enable
-        described_class.call(params:, **dependencies)
-      end
+    context "when card is not found" do
+      before { card.destroy! }
 
-      after { RateLimiter.disable }
-
-      it { is_expected.to fail_a_policy(:card_not_already_viewed_today) }
+      it { is_expected.to fail_to_find_a_model(:card) }
     end
 
     context "when user cannot view the card" do
       let(:dependencies) { { guardian: outsider.guardian } }
 
       it { is_expected.to fail_a_policy(:can_view_card) }
+    end
+
+    context "when view history was already recorded today" do
+      before do
+        DiscourseKanban::CardHistory.create!(
+          card:,
+          acting_user: reader,
+          action: :card_viewed,
+          board_id: board.id,
+        )
+      end
+
+      it { is_expected.to run_successfully }
+
+      it "does not create a duplicate history record" do
+        expect { result }.not_to change {
+          DiscourseKanban::CardHistory.where(action: :card_viewed, card_id: card.id).count
+        }
+      end
     end
 
     context "when everything is valid" do

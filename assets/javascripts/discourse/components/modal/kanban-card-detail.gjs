@@ -15,6 +15,7 @@ import KanbanEditableTitle from "../kanban-editable-title";
 
 export default class KanbanCardDetail extends Component {
   @service siteSettings;
+  @service currentUser;
 
   get canWrite() {
     return this.args.model.canWrite;
@@ -74,8 +75,13 @@ export default class KanbanCardDetail extends Component {
 
   @action
   viewCard() {
+    if (!this.currentUser) {
+      return;
+    }
+
     ajax(
-      `/kanban/boards/${this.args.model.card.board_id}/cards/${this.args.model.card.id}`
+      `/kanban/boards/${this.args.model.card.board_id}/cards/${this.args.model.card.id}/view`,
+      { method: "POST" }
     ).catch(() => {
       // No error message should be shown if this fails,
       // it's purely for history logging.

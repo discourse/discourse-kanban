@@ -134,8 +134,8 @@ module DiscourseKanban
     def view
       DiscourseKanban::ViewCard.call(service_params) do
         on_success { head :no_content }
-        on_failed_policy(:card_not_already_viewed_today) { raise Discourse::InvalidParameters }
         on_model_not_found(:card) { raise Discourse::NotFound }
+        on_failed_policy(:is_logged_in) { raise Discourse::InvalidAccess }
         on_failed_policy(:can_view_card) { raise Discourse::InvalidAccess }
       end
     end
