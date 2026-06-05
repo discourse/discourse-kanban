@@ -20,6 +20,7 @@ module DiscourseKanban
            board_slug_changed: 4,
            board_permissions_changed: 5,
            board_deleted: 6,
+           board_viewed: 7,
          }
   end
 end
