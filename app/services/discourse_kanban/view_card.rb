@@ -6,25 +6,25 @@ module DiscourseKanban
 
     params { attribute :id, :integer }
 
-    policy :card_not_already_viewed_today
     model :card
+    policy :card_not_already_viewed_today
     policy :can_view_card
     step :create_view_history
 
     private
 
-    def card_not_already_viewed_today(params:, guardian:)
+    def fetch_card(params:)
+      DiscourseKanban::Card.find_by(id: params.id)
+    end
+
+    def card_not_already_viewed_today(card:, guardian:)
       RateLimiter.new(
         guardian.user,
-        "kanban_card_viewed_#{params.id}",
+        "kanban_card_viewed_#{card.id}",
         1,
         24.hours,
         apply_limit_to_staff: true,
       ).performed!(raise_error: false)
-    end
-
-    def fetch_card(params:)
-      DiscourseKanban::Card.find_by(id: params.id)
     end
 
     def can_view_card(guardian:, card:)

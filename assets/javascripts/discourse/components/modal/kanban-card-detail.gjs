@@ -8,7 +8,6 @@ import DModal from "discourse/components/d-modal";
 import Form from "discourse/components/form";
 import { ajax } from "discourse/lib/ajax";
 import { USER_OPTION_COMPOSITION_MODES } from "discourse/lib/constants";
-import getURL from "discourse/lib/get-url";
 import EmailGroupUserChooser from "discourse/select-kit/components/email-group-user-chooser";
 import { not } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
@@ -75,13 +74,12 @@ export default class KanbanCardDetail extends Component {
 
   @action
   viewCard() {
-    // No error message should be shown if this fails,
-    // it's purely for history logging.
     ajax(
-      getURL(
-        `/kanban/boards/${this.args.model.card.board_id}/cards/${this.args.model.card.id}`
-      )
-    );
+      `/kanban/boards/${this.args.model.card.board_id}/cards/${this.args.model.card.id}`
+    ).catch(() => {
+      // No error message should be shown if this fails,
+      // it's purely for history logging.
+    });
   }
 
   <template>

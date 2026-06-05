@@ -11,7 +11,6 @@ import categoryBadge from "discourse/helpers/category-badge";
 import icon from "discourse/helpers/d-icon";
 import formatDate from "discourse/helpers/format-date";
 import { ajax } from "discourse/lib/ajax";
-import getURL from "discourse/lib/get-url";
 import renderTags from "discourse/lib/render-tags";
 import Category from "discourse/models/category";
 import { or } from "discourse/truth-helpers";
@@ -96,13 +95,12 @@ export default class KanbanTopicCardDetail extends Component {
 
   @action
   viewCard() {
-    // No error message should be shown if this fails,
-    // it's purely for history logging.
     ajax(
-      getURL(
-        `/kanban/boards/${this.args.model.card.board_id}/cards/${this.args.model.card.id}`
-      )
-    );
+      `/kanban/boards/${this.args.model.card.board_id}/cards/${this.args.model.card.id}`
+    ).catch(() => {
+      // No error message should be shown if this fails,
+      // it's purely for history logging.
+    });
   }
 
   <template>
