@@ -6,25 +6,19 @@ module DiscourseKanban
 
     params { attribute :id, :integer }
 
+    policy :is_logged_in
     model :board
-    policy :board_not_already_viewed_today
     policy :can_read_board
     step :create_view_history
 
     private
 
-    def fetch_board(params:)
-      DiscourseKanban::Board.find_by(id: params.id)
+    def is_logged_in(guardian:)
+      guardian.authenticated?
     end
 
-    def board_not_already_viewed_today(board:, guardian:)
-      RateLimiter.new(
-        guardian.user,
-        "kanban_board_viewed_#{board.id}",
-        1,
-        24.hours,
-        apply_limit_to_staff: true,
-      ).performed!(raise_error: false)
+    def fetch_board(params:)
+      DiscourseKanban::Board.find_by(id: params.id)
     end
 
     def can_read_board(guardian:, board:)
@@ -37,6 +31,9 @@ module DiscourseKanban
         acting_user: guardian.user,
         action: BoardHistory.actions[:board_viewed],
       )
+    rescue ActiveRecord::RecordNotUnique
+      # We only want to record one view per user per board per day,
+      # see the index_discourse_kanban_board_histories_one_view_per_user_day index.
     end
   end
 end

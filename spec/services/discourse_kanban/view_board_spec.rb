@@ -27,6 +27,12 @@ RSpec.describe DiscourseKanban::ViewBoard do
       read_group.add(reader)
     end
 
+    context "when user is not logged in" do
+      let(:dependencies) { { guardian: Guardian.new } }
+
+      it { is_expected.to fail_a_policy(:is_logged_in) }
+    end
+
     context "when board is not found" do
       let(:params) { { id: 0 } }
 
@@ -35,13 +41,16 @@ RSpec.describe DiscourseKanban::ViewBoard do
 
     context "when board was already viewed today" do
       before do
-        RateLimiter.enable
-        described_class.call(params:, **dependencies)
+        DiscourseKanban::BoardHistory.create!(board:, acting_user: reader, action: :board_viewed)
       end
 
-      after { RateLimiter.disable }
+      it { is_expected.to run_successfully }
 
-      it { is_expected.to fail_a_policy(:board_not_already_viewed_today) }
+      it "does not create a duplicate history record" do
+        expect { result }.not_to change {
+          DiscourseKanban::BoardHistory.where(action: :board_viewed, board_id: board.id).count
+        }
+      end
     end
 
     context "when user cannot read the board" do
@@ -57,13 +66,9 @@ RSpec.describe DiscourseKanban::ViewBoard do
         expect { result }.to change {
           DiscourseKanban::BoardHistory.where(action: :board_viewed, board_id: board.id).count
         }.by(1)
-      end
-
-      it "records the acting user" do
-        result
-        history =
-          DiscourseKanban::BoardHistory.where(action: :board_viewed, board_id: board.id).last
-        expect(history).to have_attributes(acting_user_id: reader.id, board_id: board.id)
+        expect(
+          DiscourseKanban::BoardHistory.where(action: :board_viewed, board_id: board.id).last,
+        ).to have_attributes(acting_user_id: reader.id, board_id: board.id)
       end
     end
   end

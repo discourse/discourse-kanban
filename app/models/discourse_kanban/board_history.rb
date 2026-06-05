@@ -40,7 +40,8 @@ end
 #
 # Indexes
 #
-#  index_discourse_kanban_board_histories_on_acting_user_id  (acting_user_id)
-#  index_discourse_kanban_board_histories_on_board_id        (board_id)
-#  index_discourse_kanban_board_histories_on_column_id       (column_id)
+#  index_discourse_kanban_board_histories_on_acting_user_id      (acting_user_id)
+#  index_discourse_kanban_board_histories_on_board_id            (board_id)
+#  index_discourse_kanban_board_histories_on_column_id           (column_id)
+#  index_discourse_kanban_board_histories_one_view_per_user_day  (board_id, acting_user_id, ((created_at)::date)) UNIQUE WHERE (action = 7)
 #
