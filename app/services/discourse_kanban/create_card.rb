@@ -24,7 +24,11 @@ module DiscourseKanban
     model :board
     policy :can_write
     model :column
-    step :create_card
+
+    transaction do
+      step :create_card
+      step :create_card_history
+    end
 
     private
 
@@ -46,6 +50,15 @@ module DiscourseKanban
       else
         build_floater_card(board, column, params, guardian)
       end
+    end
+
+    def create_card_history(card:, guardian:)
+      CardHistory.create!(
+        card:,
+        acting_user: guardian.user,
+        action: CardHistory.actions[:card_created],
+        board_id: card.board_id,
+      )
     end
 
     def build_topic_card(board, column, params, guardian, options:)

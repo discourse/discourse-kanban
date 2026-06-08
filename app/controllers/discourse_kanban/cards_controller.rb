@@ -130,5 +130,14 @@ module DiscourseKanban
         on_failure { render json: failed_json, status: :unprocessable_entity }
       end
     end
+
+    def view
+      DiscourseKanban::ViewCard.call(service_params) do
+        on_success { head :no_content }
+        on_model_not_found(:card) { raise Discourse::NotFound }
+        on_failed_policy(:is_logged_in) { raise Discourse::InvalidAccess }
+        on_failed_policy(:can_view_card) { raise Discourse::InvalidAccess }
+      end
+    end
   end
 end
