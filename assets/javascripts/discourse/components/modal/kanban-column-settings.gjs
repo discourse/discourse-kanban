@@ -217,6 +217,26 @@ export default class KanbanColumnSettings extends Component {
                 </field.Control>
               </form.Field>
 
+              <form.Field
+                @name="move_to_status"
+                @title={{i18n "discourse_kanban.manage.columns.move_to_status"}}
+                @format="max"
+                @type="custom"
+                as |field|
+              >
+                <field.Control>
+                  <ComboBox
+                    @value={{data.move_to_status}}
+                    @content={{this.statusOptions}}
+                    @onChange={{fn this.onStatusChange field}}
+                    @options={{hash
+                      clearable=true
+                      none="discourse_kanban.manage.columns.move_to_status_none"
+                    }}
+                  />
+                </field.Control>
+              </form.Field>
+
               {{#if this.showAdvanced}}
                 {{#if this.showMoveToCategoryField}}
                   <form.Field
@@ -264,28 +284,6 @@ export default class KanbanColumnSettings extends Component {
                         @options={{hash maximum=1}}
                       />
                     {{/if}}
-                  </field.Control>
-                </form.Field>
-
-                <form.Field
-                  @name="move_to_status"
-                  @title={{i18n
-                    "discourse_kanban.manage.columns.move_to_status"
-                  }}
-                  @format="max"
-                  @type="custom"
-                  as |field|
-                >
-                  <field.Control>
-                    <ComboBox
-                      @value={{data.move_to_status}}
-                      @content={{this.statusOptions}}
-                      @onChange={{fn this.onStatusChange field}}
-                      @options={{hash
-                        clearable=true
-                        none="discourse_kanban.manage.columns.move_to_status_none"
-                      }}
-                    />
                   </field.Control>
                 </form.Field>
               {{/if}}
