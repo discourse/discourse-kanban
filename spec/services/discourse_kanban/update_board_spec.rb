@@ -122,6 +122,21 @@ RSpec.describe DiscourseKanban::UpdateBoard do
             I18n.t("discourse_kanban.errors.unknown_tag_names", tag_names: "brand-new"),
           )
         end
+
+        context "when an existing tag is not visible to the user" do
+          fab!(:restricted_tag, :tag)
+
+          let(:raw) { { "name" => "Updated", "tag_names" => [restricted_tag.name] } }
+
+          before { Fabricate(:tag_group, permissions: { "staff" => 1 }, tags: [restricted_tag]) }
+
+          it "does not resolve the hidden tag" do
+            expect { result }.to raise_error(
+              Discourse::InvalidParameters,
+              I18n.t("discourse_kanban.errors.unknown_tag_names", tag_names: restricted_tag.name),
+            )
+          end
+        end
       end
 
       context "with column changes" do
@@ -137,6 +152,28 @@ RSpec.describe DiscourseKanban::UpdateBoard do
           board.reload
           expect(board.columns.count).to eq(2)
           expect(column.reload.title).to eq("Renamed")
+        end
+
+        context "when a column tag is not visible to the user" do
+          fab!(:restricted_tag, :tag)
+
+          let(:raw) do
+            {
+              "name" => "Updated",
+              "columns" => [
+                { "id" => column.id, "title" => "Restricted", "tag_name" => restricted_tag.name },
+              ],
+            }
+          end
+
+          before { Fabricate(:tag_group, permissions: { "staff" => 1 }, tags: [restricted_tag]) }
+
+          it "does not resolve the hidden tag" do
+            expect { result }.to raise_error(
+              Discourse::InvalidParameters,
+              I18n.t("discourse_kanban.errors.unknown_tag_name", tag_name: restricted_tag.name),
+            )
+          end
         end
       end
 

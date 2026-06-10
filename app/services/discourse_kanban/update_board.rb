@@ -34,9 +34,11 @@ module DiscourseKanban
     end
 
     def update_board(board:, guardian:)
-      raw = context[:raw_board_params] || {}
+      raw = context[:raw_board_params]&.dup || {}
       context[:histories] = {}
-      ensure_new_tags_exist!(raw["tag_names"], guardian) if raw.key?("tag_names")
+      if raw.key?("tag_names")
+        raw["tag_ids"] = VisibleTagResolver.resolve_names!(raw.delete("tag_names"), guardian:)
+      end
       board.assign_attributes(raw.except("columns"))
       board.updated_by_id = guardian.user.id
 
@@ -86,18 +88,14 @@ module DiscourseKanban
       board.save!
     end
 
-    def ensure_new_tags_exist!(tag_names, guardian)
-      return unless guardian.can_create_tag?
-      Array(tag_names).compact_blank.each do |name|
-        next if Tag.where_name([name]).exists?
-        cleaned = DiscourseTagging.clean_tag(name)
-        Tag.create!(name: cleaned) if cleaned.present?
-      end
-    end
-
     def replace_columns(board:, guardian:)
       raw = context[:raw_board_params] || {}
-      ColumnsReplacer.replace!(board:, columns_payload: raw["columns"] || [], user: guardian.user)
+      ColumnsReplacer.replace!(
+        board:,
+        columns_payload: raw["columns"] || [],
+        user: guardian.user,
+        guardian:,
+      )
     end
 
     def remove_non_matching_cards(board:, guardian:)

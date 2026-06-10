@@ -85,6 +85,21 @@ RSpec.describe DiscourseKanban::CreateBoard do
           expect(result).to be_failure
           expect(result["result.model.board"].exception).to be_a(Discourse::InvalidParameters)
         end
+
+        context "when an existing tag is not visible to the user" do
+          fab!(:restricted_tag, :tag)
+
+          let(:raw) do
+            { "name" => "Tagged", "slug" => "tagged", "tag_names" => [restricted_tag.name] }
+          end
+
+          before { Fabricate(:tag_group, permissions: { "staff" => 1 }, tags: [restricted_tag]) }
+
+          it "does not resolve the hidden tag" do
+            expect(result).to be_failure
+            expect(result["result.model.board"].exception).to be_a(Discourse::InvalidParameters)
+          end
+        end
       end
 
       context "with columns" do
@@ -100,6 +115,26 @@ RSpec.describe DiscourseKanban::CreateBoard do
           board = result[:board]
           expect(board.columns.count).to eq(2)
           expect(board.columns.order(:position).pluck(:title)).to eq(%w[Backlog Done])
+        end
+
+        context "when a column tag is not visible to the user" do
+          fab!(:restricted_tag, :tag)
+
+          let(:raw) do
+            {
+              "name" => "With Columns",
+              "columns" => [{ "title" => "Restricted", "tag_name" => restricted_tag.name }],
+            }
+          end
+
+          before { Fabricate(:tag_group, permissions: { "staff" => 1 }, tags: [restricted_tag]) }
+
+          it "does not resolve the hidden tag" do
+            expect { result }.to raise_error(
+              Discourse::InvalidParameters,
+              I18n.t("discourse_kanban.errors.unknown_tag_name", tag_name: restricted_tag.name),
+            )
+          end
         end
       end
     end
