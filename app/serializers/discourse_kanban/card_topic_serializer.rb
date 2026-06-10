@@ -37,7 +37,8 @@ module DiscourseKanban
     end
 
     def include_assigned_to_user?
-      object.respond_to?(:assignment) && object.assignment&.assigned_to.is_a?(User)
+      assignment_metadata_visible? && object.respond_to?(:assignment) &&
+        object.assignment&.assigned_to.is_a?(User)
     end
 
     def assigned_to_group
@@ -46,7 +47,8 @@ module DiscourseKanban
     end
 
     def include_assigned_to_group?
-      object.respond_to?(:assignment) && object.assignment&.assigned_to.is_a?(Group)
+      assignment_metadata_visible? && object.respond_to?(:assignment) &&
+        object.assignment&.assigned_to.is_a?(Group)
     end
 
     def all_assigned_users
@@ -69,12 +71,28 @@ module DiscourseKanban
     private
 
     def topic_assignments
-      @options.fetch(:assignments_by_topic, {}).fetch(object.id, nil) || fallback_assignments
+      return [] if !assignment_metadata_visible?
+
+      assignments =
+        @options.fetch(:assignments_by_topic, {}).fetch(object.id, nil) || fallback_assignments
+      assignments.select { |assignment| assignment_target_visible?(assignment) }
     end
 
     def fallback_assignments
       return [] unless defined?(Assignment)
-      Assignment.where(topic_id: object.id, active: true).includes(:assigned_to)
+      Assignment.active.where(topic_id: object.id).includes(:assigned_to, :target)
+    end
+
+    def assignment_metadata_visible?
+      return false unless defined?(Assignment)
+
+      SiteSetting.assigns_public || (scope.respond_to?(:can_assign?) && scope.can_assign?(object))
+    end
+
+    def assignment_target_visible?(assignment)
+      return true if assignment.target_type != "Post"
+
+      assignment.target.present? && scope.present? && scope.can_see?(assignment.target)
     end
 
     def serialize_user(user)

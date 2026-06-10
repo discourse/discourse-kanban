@@ -51,6 +51,7 @@ module DiscourseKanban
                 CardPayloadSerializer.new(
                   card,
                   root: false,
+                  scope: guardian,
                   assignments_by_topic:,
                   tags_by_id:,
                 ).as_json

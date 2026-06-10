@@ -125,9 +125,19 @@ after_initialize do
     end
   end
 
-  register_stat("kanban_total_boards", stat_type: :kanban) { DiscourseKanban::Statistics.total_boards }
-  register_stat("kanban_viewed_boards", stat_type: :kanban) { DiscourseKanban::Statistics.viewed_boards }
-  register_stat("kanban_active_boards", stat_type: :kanban) { DiscourseKanban::Statistics.active_boards }
-  register_stat("kanban_active_users", stat_type: :kanban) { DiscourseKanban::Statistics.active_users }
-  register_stat("kanban_participating_users", stat_type: :kanban) { DiscourseKanban::Statistics.participating_users }
+  register_stat("kanban_total_boards", stat_type: :kanban) do
+    DiscourseKanban::Statistics.total_boards
+  end
+  register_stat("kanban_viewed_boards", stat_type: :kanban) do
+    DiscourseKanban::Statistics.viewed_boards
+  end
+  register_stat("kanban_active_boards", stat_type: :kanban) do
+    DiscourseKanban::Statistics.active_boards
+  end
+  register_stat("kanban_active_users", stat_type: :kanban) do
+    DiscourseKanban::Statistics.active_users
+  end
+  register_stat("kanban_participating_users", stat_type: :kanban) do
+    DiscourseKanban::Statistics.participating_users
+  end
 end
