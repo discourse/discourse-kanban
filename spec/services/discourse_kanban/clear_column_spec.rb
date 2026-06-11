@@ -103,6 +103,23 @@ RSpec.describe DiscourseKanban::ClearColumn do
         result
         expect(DiscourseKanban::Card.find_by(id: other_column_card.id)).to be_present
       end
+
+      it "preserves hidden topic cards" do
+        private_category = Fabricate(:private_category, group: Fabricate(:group))
+        hidden_topic = Fabricate(:topic, category: private_category)
+        hidden_card =
+          board.cards.create!(
+            card_type: :topic,
+            topic_id: hidden_topic.id,
+            column_id: column.id,
+            position: 4,
+            created_by_id: admin.id,
+          )
+
+        result
+
+        expect(DiscourseKanban::Card.exists?(hidden_card.id)).to eq(true)
+      end
     end
 
     context "when column is not found" do
