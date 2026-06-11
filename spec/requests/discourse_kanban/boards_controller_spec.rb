@@ -158,6 +158,35 @@ RSpec.describe DiscourseKanban::BoardsController do
       expect(response.body).not_to include(hidden_tag.name)
     end
 
+    it "hides restricted tags attached to floater cards from users who can read the board" do
+      hidden_tag = Fabricate(:tag, name: "staff-floater")
+      visible_tag = Fabricate(:tag, name: "public-floater")
+      Fabricate(:tag_group, permissions: { "staff" => 1 }, tag_names: [hidden_tag.name])
+      board =
+        DiscourseKanban::Board.create!(
+          name: "Public Roadmap",
+          slug: "public-roadmap-floaters",
+          created_by_id: admin.id,
+        )
+      column = board.columns.create!(title: "Visible", position: 0)
+      board.cards.create!(
+        card_type: :floater,
+        title: "Public card",
+        tag_ids: [visible_tag.id, hidden_tag.id],
+        column_id: column.id,
+        position: 0,
+        created_by_id: admin.id,
+      )
+
+      get "/kanban/boards/#{board.id}.json"
+
+      expect(response.status).to eq(200)
+      card = response.parsed_body["columns"].first["cards"].first
+      expect(card["tag_ids"]).to contain_exactly(visible_tag.id)
+      expect(card["tags"].map { |tag| tag["name"] }).to contain_exactly(visible_tag.name)
+      expect(response.body).not_to include(hidden_tag.name)
+    end
+
     it "includes can_manage for users in the manage group" do
       board =
         DiscourseKanban::Board.create!(name: "Test", slug: "test-manage", created_by_id: admin.id)

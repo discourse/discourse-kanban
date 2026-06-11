@@ -35,4 +35,25 @@ RSpec.describe DiscourseKanban::CardPayloadSerializer do
 
     expect(payload[:topic]).to include(title: private_topic.title, slug: private_topic.slug)
   end
+
+  it "omits floater tag metadata the scoped user cannot see" do
+    visible_tag = Fabricate(:tag, name: "visible-kanban")
+    hidden_tag = Fabricate(:tag, name: "staff-kanban")
+    Fabricate(:tag_group, permissions: { "staff" => 1 }, tag_names: [hidden_tag.name])
+    floater_card =
+      Fabricate(
+        :kanban_card,
+        board:,
+        column:,
+        card_type: :floater,
+        title: "Tagged floater",
+        tag_ids: [visible_tag.id, hidden_tag.id],
+        created_by: admin,
+      )
+
+    payload = described_class.new(floater_card, root: false, scope: Guardian.new(viewer)).as_json
+
+    expect(payload[:tag_ids]).to contain_exactly(visible_tag.id)
+    expect(payload[:tags].map { |tag| tag[:name] }).to contain_exactly(visible_tag.name)
+  end
 end

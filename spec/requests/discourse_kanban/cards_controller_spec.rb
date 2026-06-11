@@ -86,6 +86,24 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(response.status).to eq(400)
     end
 
+    it "rejects hidden floater card tag ids" do
+      hidden_tag = Fabricate(:tag, name: "staff-urgent")
+      Fabricate(:tag_group, permissions: { "staff" => 1 }, tag_names: [hidden_tag.name])
+      sign_in(writer)
+
+      post "/kanban/boards/#{board.id}/cards.json",
+           params: {
+             card: {
+               column_id: col_todo.id,
+               title: "Bad tag",
+               tag_ids: [hidden_tag.id],
+             },
+           }
+
+      expect(response.status).to eq(400)
+      expect(DiscourseKanban::Card.where(title: "Bad tag")).to be_empty
+    end
+
     it "creates a topic card" do
       sign_in(writer)
 
@@ -523,6 +541,31 @@ RSpec.describe DiscourseKanban::CardsController do
           }
 
       expect(response.status).to eq(400)
+    end
+
+    it "rejects hidden floater card tag ids on update" do
+      hidden_tag = Fabricate(:tag, name: "staff-update")
+      Fabricate(:tag_group, permissions: { "staff" => 1 }, tag_names: [hidden_tag.name])
+      card =
+        board.cards.create!(
+          card_type: :floater,
+          title: "Bad update",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+
+      sign_in(writer)
+
+      put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+          params: {
+            card: {
+              tag_ids: [hidden_tag.id],
+            },
+          }
+
+      expect(response.status).to eq(400)
+      expect(card.reload.tag_ids).to be_empty
     end
 
     it "preserves notes when omitted from floater updates" do

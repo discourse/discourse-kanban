@@ -211,7 +211,7 @@ module DiscourseKanban
       tag_ids = cards.reject(&:topic?).flat_map(&:tag_ids).uniq
       return {} if tag_ids.empty?
 
-      Tag.where(id: tag_ids).index_by(&:id)
+      DiscourseTagging.filter_visible(Tag.where(id: tag_ids), guardian).index_by(&:id)
     end
 
     def visible_topic_ids_for(cards)

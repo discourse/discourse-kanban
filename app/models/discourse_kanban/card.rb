@@ -44,6 +44,20 @@ module DiscourseKanban
             )
     end
 
+    def self.normalize_visible_tag_ids!(values, guardian)
+      normalized_tag_ids = normalize_tag_ids!(values)
+      return normalized_tag_ids if normalized_tag_ids.blank? || guardian&.is_admin?
+
+      visible_tag_ids =
+        DiscourseTagging.visible_tags(guardian).where(id: normalized_tag_ids).pluck(:id)
+      hidden_tag_ids = normalized_tag_ids - visible_tag_ids
+      return normalized_tag_ids if hidden_tag_ids.empty?
+
+      raise Discourse::InvalidParameters.new(
+              I18n.t("discourse_kanban.errors.unknown_tag_ids", tag_ids: hidden_tag_ids.join(",")),
+            )
+    end
+
     def self.ordered_tags(tag_ids)
       normalized_tag_ids = normalize_tag_id_values!(tag_ids)
       return [] if normalized_tag_ids.blank?

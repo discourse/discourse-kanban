@@ -249,6 +249,28 @@ RSpec.describe DiscourseKanban::UpdateCard do
       end
     end
 
+    context "when editing tags on a floater card to include a hidden tag" do
+      fab!(:hidden_tag, :tag) { Fabricate(:tag, name: "staff-kanban") }
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :floater,
+          title: "Edit hidden tag",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      end
+
+      let(:raw_card_params) { { "tag_ids" => [hidden_tag.id] } }
+      let(:params) { { board_id: board.id, id: card.id, tag_ids: [hidden_tag.id] } }
+
+      before { Fabricate(:tag_group, permissions: { "staff" => 1 }, tag_names: [hidden_tag.name]) }
+
+      it "raises InvalidParameters" do
+        expect { result }.to raise_error(Discourse::InvalidParameters)
+      end
+    end
+
     context "when editing tags on a floater card to include a sibling column tag" do
       fab!(:column_tag, :tag) { Fabricate(:tag, name: "column-tag") }
       fab!(:sibling_tag, :tag) { Fabricate(:tag, name: "sibling-tag") }
