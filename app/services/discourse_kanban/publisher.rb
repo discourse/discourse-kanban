@@ -50,7 +50,7 @@ module DiscourseKanban
       opts = {}
       # Anonymous viewers belong to no group, so a board readable by anonymous
       # users must broadcast to everyone rather than being group-restricted.
-      if group_ids.present? && !group_ids.include?(Group::AUTO_GROUPS[:anonymous])
+      if group_ids.present? && !group_ids.include?(Group::AUTO_GROUPS[:anonymous_users])
         opts[:group_ids] = group_ids
       end
 

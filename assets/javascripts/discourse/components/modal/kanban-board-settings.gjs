@@ -14,8 +14,8 @@ import discourseDebounce from "discourse/lib/debounce";
 import { slugify } from "discourse/lib/utilities";
 import CategorySelector from "discourse/select-kit/components/category-selector";
 import { eq, or } from "discourse/truth-helpers";
+import DAccessControl from "discourse/ui-kit/d-access-control";
 import { i18n } from "discourse-i18n";
-import KanbanBoardAccess from "../kanban-board-access";
 import KanbanEditableTitle from "../kanban-editable-title";
 
 const CONSTRAINT_TYPE_OPTIONS = [
@@ -343,7 +343,7 @@ export default class KanbanBoardSettings extends Component {
                 as |field|
               >
                 <field.Control>
-                  <KanbanBoardAccess
+                  <DAccessControl
                     @groups={{this.site.groups}}
                     @value={{field.value}}
                     @onChange={{field.set}}

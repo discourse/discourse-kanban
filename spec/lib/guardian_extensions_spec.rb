@@ -9,7 +9,7 @@ RSpec.describe DiscourseKanban::GuardianExtensions do
   fab!(:member) { Fabricate(:user, refresh_auto_groups: true) }
   fab!(:read_group, :group)
   fab!(:write_group, :group)
-  let(:anonymous_guardian) { Guardian.new }
+  let(:anonymous_users_guardian) { Guardian.new }
 
   before do
     enable_current_plugin
@@ -66,7 +66,7 @@ RSpec.describe DiscourseKanban::GuardianExtensions do
           name: "Public",
           slug: "public",
           allow_read_group_ids: [
-            Group::AUTO_GROUPS[:anonymous],
+            Group::AUTO_GROUPS[:anonymous_users],
             Group::AUTO_GROUPS[:trust_level_0],
           ],
         )

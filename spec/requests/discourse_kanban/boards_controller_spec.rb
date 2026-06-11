@@ -323,7 +323,7 @@ RSpec.describe DiscourseKanban::BoardsController do
         DiscourseKanban::Board.create!(
           name: "Public",
           slug: "public",
-          allow_read_group_ids: [Group::AUTO_GROUPS[:anonymous]],
+          allow_read_group_ids: [Group::AUTO_GROUPS[:anonymous_users]],
           created_by_id: admin.id,
         )
       public_board.columns.create!(title: "Col", position: 0)

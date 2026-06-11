@@ -68,6 +68,7 @@ export default class KanbanBoardsPage extends Component {
       <DPageHeader
         @titleLabel={{i18n "discourse_kanban.manage.title"}}
         @descriptionLabel={{i18n "discourse_kanban.manage.description"}}
+        @hideTabs={{true}}
       >
         <:actions as |actions|>
           {{#if @canManageBoards}}

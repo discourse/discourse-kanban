@@ -27,7 +27,7 @@ RSpec.describe KeepPublicKanbanBoardsPublic do
     described_class.new.up
 
     expect(public_board.reload.allow_read_group_ids).to contain_exactly(
-      Group::AUTO_GROUPS[:anonymous],
+      Group::AUTO_GROUPS[:anonymous_users],
       Group::AUTO_GROUPS[:trust_level_0],
     )
     expect(restricted_board.reload.allow_read_group_ids).to contain_exactly(read_group.id)
