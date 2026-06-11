@@ -28,6 +28,7 @@ module DiscourseKanban
     model :board
     policy :can_write
     model :card
+    policy :can_see_card_topic
     model :column
     step :capture_original_state
 
@@ -48,6 +49,10 @@ module DiscourseKanban
 
     def fetch_card(board:, params:)
       board.cards.find_by(id: params.id)
+    end
+
+    def can_see_card_topic(card:, guardian:)
+      !card.topic? || card.topic.blank? || guardian.can_see?(card.topic)
     end
 
     def capture_original_state(card:)

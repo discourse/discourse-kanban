@@ -27,7 +27,7 @@ module DiscourseKanban
     end
 
     def include_topic?
-      object.topic? && object.topic.present?
+      object.topic? && object.topic.present? && topic_visible?
     end
 
     def include_created_at?
@@ -78,6 +78,10 @@ module DiscourseKanban
       return Card.ordered_tags(object.tag_ids) if tags_by_id.blank?
 
       object.tag_ids.filter_map { |tag_id| tags_by_id[tag_id] }
+    end
+
+    def topic_visible?
+      scope.present? && scope.can_see?(object.topic)
     end
   end
 end
