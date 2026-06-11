@@ -28,14 +28,15 @@ module DiscourseKanban
 
     def board_payload(board, tag_name_map: nil)
       tag_name_map ||= build_tag_name_map(board)
+      visible_tag_ids = board.tag_ids.select { |tag_id| tag_name_map.key?(tag_id) }
 
       {
         id: board.id,
         name: board.name,
         slug: board.slug,
         category_ids: board.category_ids,
-        tag_ids: board.tag_ids,
-        tag_names: board.tag_ids.filter_map { |id| tag_name_map[id] }.sort,
+        tag_ids: visible_tag_ids,
+        tag_names: visible_tag_ids.filter_map { |id| tag_name_map[id] }.sort,
         allow_read_group_ids: board.allow_read_group_ids,
         allow_write_group_ids: board.allow_write_group_ids,
         require_confirmation: board.require_confirmation,
@@ -56,14 +57,16 @@ module DiscourseKanban
     end
 
     def column_payload(column, tag_name_map: {})
+      visible_tag_id = column.tag_id if column.tag_id && tag_name_map.key?(column.tag_id)
+
       {
         id: column.id,
         title: column.title,
         icon: column.icon,
         position: column.position,
         default_sort: column.default_sort,
-        tag_id: column.tag_id,
-        tag_name: column.tag_id ? tag_name_map[column.tag_id] : nil,
+        tag_id: visible_tag_id,
+        tag_name: visible_tag_id ? tag_name_map[visible_tag_id] : nil,
         move_to_category_id: column.move_to_category_id,
         move_to_assigned: column.move_to_assigned,
         move_to_status: column.move_to_status,
@@ -73,7 +76,7 @@ module DiscourseKanban
     def build_tag_name_map(*boards)
       all_tag_ids = boards.flat_map { |b| b.tag_ids + b.columns.filter_map(&:tag_id) }.uniq
       return {} if all_tag_ids.empty?
-      Tag.where(id: all_tag_ids).pluck(:id, :name).to_h
+      Tag.visible(guardian).where(id: all_tag_ids).pluck(:id, :name).to_h
     end
 
     def card_mutation_params

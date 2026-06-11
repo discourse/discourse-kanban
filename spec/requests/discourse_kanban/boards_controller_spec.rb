@@ -112,6 +112,52 @@ RSpec.describe DiscourseKanban::BoardsController do
       expect(card["topic"]["slug"]).to eq(topic.slug)
     end
 
+    it "hides restricted board and column tags from users who can read the board" do
+      hidden_tag = Fabricate(:tag, name: "security-internal")
+      visible_tag = Fabricate(:tag, name: "public-roadmap")
+      staff_tag_group =
+        Fabricate(:tag_group, name: "Staff Kanban Tags", tag_names: [hidden_tag.name])
+      staff_tag_group.permissions = [
+        [Group::AUTO_GROUPS[:staff], TagGroupPermission.permission_types[:full]],
+      ]
+      staff_tag_group.save!
+
+      board =
+        DiscourseKanban::Board.create!(
+          name: "Public Roadmap",
+          slug: "public-roadmap",
+          tag_ids: [hidden_tag.id, visible_tag.id],
+          created_by_id: admin.id,
+        )
+      board.columns.create!(title: "Visible", position: 0, tag_id: visible_tag.id)
+      board.columns.create!(title: "Hidden", position: 1, tag_id: hidden_tag.id)
+
+      get "/kanban/boards/#{board.id}.json"
+
+      expect(response.status).to eq(200)
+      body = response.parsed_body
+
+      expect(body["board"]["tag_ids"]).to contain_exactly(visible_tag.id)
+      expect(body["board"]["tag_names"]).to contain_exactly(visible_tag.name)
+      expect(body["board"]["columns"].map { |column| column["tag_id"] }).to contain_exactly(
+        visible_tag.id,
+        nil,
+      )
+      expect(body["board"]["columns"].map { |column| column["tag_name"] }).to contain_exactly(
+        visible_tag.name,
+        nil,
+      )
+      expect(body["columns"].map { |column| column["tag_id"] }).to contain_exactly(
+        visible_tag.id,
+        nil,
+      )
+      expect(body["columns"].map { |column| column["tag_name"] }).to contain_exactly(
+        visible_tag.name,
+        nil,
+      )
+      expect(response.body).not_to include(hidden_tag.name)
+    end
+
     it "includes can_manage for users in the manage group" do
       board =
         DiscourseKanban::Board.create!(name: "Test", slug: "test-manage", created_by_id: admin.id)
