@@ -187,7 +187,7 @@ RSpec.describe DiscourseKanban::Statistics do
     it "returns counts for each time bucket" do
       freeze_time(reference_time) do
         expect(stats).to eq(
-          { last_day: 1, "7_days": 1, "30_days": 2, previous_30_days: 1, count: 4 },
+          { last_day: 1, "7_days": 1, "30_days": 2, previous_30_days: 1, count: 3 },
         )
       end
     end

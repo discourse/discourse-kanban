@@ -21,17 +21,13 @@ module DiscourseKanban
       scope =
         DiscourseKanban::BoardHistory.where(
           action: DiscourseKanban::BoardHistory.actions[:board_viewed],
-        )
+        ).select("DISTINCT board_id")
       {
-        last_day: scope.where("created_at > ?", 1.day.ago).select("DISTINCT board_id").count,
-        "7_days": scope.where("created_at > ?", 7.days.ago).select("DISTINCT board_id").count,
-        "30_days": scope.where("created_at > ?", 30.days.ago).select("DISTINCT board_id").count,
-        previous_30_days:
-          scope
-            .where("created_at BETWEEN ? AND ?", 60.days.ago, 30.days.ago)
-            .select("DISTINCT board_id")
-            .count,
-        count: scope.select("DISTINCT board_id").count,
+        last_day: scope.where("created_at > ?", 1.day.ago).count,
+        "7_days": scope.where("created_at > ?", 7.days.ago).count,
+        "30_days": scope.where("created_at > ?", 30.days.ago).count,
+        previous_30_days: scope.where("created_at BETWEEN ? AND ?", 60.days.ago, 30.days.ago).count,
+        count: scope.count,
       }
     end
 
@@ -47,16 +43,12 @@ module DiscourseKanban
             DiscourseKanban::CardHistory.actions[:card_unassigned],
             DiscourseKanban::CardHistory.actions[:card_deleted],
           ],
-        )
+        ).select("DISTINCT board_id")
       {
-        last_day: scope.where("created_at > ?", 1.day.ago).select("DISTINCT board_id").count,
-        "7_days": scope.where("created_at > ?", 7.days.ago).select("DISTINCT board_id").count,
-        "30_days": scope.where("created_at > ?", 30.days.ago).select("DISTINCT board_id").count,
-        previous_30_days:
-          scope
-            .where("created_at BETWEEN ? AND ?", 60.days.ago, 30.days.ago)
-            .select("DISTINCT board_id")
-            .count,
+        last_day: scope.where("created_at > ?", 1.day.ago).count,
+        "7_days": scope.where("created_at > ?", 7.days.ago).count,
+        "30_days": scope.where("created_at > ?", 30.days.ago).count,
+        previous_30_days: scope.where("created_at BETWEEN ? AND ?", 60.days.ago, 30.days.ago).count,
         count: scope.count,
       }
     end
@@ -84,26 +76,14 @@ module DiscourseKanban
         combined_history_scope(
           [DiscourseKanban::CardHistory.actions[:card_viewed]],
           [DiscourseKanban::BoardHistory.actions[:board_viewed]],
-        )
+        ).select("DISTINCT acting_user_id")
       {
-        last_day:
-          combined_scope.where("created_at > ?", 1.day.ago).select("DISTINCT acting_user_id").count,
-        "7_days":
-          combined_scope
-            .where("created_at > ?", 7.days.ago)
-            .select("DISTINCT acting_user_id")
-            .count,
-        "30_days":
-          combined_scope
-            .where("created_at > ?", 30.days.ago)
-            .select("DISTINCT acting_user_id")
-            .count,
+        last_day: combined_scope.where("created_at > ?", 1.day.ago).count,
+        "7_days": combined_scope.where("created_at > ?", 7.days.ago).count,
+        "30_days": combined_scope.where("created_at > ?", 30.days.ago).count,
         previous_30_days:
-          combined_scope
-            .where("created_at BETWEEN ? AND ?", 60.days.ago, 30.days.ago)
-            .select("DISTINCT acting_user_id")
-            .count,
-        count: combined_scope.select("DISTINCT acting_user_id").count,
+          combined_scope.where("created_at BETWEEN ? AND ?", 60.days.ago, 30.days.ago).count,
+        count: combined_scope.count,
       }
     end
 
@@ -119,26 +99,14 @@ module DiscourseKanban
             DiscourseKanban::CardHistory.actions[:card_deleted],
           ],
           [DiscourseKanban::BoardHistory.actions[:board_created]],
-        )
+        ).select("DISTINCT acting_user_id")
       {
-        last_day:
-          combined_scope.where("created_at > ?", 1.day.ago).select("DISTINCT acting_user_id").count,
-        "7_days":
-          combined_scope
-            .where("created_at > ?", 7.days.ago)
-            .select("DISTINCT acting_user_id")
-            .count,
-        "30_days":
-          combined_scope
-            .where("created_at > ?", 30.days.ago)
-            .select("DISTINCT acting_user_id")
-            .count,
+        last_day: combined_scope.where("created_at > ?", 1.day.ago).count,
+        "7_days": combined_scope.where("created_at > ?", 7.days.ago).count,
+        "30_days": combined_scope.where("created_at > ?", 30.days.ago).count,
         previous_30_days:
-          combined_scope
-            .where("created_at BETWEEN ? AND ?", 60.days.ago, 30.days.ago)
-            .select("DISTINCT acting_user_id")
-            .count,
-        count: combined_scope.select("DISTINCT acting_user_id").count,
+          combined_scope.where("created_at BETWEEN ? AND ?", 60.days.ago, 30.days.ago).count,
+        count: combined_scope.count,
       }
     end
   end
