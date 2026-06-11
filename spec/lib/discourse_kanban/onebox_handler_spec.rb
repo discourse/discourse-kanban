@@ -67,6 +67,41 @@ RSpec.describe DiscourseKanban::OneboxHandler do
       ).to eq("")
     end
 
+    it "does not expose the title of a topic the viewer cannot read" do
+      private_group = Fabricate(:group)
+      private_category = Fabricate(:private_category, group: private_group)
+      private_topic =
+        Fabricate(:topic, title: "Restricted topic card headline", category: private_category)
+      topic_card.update!(topic: private_topic)
+
+      onebox_html =
+        DiscourseKanban::OneboxHandler.handle(
+          topic_card.url,
+          { id: board.id, card_id: topic_card.id },
+        )
+
+      expect(onebox_html).to eq("")
+    end
+
+    it "renders a restricted topic card onebox for an authorized same-category context" do
+      private_group = Fabricate(:group)
+      private_user = Fabricate(:user)
+      Fabricate(:group_user, group: private_group, user: private_user)
+      private_category = Fabricate(:private_category, group: private_group)
+      private_topic =
+        Fabricate(:topic, title: "Restricted topic card headline", category: private_category)
+      topic_card.update!(topic: private_topic)
+
+      onebox_html =
+        DiscourseKanban::OneboxHandler.handle(
+          topic_card.url,
+          { id: board.id, card_id: topic_card.id },
+          { user_id: private_user.id, category_id: private_category.id },
+        )
+
+      expect(onebox_html).to include(private_topic.title)
+    end
+
     it "does not return empty string if the onebox renders successfully" do
       expect(
         DiscourseKanban::OneboxHandler.handle(

@@ -80,12 +80,12 @@ after_initialize do
     Rails.logger.warn("DiscourseKanban: failed to remove topic #{topic&.id}: #{e.message}")
   end
 
-  Oneboxer.register_local_handler("discourse_kanban/boards") do |url, route|
-    ::DiscourseKanban::OneboxHandler.handle(url, route)
+  Oneboxer.register_local_handler("discourse_kanban/boards") do |url, route, opts|
+    ::DiscourseKanban::OneboxHandler.handle(url, route, opts)
   end
 
-  InlineOneboxer.register_local_handler("discourse_kanban/boards") do |url, route|
-    ::DiscourseKanban::InlineOneboxHandler.handle(url, route)
+  InlineOneboxer.register_local_handler("discourse_kanban/boards") do |url, route, opts|
+    ::DiscourseKanban::InlineOneboxHandler.handle(url, route, opts)
   end
 
   if defined?(Assignment)
