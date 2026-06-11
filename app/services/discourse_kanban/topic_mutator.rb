@@ -11,8 +11,8 @@ module DiscourseKanban
 
       move_topic_to_category(topic, column, guardian, user)
       move_topic_tags(topic, column, guardian)
-      move_topic_assignment(topic, column, user)
-      move_topic_status(topic, column, user)
+      move_topic_assignment(topic, column, guardian, user)
+      move_topic_status(topic, column, guardian, user)
     end
 
     def self.mutates_topic?(column)
@@ -48,15 +48,17 @@ module DiscourseKanban
       DiscourseTagging.tag_topic_by_names(topic, guardian, updated_tags)
     end
 
-    def self.move_topic_assignment(topic, column, user)
+    def self.move_topic_assignment(topic, column, guardian, user)
       return if column.move_to_assigned.blank?
       return unless defined?(::Assigner)
+
+      return if column.move_to_assigned == "*"
+
+      validate_assignment_permission!(topic, guardian)
 
       assigner = ::Assigner.new(topic, user)
 
       case column.move_to_assigned
-      when "*"
-        nil
       when "nobody"
         assigner.unassign
         topic
@@ -71,11 +73,22 @@ module DiscourseKanban
       end
     end
 
-    def self.move_topic_status(topic, column, user)
+    def self.move_topic_status(topic, column, guardian, user)
       return if column.move_to_status.blank?
 
       enabled = column.move_to_status == "closed"
+      validate_status_permission!(topic, guardian, enabled)
       topic.update_status("closed", enabled, user)
+    end
+
+    def self.validate_assignment_permission!(topic, guardian)
+      raise Discourse::InvalidAccess.new unless guardian.respond_to?(:can_assign?)
+      raise Discourse::InvalidAccess.new unless guardian.can_assign?(topic)
+    end
+
+    def self.validate_status_permission!(topic, guardian, closing)
+      allowed = closing ? guardian.can_close_topic?(topic) : guardian.can_open_topic?(topic)
+      raise Discourse::InvalidAccess.new unless allowed
     end
   end
 end
