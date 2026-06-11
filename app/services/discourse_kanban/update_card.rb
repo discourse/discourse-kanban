@@ -34,6 +34,7 @@ module DiscourseKanban
     step :resolve_promotion
     step :update_attributes
     step :place_and_save
+    step :log_history
 
     private
 
@@ -128,6 +129,7 @@ module DiscourseKanban
           "assigned_to_name",
         )
         card.updated_by_id = guardian.user.id
+        context[:card_edited] = true
       elsif !context[:promoted]
         card.updated_by_id = guardian.user.id
       end
@@ -159,10 +161,10 @@ module DiscourseKanban
         context[:promoted] || column.id != card.column_id || raw.key?("after_card_id")
 
       Card.transaction do
-        column_changed =
-          !context[:promoted] && card.topic? && column.id != card.column_id && card.topic.present?
+        column_changed = !context[:promoted] && column.id != card.column_id
+        column_changed_for_topic_card = column_changed && card.topic? && card.topic.present?
 
-        if column_changed
+        if column_changed_for_topic_card
           constraint_fix = options.constraint_fix.presence || context[:constraint_fix]
 
           if constraint_fix.present?
@@ -188,9 +190,14 @@ module DiscourseKanban
         if card.floater? && (column.id != original_column_id || tags_changed)
           LooseCardTagMutator.apply_to_card!(card:, column:)
         end
-        TopicMutator.apply!(topic: card.topic, column:, guardian:) if column_changed
+        TopicMutator.apply!(topic: card.topic, column:, guardian:) if column_changed_for_topic_card
 
         card.save!
+        context[:column_changed] = column_changed
+        context[:column_changed_details] = {
+          from: DiscourseKanban::Column.find_by(id: original_column_id)&.title,
+          to: column.title,
+        }
       end
     rescue ActiveRecord::RecordNotUnique, ActiveRecord::StatementInvalid => error
       raise unless unique_topic_card_violation?(error)
@@ -214,6 +221,32 @@ module DiscourseKanban
         raise Discourse::InvalidParameters.new(
                 I18n.t("discourse_kanban.errors.topic_already_in_column"),
               )
+      end
+    end
+
+    # TODO (martin) These are very light on details for now,
+    # this whole service needs a big refactor to avoid doing
+    # so much and to make it easier to track details for
+    # history logging. For now let's at least get the events
+    # tracking and add the details later.
+    def log_history(card:, params:, guardian:)
+      if context[:card_edited]
+        DiscourseKanban::CardHistory.create!(
+          card:,
+          board: card.board,
+          acting_user: guardian.user,
+          action: DiscourseKanban::CardHistory.actions[:card_edited],
+        )
+      end
+
+      if context[:column_changed]
+        DiscourseKanban::CardHistory.create!(
+          card:,
+          board: card.board,
+          acting_user: guardian.user,
+          action: DiscourseKanban::CardHistory.actions[:card_moved],
+          details: context[:column_changed_details],
+        )
       end
     end
 

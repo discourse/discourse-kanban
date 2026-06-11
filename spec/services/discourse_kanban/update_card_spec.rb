@@ -71,6 +71,14 @@ RSpec.describe DiscourseKanban::UpdateCard do
         result
         expect(card.reload.column_changed_at.to_i).to eq(previous_changed_at.to_i)
       end
+
+      it "logs a card edited history record" do
+        expect { result }.to change {
+          DiscourseKanban::CardHistory.where(
+            action: DiscourseKanban::CardHistory.actions[:card_edited],
+          ).count
+        }.by(1)
+      end
     end
 
     context "when moving a card between columns" do
@@ -105,6 +113,20 @@ RSpec.describe DiscourseKanban::UpdateCard do
 
       it "records the original column id" do
         expect(result[:original_column_id]).to eq(col_todo.id)
+      end
+
+      it "creates a card history record" do
+        expect { result }.to change {
+          DiscourseKanban::CardHistory.where(
+            action: DiscourseKanban::CardHistory.actions[:card_moved],
+          ).count
+        }.by(1)
+        expect(
+          DiscourseKanban::CardHistory
+            .where(action: DiscourseKanban::CardHistory.actions[:card_moved])
+            .last
+            .details,
+        ).to eq("from" => col_todo.title, "to" => col_done.title)
       end
     end
 

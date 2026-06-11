@@ -45,5 +45,9 @@ module DiscourseKanban
 
       user.in_any_groups?(board.allow_write_group_ids)
     end
+
+    def can_view_card?(card)
+      can_read_board?(card.board)
+    end
   end
 end

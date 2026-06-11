@@ -14,8 +14,9 @@ module DiscourseKanban
         ),
       ) do
         on_success do |card:, board:|
-          payload = CardPayloadSerializer.new(card, root: false).as_json
-          Publisher.publish_card_created!(board, payload, client_id: message_bus_client_id)
+          payload = CardPayloadSerializer.new(card, root: false, scope: guardian).as_json
+          publish_payload = CardPayloadSerializer.new(card, root: false).as_json
+          Publisher.publish_card_created!(board, publish_payload, client_id: message_bus_client_id)
           render json: { card: payload }, status: :created
         end
         on_model_not_found(:board) { raise Discourse::NotFound }
@@ -45,7 +46,8 @@ module DiscourseKanban
       ) do
         on_success do |card:, board:, original_column_id:, adopted_floater_id:|
           card.topic&.reload
-          response = CardPayloadSerializer.new(card, root: false).as_json
+          response = CardPayloadSerializer.new(card, root: false, scope: guardian).as_json
+          publish_response = CardPayloadSerializer.new(card, root: false).as_json
 
           if adopted_floater_id
             Publisher.publish_card_deleted!(
@@ -53,11 +55,19 @@ module DiscourseKanban
               adopted_floater_id,
               client_id: message_bus_client_id,
             )
-            Publisher.publish_card_created!(board, response, client_id: message_bus_client_id)
+            Publisher.publish_card_created!(
+              board,
+              publish_response,
+              client_id: message_bus_client_id,
+            )
           elsif card.column_id != original_column_id
-            Publisher.publish_card_moved!(board, response, client_id: message_bus_client_id)
+            Publisher.publish_card_moved!(board, publish_response, client_id: message_bus_client_id)
           else
-            Publisher.publish_card_updated!(board, response, client_id: message_bus_client_id)
+            Publisher.publish_card_updated!(
+              board,
+              publish_response,
+              client_id: message_bus_client_id,
+            )
           end
 
           render json: { card: response, adopted_floater_id: adopted_floater_id }
@@ -128,6 +138,15 @@ module DiscourseKanban
                  status: :bad_request
         end
         on_failure { render json: failed_json, status: :unprocessable_entity }
+      end
+    end
+
+    def view
+      DiscourseKanban::ViewCard.call(service_params) do
+        on_success { head :no_content }
+        on_model_not_found(:card) { raise Discourse::NotFound }
+        on_failed_policy(:is_logged_in) { raise Discourse::InvalidAccess }
+        on_failed_policy(:can_view_card) { raise Discourse::InvalidAccess }
       end
     end
   end

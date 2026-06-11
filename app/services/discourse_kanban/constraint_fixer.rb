@@ -31,6 +31,7 @@ module DiscourseKanban
 
       category = Category.find_by(id: category_id)
       raise Discourse::NotFound if category.blank?
+      guardian.ensure_can_edit!(topic)
       guardian.ensure_can_move_topic_to_category!(category)
 
       first_post = topic.first_post || topic.posts.with_deleted.order(:post_number).first
@@ -58,6 +59,8 @@ module DiscourseKanban
                 I18n.t("discourse_kanban.errors.topic_does_not_match_constraints"),
               )
       end
+
+      guardian.ensure_can_edit_tags!(topic)
 
       current_tags = topic.tags.map(&:name)
       updated_tags = (current_tags + requested_tags).uniq

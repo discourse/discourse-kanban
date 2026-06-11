@@ -360,6 +360,41 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(mismatched_topic.tags.map(&:name)).to include("create-ford")
     end
 
+    it "rejects constraint_fix when creating a card without topic edit access" do
+      SiteSetting.tagging_enabled = true
+      allow(DiscourseKanban::TopicSync).to receive(:sync_topic)
+
+      ford_tag = Fabricate(:tag, name: "create-protected-ford")
+      car_cat = Fabricate(:category, name: "CreateProtectedCars")
+      other_cat = Fabricate(:category, name: "CreateProtectedOther")
+      board.update!(category_ids: [car_cat.id], tag_ids: [ford_tag.id])
+      col_ford =
+        board.columns.create!(title: "CreateProtectedFord", position: 2, tag_id: ford_tag.id)
+
+      protected_topic = Fabricate(:topic, category: other_cat, user: admin)
+      Fabricate(:post, topic: protected_topic, user: admin)
+
+      sign_in(writer)
+
+      expect {
+        post "/kanban/boards/#{board.id}/cards.json",
+             params: {
+               card: {
+                 column_id: col_ford.id,
+                 topic_id: protected_topic.id,
+               },
+               constraint_fix: {
+                 category_id: car_cat.id,
+                 tag_names: [ford_tag.name],
+               },
+             }
+      }.not_to change { DiscourseKanban::Card.count }
+
+      expect(response.status).to eq(403)
+      expect(protected_topic.reload.category_id).to eq(other_cat.id)
+      expect(protected_topic.tags).to be_empty
+    end
+
     it "rolls back topic changes when constraint_fix is insufficient and card creation is rejected" do
       SiteSetting.tagging_enabled = true
       allow(DiscourseKanban::TopicSync).to receive(:sync_topic)
@@ -1204,6 +1239,40 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(response.status).to eq(200)
       expect(card.reload.column_id).to eq(col_ford.id)
       expect(car_topic.reload.tags.map(&:name)).to include("ford")
+    end
+
+    it "rejects tag fix without topic edit access" do
+      SiteSetting.tagging_enabled = true
+      allow(DiscourseKanban::TopicSync).to receive(:sync_topic)
+
+      board.update!(category_ids: [category.id], tag_ids: [ford_tag.id, chevy_tag.id])
+      col_ford = board.columns.create!(title: "ProtectedFord", position: 2, tag_id: ford_tag.id)
+
+      protected_topic = Fabricate(:topic, category: category, user: admin)
+      card =
+        board.cards.create!(
+          card_type: :topic,
+          topic_id: protected_topic.id,
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+
+      sign_in(writer)
+
+      put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+          params: {
+            card: {
+              column_id: col_ford.id,
+            },
+            constraint_fix: {
+              tag_names: [ford_tag.name],
+            },
+          }
+
+      expect(response.status).to eq(403)
+      expect(card.reload.column_id).to eq(col_todo.id)
+      expect(protected_topic.reload.tags).to be_empty
     end
 
     it "applies both category and tag fix" do

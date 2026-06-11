@@ -23,6 +23,11 @@ module DiscourseKanban
     def show
       TopicSync.backfill_board(@board)
 
+      # TODO (martin) We can further refactor this whole controller action
+      # to be in a service, for now let's just log the view history,
+      # it doesn't matter if this fails silently.
+      DiscourseKanban::ViewBoard.call(guardian:, params: { id: @board.id })
+
       topic_includes = %i[tags last_poster]
       topic_includes << :assignment if Topic.reflect_on_association(:assignment)
       cards =
@@ -46,6 +51,7 @@ module DiscourseKanban
                 CardPayloadSerializer.new(
                   card,
                   root: false,
+                  scope: guardian,
                   assignments_by_topic:,
                   tags_by_id:,
                 ).as_json
