@@ -124,4 +124,12 @@ after_initialize do
       Rails.logger.warn("DiscourseKanban: after_commit sync failed for topic #{id}: #{e.message}")
     end
   end
+
+  register_stat("total_boards", stat_type: :kanban) { DiscourseKanban::Statistics.total_boards }
+  register_stat("viewed_boards", stat_type: :kanban) { DiscourseKanban::Statistics.viewed_boards }
+  register_stat("active_boards", stat_type: :kanban) { DiscourseKanban::Statistics.active_boards }
+  register_stat("active_users", stat_type: :kanban) { DiscourseKanban::Statistics.active_users }
+  register_stat("participating_users", stat_type: :kanban) do
+    DiscourseKanban::Statistics.participating_users
+  end
 end
