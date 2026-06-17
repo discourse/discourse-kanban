@@ -111,6 +111,48 @@ RSpec.describe DiscourseKanban::InlineOneboxHandler do
         )
       end
 
+      it "does not expose the title of a topic the viewer cannot read" do
+        private_group = Fabricate(:group)
+        private_category = Fabricate(:private_category, group: private_group)
+        private_topic =
+          Fabricate(:topic, title: "Restricted topic card headline", category: private_category)
+        topic_card.update!(topic: private_topic)
+
+        expect(
+          described_class.handle(
+            "#{base_url}/boards/x/#{board.id}/card/#{topic_card.id}",
+            route_with_card(topic_card),
+          ),
+        ).to be_nil
+      end
+
+      it "returns the card title for an authorized same-category context" do
+        private_group = Fabricate(:group)
+        private_user = Fabricate(:user)
+        Fabricate(:group_user, group: private_group, user: private_user)
+        private_category = Fabricate(:private_category, group: private_group)
+        private_topic =
+          Fabricate(:topic, title: "Restricted topic card headline", category: private_category)
+        topic_card.update!(topic: private_topic)
+
+        result =
+          described_class.handle(
+            "#{base_url}/boards/x/#{board.id}/card/#{topic_card.id}",
+            route_with_card(topic_card),
+            { user_id: private_user.id, category_id: private_category.id },
+          )
+
+        expect(result).to eq(
+          url: "#{base_url}/boards/x/#{board.id}/card/#{topic_card.id}",
+          title:
+            I18n.t(
+              "discourse_kanban.onebox.inline_to_card",
+              card_name: private_topic.title,
+              board_name: board.name,
+            ),
+        )
+      end
+
       it "returns nil when the board does not exist" do
         missing_board_id = DiscourseKanban::Board.maximum(:id).to_i + 99_999
         route = { id: missing_board_id.to_s, card_id: floater_card.id.to_s }

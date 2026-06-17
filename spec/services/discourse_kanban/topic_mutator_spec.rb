@@ -2,10 +2,12 @@
 
 RSpec.describe DiscourseKanban::TopicMutator do
   fab!(:admin)
-  fab!(:user)
+  fab!(:user, :trust_level_1)
   fab!(:category) { Fabricate(:category, name: "General") }
   fab!(:target_category) { Fabricate(:category, name: "Done") }
-  fab!(:post) { Fabricate(:post, topic: Fabricate(:topic, category: category, user: user)) }
+  fab!(:post) do
+    Fabricate(:post, user: user, topic: Fabricate(:topic, category: category, user: user))
+  end
   fab!(:topic) { post.topic }
 
   before { enable_current_plugin }
@@ -146,6 +148,31 @@ RSpec.describe DiscourseKanban::TopicMutator do
     end
 
     context "with move_to_status" do
+      it "raises InvalidAccess when a user with edit access cannot close the topic" do
+        column = board.columns.create!(title: "Closed", position: 0, move_to_status: "closed")
+
+        expect(Guardian.new(user).can_edit?(topic)).to eq(true)
+        expect(Guardian.new(user).can_close_topic?(topic)).to eq(false)
+
+        expect {
+          described_class.apply!(topic: topic, column: column, guardian: user.guardian)
+        }.to raise_error(Discourse::InvalidAccess)
+        expect(topic.reload.closed).to eq(false)
+      end
+
+      it "raises InvalidAccess when a user with edit access cannot open the topic" do
+        topic.update_status("closed", true, admin)
+        column = board.columns.create!(title: "Open", position: 0, move_to_status: "open")
+
+        expect(Guardian.new(user).can_edit?(topic)).to eq(true)
+        expect(Guardian.new(user).can_open_topic?(topic)).to eq(false)
+
+        expect {
+          described_class.apply!(topic: topic, column: column, guardian: user.guardian)
+        }.to raise_error(Discourse::InvalidAccess)
+        expect(topic.reload.closed).to eq(true)
+      end
+
       it "closes the topic when status is 'closed'" do
         column = board.columns.create!(title: "Closed", position: 0, move_to_status: "closed")
 
@@ -175,6 +202,29 @@ RSpec.describe DiscourseKanban::TopicMutator do
     end
 
     context "with move_to_assigned" do
+      it "raises InvalidAccess when a user with edit access cannot change assignment" do
+        skip("requires discourse-assign") unless defined?(Assignment)
+
+        SiteSetting.assign_enabled = true
+        SiteSetting.assign_allowed_on_groups = ""
+        Assignment.create!(
+          target: topic,
+          topic_id: topic.id,
+          assigned_to: admin,
+          assigned_by_user: admin,
+          active: true,
+        )
+        column = board.columns.create!(title: "Unassigned", position: 0, move_to_assigned: "nobody")
+
+        expect(Guardian.new(user).can_edit?(topic)).to eq(true)
+        expect(Guardian.new(user).can_assign?(topic)).to eq(false)
+
+        expect {
+          described_class.apply!(topic: topic, column: column, guardian: user.guardian)
+        }.to raise_error(Discourse::InvalidAccess)
+        expect(topic.reload.assignment).to be_present
+      end
+
       it "does nothing when Assigner is not defined" do
         column = board.columns.create!(title: "Col", position: 0, move_to_assigned: "someone")
 

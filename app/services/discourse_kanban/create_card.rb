@@ -168,11 +168,11 @@ module DiscourseKanban
     end
 
     def resolve_all_tag_ids(tag_ids, tag_names, guardian)
-      ids = Card.normalize_tag_ids!(tag_ids)
+      ids = Card.normalize_visible_tag_ids!(tag_ids, guardian)
       names = Array(tag_names).compact_blank
       if names.present?
         tags = DiscourseTagging.find_or_create_tags!(names, guardian)
-        ids = (ids + tags.map(&:id)).uniq
+        ids = Card.normalize_visible_tag_ids!(ids + tags.map(&:id), guardian)
       end
       ids
     end

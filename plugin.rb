@@ -80,12 +80,12 @@ after_initialize do
     Rails.logger.warn("DiscourseKanban: failed to remove topic #{topic&.id}: #{e.message}")
   end
 
-  Oneboxer.register_local_handler("discourse_kanban/boards") do |url, route|
-    ::DiscourseKanban::OneboxHandler.handle(url, route)
+  Oneboxer.register_local_handler("discourse_kanban/boards") do |url, route, opts|
+    ::DiscourseKanban::OneboxHandler.handle(url, route, opts)
   end
 
-  InlineOneboxer.register_local_handler("discourse_kanban/boards") do |url, route|
-    ::DiscourseKanban::InlineOneboxHandler.handle(url, route)
+  InlineOneboxer.register_local_handler("discourse_kanban/boards") do |url, route, opts|
+    ::DiscourseKanban::InlineOneboxHandler.handle(url, route, opts)
   end
 
   if defined?(Assignment)
@@ -123,5 +123,13 @@ after_initialize do
     rescue StandardError => e
       Rails.logger.warn("DiscourseKanban: after_commit sync failed for topic #{id}: #{e.message}")
     end
+  end
+
+  register_stat("total_boards", stat_type: :kanban) { DiscourseKanban::Statistics.total_boards }
+  register_stat("viewed_boards", stat_type: :kanban) { DiscourseKanban::Statistics.viewed_boards }
+  register_stat("active_boards", stat_type: :kanban) { DiscourseKanban::Statistics.active_boards }
+  register_stat("active_users", stat_type: :kanban) { DiscourseKanban::Statistics.active_users }
+  register_stat("participating_users", stat_type: :kanban) do
+    DiscourseKanban::Statistics.participating_users
   end
 end

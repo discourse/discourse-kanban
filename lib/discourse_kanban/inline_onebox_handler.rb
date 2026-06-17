@@ -2,9 +2,9 @@
 
 module DiscourseKanban
   class InlineOneboxHandler
-    def self.handle(url, route)
+    def self.handle(url, route, opts = {})
       if route[:card_id].present?
-        build_card_onebox(url, route[:card_id], route[:id])
+        build_card_onebox(url, route[:card_id], route[:id], opts)
       else
         build_board_onebox(url, route[:id])
       end
@@ -12,12 +12,20 @@ module DiscourseKanban
 
     private
 
-    def self.build_card_onebox(url, card_id, board_id)
+    def self.build_card_onebox(url, card_id, board_id, opts)
       board = DiscourseKanban::Board.find_by(id: board_id)
-      return if !board || !Discourse.system_user.guardian.can_read_board?(board)
+      guardian = Discourse.system_user.guardian
+      return if !board || !guardian.can_read_board?(board)
 
       card = DiscourseKanban::Card.includes(:topic).find_by(id: card_id, board_id: board_id)
       return if !card
+      if card.topic? &&
+           (
+             card.topic.blank? ||
+               Oneboxer.local_topic(card.topic.url, { id: card.topic_id }, opts).blank?
+           )
+        return
+      end
 
       title =
         I18n.t(
