@@ -2,7 +2,7 @@
 
 module DiscourseKanban
   module Statistics
-    def self.total_boards
+    def self.created_boards
       {
         last_day: DiscourseKanban::Board.where("created_at > ?", 1.day.ago).count,
         "7_days": DiscourseKanban::Board.where("created_at > ?", 7.days.ago).count,
@@ -13,8 +13,11 @@ module DiscourseKanban
             60.days.ago,
             30.days.ago,
           ).count,
-        count: DiscourseKanban::Board.count,
       }
+    end
+
+    def self.total_boards
+      { count: DiscourseKanban::Board.count }
     end
 
     def self.viewed_boards
