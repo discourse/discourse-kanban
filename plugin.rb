@@ -126,6 +126,7 @@ after_initialize do
   end
 
   register_stat("total_boards", stat_type: :kanban) { DiscourseKanban::Statistics.total_boards }
+  register_stat("created_boards", stat_type: :kanban) { DiscourseKanban::Statistics.created_boards }
   register_stat("viewed_boards", stat_type: :kanban) { DiscourseKanban::Statistics.viewed_boards }
   register_stat("active_boards", stat_type: :kanban) { DiscourseKanban::Statistics.active_boards }
   register_stat("active_users", stat_type: :kanban) { DiscourseKanban::Statistics.active_users }

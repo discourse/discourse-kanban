@@ -15,6 +15,20 @@ RSpec.describe DiscourseKanban::Statistics do
 
     before do
       freeze_time(reference_time) do
+        Fabricate(:kanban_board, name: "Total Boards Board", created_by: admin)
+      end
+    end
+
+    it "returns the total number of boards" do
+      freeze_time(reference_time) { expect(stats).to eq({ count: 1 }) }
+    end
+  end
+
+  describe ".created_boards" do
+    subject(:stats) { described_class.created_boards }
+
+    before do
+      freeze_time(reference_time) do
         Fabricate(
           :kanban_board,
           name: "Recent Board",
@@ -50,9 +64,7 @@ RSpec.describe DiscourseKanban::Statistics do
 
     it "returns counts for each time bucket" do
       freeze_time(reference_time) do
-        expect(stats).to eq(
-          { last_day: 1, "7_days": 2, "30_days": 3, previous_30_days: 1, count: 5 },
-        )
+        expect(stats).to eq({ last_day: 1, "7_days": 2, "30_days": 3, previous_30_days: 1 })
       end
     end
   end
