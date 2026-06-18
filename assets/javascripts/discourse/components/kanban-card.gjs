@@ -273,23 +273,24 @@ export default class KanbanCard extends Component {
 
     DiscourseURL.replaceState(cardUrlPath);
 
-    this.modal
-      .show(KanbanTopicCardDetailModal, {
-        model: {
-          card: this.args.card,
-          columnTitle: this.args.columnTitle,
-          columnIcon: this.args.columnIcon,
-          onNavigateAway: (url) => {
-            navigatedAway = true;
-            DiscourseURL.routeTo(url);
-          },
-        },
-      })
-      .finally(() => {
-        if (!navigatedAway && !this.isDestroying && !this.isDestroyed) {
-          DiscourseURL.replaceState(boardUrl);
-        }
-      });
+    // this.modal
+    //   .show(KanbanTopicCardDetailModal, {
+    //     model: {
+    //       card: this.args.card,
+    //       columnTitle: this.args.columnTitle,
+    //       columnIcon: this.args.columnIcon,
+    //       onNavigateAway: (url) => {
+    //         navigatedAway = true;
+    //         DiscourseURL.routeTo(url);
+    //       },
+    //     },
+    //   })
+    //   .finally(() => {
+    //     this.cardOpen = false;
+    //     if (!navigatedAway && !this.isDestroying && !this.isDestroyed) {
+    //       DiscourseURL.replaceState(boardUrl);
+    //     }
+    //   });
   }
 
   @action
@@ -374,6 +375,8 @@ export default class KanbanCard extends Component {
     } else {
       this.openDetailModal();
     }
+
+    this.args.onCardClick(this.args.card);
   }
 
   @action

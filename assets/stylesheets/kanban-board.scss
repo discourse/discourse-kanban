@@ -33,6 +33,16 @@ body.discourse-kanban-board {
     @include viewport.until(md) {
       grid-template-columns: minmax(0, 1fr);
     }
+
+    .topic-sidebar-block {
+      border-left: 2px solid var(--primary-low);
+    }
+  }
+
+  &.topic-kanban-card-open #main-outlet-wrapper {
+    grid-template-columns: var(--d-sidebar-width) minmax(0, 1fr) var(
+        --topic-sidebar-block-width
+      );
   }
 
   &:not(.has-sidebar-page) #main-outlet-wrapper {

@@ -33,6 +33,7 @@ import {
   sortCardsForColumn,
 } from "../lib/kanban-card-ordering";
 import { kanbanBoardUrl } from "../lib/kanban-urls";
+import { withSidebarViewTransition } from "../lib/sidebar-transition";
 import KanbanColumn from "./kanban-column";
 import KanbanBoardSettings from "./modal/kanban-board-settings";
 import KanbanCardDetailModal from "./modal/kanban-card-detail";
@@ -105,6 +106,8 @@ export default class KanbanBoardViewer extends Component {
   @service modal;
   @service router;
   @service toasts;
+  @service topicSidebar;
+  @service rightSidebar;
 
   @tracked board;
   @tracked columns;
@@ -152,6 +155,10 @@ export default class KanbanBoardViewer extends Component {
     this.board = { ...this.args.model.board };
     this.columns = this.args.model.columns;
 
+    this._unregisterSidebarClose = this.topicSidebar.registerCloseHandler(
+      () => this.onSidebarClose()
+    );
+
     if (this.args.initialCardId) {
       schedule("afterRender", () => {
         if (this.isDestroying || this.isDestroyed) {
@@ -169,9 +176,21 @@ export default class KanbanBoardViewer extends Component {
 
   willDestroy() {
     super.willDestroy(...arguments);
+    this._unregisterSidebarClose?.();
     this._clearDropHighlight();
     this._cleanupPromotion();
     this.#stopHorizontalAutoScroll();
+  }
+
+  onSidebarClose() {
+    if (this.isDestroying || this.isDestroyed) {
+      return;
+    }
+    if (this.router.currentRouteName === "kanbanBoardCard") {
+      this.router.transitionTo("kanbanBoard", this.board.slug, this.board.id);
+    } else {
+      DiscourseURL.replaceState(kanbanBoardUrl(this.board));
+    }
   }
 
   @bind
@@ -1306,11 +1325,31 @@ export default class KanbanBoardViewer extends Component {
         }
       : { card, canWrite: this.canWrite, onUpdateCard: this.onUpdateCard };
 
+    if (isTopicCard) {
+      withSidebarViewTransition(() => {
+        this.topicSidebar.selectTopic(card.topic_id);
+        this.rightSidebar.isOpen = true;
+      });
+      return;
+    }
+
     this.modal.show(ModalComponent, { model }).finally(() => {
       if (!navigatedAway && !this.isDestroying && !this.isDestroyed) {
         DiscourseURL.replaceState(boardUrl);
       }
     });
+  }
+
+  @action
+  onCardClick(card) {
+    if (card.topic_id) {
+      withSidebarViewTransition(() => {
+        this.topicSidebar.selectTopic(card.topic_id);
+        this.rightSidebar.isOpen = true;
+      });
+    } else {
+      this.topicSidebar.clearSelectedTopic();
+    }
   }
 
   _highlightDroppedCard(cardId) {
@@ -1350,6 +1389,10 @@ export default class KanbanBoardViewer extends Component {
   <template>
     {{#if this.fullscreen}}
       {{bodyClass "discourse-kanban-fullscreen"}}
+    {{/if}}
+
+    {{#if this.topicSidebar.selectedTopicId}}
+      {{bodyClass "topic-kanban-card-open"}}
     {{/if}}
 
     <div
@@ -1465,6 +1508,7 @@ export default class KanbanBoardViewer extends Component {
         >
           {{#each this.columns key="id" as |column|}}
             <KanbanColumn
+              @onCardClick={{this.onCardClick}}
               @column={{column}}
               @board={{this.board}}
               @canWrite={{this.canWrite}}
