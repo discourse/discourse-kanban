@@ -5,6 +5,8 @@ module DiscourseKanban
     self.table_name = "discourse_kanban_columns"
     self.ignored_columns = %w[wip_limit filter_query move_to_tag]
 
+    COLORS = %w[purple orange blue red lime green pink yellow teal].freeze
+
     belongs_to :board, class_name: "DiscourseKanban::Board", inverse_of: :columns
     belongs_to :move_to_category, class_name: "Category", optional: true
     belongs_to :tag, optional: true
@@ -18,6 +20,7 @@ module DiscourseKanban
 
     validates :title, presence: true
     validates :position, presence: true
+    validates :color, inclusion: { in: COLORS }, allow_nil: true
 
     def matches_topic?(topic)
       tag_id.present? && topic.tag_ids.include?(tag_id)
@@ -30,6 +33,7 @@ end
 # Table name: discourse_kanban_columns
 #
 #  id                  :bigint           not null, primary key
+#  color               :string
 #  default_sort        :integer          default("priority"), not null
 #  icon                :string
 #  move_to_assigned    :string

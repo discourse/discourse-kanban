@@ -22,6 +22,20 @@ export const STATUS_OPTIONS = [
   },
 ];
 
+// Keep in sync with DiscourseKanban::Column::COLORS (Ruby) and the
+// --color-* custom properties defined in kanban-board.scss.
+export const COLUMN_COLORS = [
+  "purple",
+  "orange",
+  "blue",
+  "red",
+  "lime",
+  "green",
+  "pink",
+  "yellow",
+  "teal",
+];
+
 export const ASSIGNED_OPTIONS = [
   {
     id: "nobody",

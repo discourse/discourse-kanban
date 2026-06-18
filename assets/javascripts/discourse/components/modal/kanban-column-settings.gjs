@@ -1,6 +1,7 @@
 import Component from "@glimmer/component";
 import { cached, tracked } from "@glimmer/tracking";
 import { fn, hash } from "@ember/helper";
+import { on } from "@ember/modifier";
 import { action } from "@ember/object";
 import { isEmpty } from "@ember/utils";
 import DButton from "discourse/components/d-button";
@@ -17,6 +18,7 @@ import {
   ASSIGNED_OPTIONS,
   assignedMode,
   assignedUserValue,
+  COLUMN_COLORS,
   COLUMN_SORT_OPTIONS,
   STATUS_OPTIONS,
   tagToArray,
@@ -37,6 +39,7 @@ export default class KanbanColumnSettings extends Component {
       return {
         title: column.title || "",
         icon: column.icon || null,
+        color: column.color || null,
         default_sort: column.default_sort || "priority",
         tag_name: column.tag_name || "",
         move_to_category_id: column.move_to_category_id || null,
@@ -47,12 +50,20 @@ export default class KanbanColumnSettings extends Component {
     return {
       title: "",
       icon: null,
+      color: null,
       default_sort: "priority",
       tag_name: "",
       move_to_category_id: null,
       move_to_assigned: "",
       move_to_status: "",
     };
+  }
+
+  get colorOptions() {
+    return COLUMN_COLORS.map((color) => ({
+      id: color,
+      name: i18n(`discourse_kanban.manage.columns.colors.${color}`),
+    }));
   }
 
   get statusOptions() {
@@ -106,6 +117,13 @@ export default class KanbanColumnSettings extends Component {
     field.set(value);
   }
 
+  @action
+  onColorChange(field, color) {
+    // Toggle off when the active swatch is clicked again, so the column
+    // falls back to its default (no color).
+    field.set(field.value === color ? null : color);
+  }
+
   get showMoveToCategoryField() {
     const boardCategoryCount = this.args.model.board?.category_ids?.length ?? 0;
     if (boardCategoryCount === 1) {
@@ -124,6 +142,7 @@ export default class KanbanColumnSettings extends Component {
     const columnData = {
       title: data.title.trim() || data.tag_name.trim(),
       icon: data.icon,
+      color: data.color || null,
       default_sort: data.default_sort || "priority",
       tag_name: data.tag_name || null,
       move_to_category_id: data.move_to_category_id,
@@ -176,6 +195,42 @@ export default class KanbanColumnSettings extends Component {
                 as |field|
               >
                 <field.Control />
+              </form.Field>
+
+              <form.Field
+                @name="color"
+                @title={{i18n "discourse_kanban.manage.columns.color"}}
+                @format="max"
+                @type="custom"
+                as |field|
+              >
+                <field.Control>
+                  <div
+                    class="discourse-kanban-color-picker"
+                    role="group"
+                    aria-label={{i18n "discourse_kanban.manage.columns.color"}}
+                  >
+                    {{#each this.colorOptions as |colorOption|}}
+                      <button
+                        type="button"
+                        class="discourse-kanban-color-picker__swatch
+                          {{if (eq data.color colorOption.id) 'is-selected'}}"
+                        data-color={{colorOption.id}}
+                        title={{colorOption.name}}
+                        aria-label={{colorOption.name}}
+                        aria-pressed={{if
+                          (eq data.color colorOption.id)
+                          "true"
+                          "false"
+                        }}
+                        {{on
+                          "click"
+                          (fn this.onColorChange field colorOption.id)
+                        }}
+                      ></button>
+                    {{/each}}
+                  </div>
+                </field.Control>
               </form.Field>
 
               <form.Field

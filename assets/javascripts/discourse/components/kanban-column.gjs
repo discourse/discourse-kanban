@@ -462,6 +462,7 @@ export default class KanbanColumn extends Component {
       class="discourse-kanban-column"
       data-column-id={{@column.id}}
       data-default-sort={{@column.default_sort}}
+      data-color={{@column.color}}
       {{on "dragover" this.dragOver}}
       {{on "dragleave" this.dragLeave}}
       {{on "drop" this.drop}}

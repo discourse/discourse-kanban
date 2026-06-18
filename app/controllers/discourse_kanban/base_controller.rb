@@ -63,6 +63,7 @@ module DiscourseKanban
         id: column.id,
         title: column.title,
         icon: column.icon,
+        color: column.color,
         position: column.position,
         default_sort: column.default_sort,
         tag_id: visible_tag_id,
@@ -116,6 +117,7 @@ module DiscourseKanban
           id
           title
           icon
+          color
           position
           default_sort
           tag_name

@@ -1,5 +1,10 @@
 @use "lib/viewport";
 
+// Column color keys. Keep in sync with the --color-* custom properties defined
+// on body.discourse-kanban-board, DiscourseKanban::Column::COLORS (Ruby), and
+// COLUMN_COLORS (JS). Adding a color means updating all four spots.
+$column-colors: purple, orange, blue, red, lime, green, pink, yellow, teal;
+
 html:has(body.discourse-kanban-board) {
   overflow-y: hidden;
 }
@@ -9,6 +14,19 @@ body.discourse-kanban-board {
   --kanban-column-header-height: 25px;
   --kanban-column-card-gap: var(--space-2);
   --kanban-column-padding: var(--space-2);
+
+  // Column color palette. Defined on the board body so the values cascade to
+  // both the columns and the (body-portaled) column settings modal.
+  // Keep keys in sync with DiscourseKanban::Column::COLORS and DiscourseKanban.
+  --color-purple: light-dark(#c97cf4, #803fa5);
+  --color-orange: light-dark(#fca700, #9e4c00);
+  --color-blue: light-dark(#669df1, #1558bc);
+  --color-red: light-dark(#f87168, #ae2e24);
+  --color-lime: light-dark(#94c748, #4c6b1f);
+  --color-green: light-dark(#4bce97, #216e4e);
+  --color-pink: light-dark(#e774bb, #943d73);
+  --color-yellow: light-dark(#ddb30e, #614a05);
+  --color-teal: light-dark(#6cc3e0, #206a83);
 
   // Keep in sync with the matching JS constants in kanban-motion.js.
   --kanban-card-reorder-duration: 180ms;
@@ -237,18 +255,22 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
 .discourse-kanban-column {
   width: 16.5rem;
   max-height: calc(100% - var(--space-8));
-  gap: var(--space-2);
   flex-shrink: 0;
   background: var(--primary-50);
-  border: 1px solid var(--primary-100);
   display: flex;
   flex-direction: column;
-  padding: var(--kanban-column-padding);
   transition: border-color 0.15s ease;
   border-radius: var(--d-border-radius);
+  border: 1px solid var(--primary-200);
 
   &.drag-target {
     border-color: var(--tertiary);
+  }
+
+  @each $color in $column-colors {
+    &[data-color="#{$color}"] {
+      --kanban-column-color: var(--color-#{$color});
+    }
   }
 
   &__header {
@@ -256,22 +278,30 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     align-items: center;
     height: var(--kanban-column-header-height);
     justify-content: space-between;
+    background-color: var(--kanban-column-color, transparent);
+    border-top-right-radius: var(--d-border-radius-small);
+    border-top-left-radius: var(--d-border-radius-small);
+    color: light-dark(var(--secondary), var(--primary));
+    padding: var(--space-2);
   }
 
   &__header-content {
     display: flex;
     gap: var(--space-2);
     align-items: center;
+    padding: 0 var(--space-2);
+    background: rgb(0, 0, 0, 0.3);
+    border-radius: var(--d-border-radius);
   }
 
   &__title {
-    color: var(--primary);
     text-transform: uppercase;
-    font-size: var(--font-down-2);
+    font-size: var(--font-down-1);
     font-weight: 500;
     padding: var(--space-1);
-    background-color: var(--kanban-column-color, var(--primary-200));
-    border-radius: var(--d-border-radius-small);
+    max-width: 20ch;
+
+    @include ellipsis;
 
     .d-icon {
       margin-right: 0.25em;
@@ -280,11 +310,13 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
 
   &__count {
     font-size: var(--font-down-1);
-    font-weight: 600;
-    color: var(--primary-600);
   }
 
   &__menu-trigger {
+    --d-button-flat-bg-color: transparent;
+    --d-button-flat-icon-color: rgb(0, 0, 0, 0.2);
+    --d-button-flat-bg-color--hover: transparent;
+    --d-button-flat-icon-color--hover: var(--primary);
     opacity: 0;
     transition: opacity 0.15s ease;
     padding: 2px 4px;
@@ -306,6 +338,7 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     transform: translate3d(0, 0, 0);
     scrollbar-width: thin;
     scrollbar-color: var(--primary-low-mid) transparent;
+    padding: var(--kanban-column-padding);
   }
 
   &__drop-indicator {
@@ -418,6 +451,10 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
       margin-left: auto;
     }
   }
+
+  &__footer {
+    padding: var(--space-2);
+  }
 }
 
 .discourse-kanban-card {
@@ -502,6 +539,8 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     overflow-wrap: break-word;
     overflow: hidden;
     color: var(--primary);
+    font-weight: 500;
+    line-height: 1.2;
   }
 
   &__date {
@@ -850,5 +889,38 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     margin-bottom: 0;
     color: var(--primary-medium);
     font-size: $font-down-2;
+  }
+}
+
+.discourse-kanban-color-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+
+  &__swatch {
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 10%);
+    transition:
+      transform 0.1s ease,
+      border-color 0.1s ease;
+
+    @each $color in $column-colors {
+      &[data-color="#{$color}"] {
+        background-color: var(--color-#{$color});
+      }
+    }
+
+    &:hover {
+      transform: scale(1.1);
+    }
+
+    &.is-selected {
+      border-color: var(--primary);
+    }
   }
 }
