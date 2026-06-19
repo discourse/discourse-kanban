@@ -26,7 +26,8 @@ module DiscourseKanban
       end
     end
 
-    def board_payload(board, tag_name_map: nil)
+    # TODO (martin) Needs to be a serializer
+    def board_payload(board, tag_name_map: nil, include_acl: false)
       tag_name_map ||= build_tag_name_map(board)
       visible_tag_ids = board.tag_ids.select { |tag_id| tag_name_map.key?(tag_id) }
 
@@ -48,6 +49,14 @@ module DiscourseKanban
         can_manage: guardian.can_manage_kanban_boards?,
         created_by: created_by_payload(board.created_by),
         columns: board.columns.map { |column| column_payload(column, tag_name_map:) },
+        acl:
+          (
+            if include_acl
+              AccessControlList.where(target: board).preload_allowed.flattened_list
+            else
+              nil
+            end
+          ),
       }
     end
 
@@ -109,6 +118,7 @@ module DiscourseKanban
         :show_tags,
         :card_style,
         :show_topic_thumbnail,
+        acl: %i[id type permission],
         allow_read_group_ids: [],
         allow_write_group_ids: [],
         category_ids: [],

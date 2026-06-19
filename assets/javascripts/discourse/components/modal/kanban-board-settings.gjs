@@ -84,12 +84,13 @@ export default class KanbanBoardSettings extends Component {
         show_tags: board.show_tags ?? false,
         show_topic_thumbnail: board.show_topic_thumbnail ?? false,
         require_confirmation: board.require_confirmation ?? false,
-        access: this.buildAccess(
-          board.allow_read_group_ids,
-          isEmpty(board.allow_write_group_ids)
-            ? this.discourseKanbanManageBoardAllowedGroupIds
-            : board.allow_write_group_ids
-        ),
+        acl: board.acl,
+        // access: this.buildAccess(
+        //   board.allow_read_group_ids,
+        //   isEmpty(board.allow_write_group_ids)
+        //     ? this.discourseKanbanManageBoardAllowedGroupIds
+        //     : board.allow_write_group_ids
+        // ),
       };
     }
 
@@ -104,10 +105,11 @@ export default class KanbanBoardSettings extends Component {
       show_tags: true,
       show_topic_thumbnail: false,
       require_confirmation: false,
-      access: this.buildAccess(
-        [],
-        this.discourseKanbanManageBoardAllowedGroupIds
-      ),
+      acl: [],
+      // access: this.buildAccess(
+      //   [],
+      //   this.discourseKanbanManageBoardAllowedGroupIds
+      // ),
     };
   }
 
@@ -192,7 +194,11 @@ export default class KanbanBoardSettings extends Component {
 
   @action
   validateAccess(name, value, { addError }) {
-    const hasEditor = (value || []).some((entry) => entry.level === "editor");
+    // TODO (martin) Maybe this should require Manager instead?
+    const hasEditor = (value || []).some(
+      (entry) => entry.permission === "editor"
+    );
+    console.log(value);
     if (!hasEditor) {
       addError(name, {
         title: i18n("discourse_kanban.manage.board_access"),
@@ -250,33 +256,33 @@ export default class KanbanBoardSettings extends Component {
 
   @action
   async save(data) {
-    const payload = this._withGroupIds(data);
+    console.log("data", data);
 
     if (this.constraintWarning) {
       this.dialog.confirm({
         message: this.constraintWarning,
-        didConfirm: () => this._performSave(payload),
+        didConfirm: () => this._performSave(data),
       });
       return;
     }
 
-    await this._performSave(payload);
+    await this._performSave(data);
   }
 
   // Map the unified access list back onto the two group-id arrays the backend
   // stores, dropping the synthetic `access` key.
-  _withGroupIds(data) {
-    const { access = [], ...rest } = data;
-    return {
-      ...rest,
-      allow_write_group_ids: access
-        .filter((entry) => entry.level === "editor")
-        .map((entry) => entry.group_id),
-      allow_read_group_ids: access
-        .filter((entry) => entry.level === "viewer")
-        .map((entry) => entry.group_id),
-    };
-  }
+  // _withGroupIds(data) {
+  //   const { access = [], ...rest } = data;
+  //   return {
+  //     ...rest,
+  //     allow_write_group_ids: access
+  //       .filter((entry) => entry.level === "editor")
+  //       .map((entry) => entry.group_id),
+  //     allow_read_group_ids: access
+  //       .filter((entry) => entry.level === "viewer")
+  //       .map((entry) => entry.group_id),
+  //   };
+  // }
 
   async _performSave(data) {
     try {
@@ -291,6 +297,22 @@ export default class KanbanBoardSettings extends Component {
   onDelete() {
     this.args.model.onDelete();
     this.args.closeModal();
+  }
+
+  @action
+  transformDAccessControlLevelOptions(options) {
+    options.push({
+      id: "manager",
+      name: i18n("discourse_kanban.manage.board_access_level_manager"),
+    });
+
+    return options;
+  }
+
+  @action
+  aclChanged(acl) {
+    console.log(acl);
+    this.formApi.set("acl", acl);
   }
 
   <template>
@@ -332,7 +354,7 @@ export default class KanbanBoardSettings extends Component {
 
             <form.Section>
               <form.Field
-                @name="access"
+                @name="acl"
                 @title={{i18n "discourse_kanban.manage.board_access"}}
                 @description={{i18n
                   "discourse_kanban.manage.board_access_description"
@@ -345,8 +367,9 @@ export default class KanbanBoardSettings extends Component {
                 <field.Control>
                   <DAccessControl
                     @groups={{this.site.groups}}
-                    @value={{field.value}}
-                    @onChange={{field.set}}
+                    @acl={{field.value}}
+                    @onChange={{this.aclChanged}}
+                    @transformLevelOptions={{this.transformDAccessControlLevelOptions}}
                   />
                 </field.Control>
               </form.Field>

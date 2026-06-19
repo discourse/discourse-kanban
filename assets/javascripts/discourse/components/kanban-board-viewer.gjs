@@ -32,7 +32,7 @@ import {
   isRecencyColumn,
   sortCardsForColumn,
 } from "../lib/kanban-card-ordering";
-import { kanbanBoardUrl } from "../lib/kanban-urls";
+import { kanbanBoardConfigureUrl, kanbanBoardUrl } from "../lib/kanban-urls";
 import KanbanColumn from "./kanban-column";
 import KanbanBoardSettings from "./modal/kanban-board-settings";
 import KanbanCardDetailModal from "./modal/kanban-card-detail";
@@ -163,6 +163,15 @@ export default class KanbanBoardViewer extends Component {
         } else {
           DiscourseURL.routeTo(kanbanBoardUrl(this.board));
         }
+      });
+    }
+
+    if (this.args.openBoardSettings) {
+      schedule("afterRender", () => {
+        if (this.isDestroying || this.isDestroyed) {
+          return;
+        }
+        this.#openBoardSettingsModal({ updateUrl: false });
       });
     }
   }
@@ -1111,14 +1120,30 @@ export default class KanbanBoardViewer extends Component {
   @action
   openBoardSettings(closeMenu) {
     closeMenu();
-    this.modal.show(KanbanBoardSettings, {
-      model: {
-        board: this.board,
-        isNew: false,
-        onSave: (boardData) => this.saveBoardSettings(boardData),
-        onDelete: () => this.deleteBoard(),
-      },
-    });
+    this.#openBoardSettingsModal();
+  }
+
+  #openBoardSettingsModal({ updateUrl = true } = {}) {
+    const boardUrl = kanbanBoardUrl(this.board);
+
+    if (updateUrl) {
+      DiscourseURL.replaceState(kanbanBoardConfigureUrl(this.board));
+    }
+
+    this.modal
+      .show(KanbanBoardSettings, {
+        model: {
+          board: this.board,
+          isNew: false,
+          onSave: (boardData) => this.saveBoardSettings(boardData),
+          onDelete: () => this.deleteBoard(),
+        },
+      })
+      .finally(() => {
+        if (!this.isDestroying && !this.isDestroyed) {
+          DiscourseURL.replaceState(boardUrl);
+        }
+      });
   }
 
   @action

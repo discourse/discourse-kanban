@@ -59,7 +59,10 @@ module DiscourseKanban
           )
         end
 
-      render json: { board: board_payload(@board, tag_name_map:), columns: columns }
+      render json: {
+               board: board_payload(@board, tag_name_map:, include_acl: true),
+               columns: columns,
+             }
     end
 
     def create
