@@ -85,12 +85,6 @@ export default class KanbanBoardSettings extends Component {
         show_topic_thumbnail: board.show_topic_thumbnail ?? false,
         require_confirmation: board.require_confirmation ?? false,
         acl: board.acl,
-        // access: this.buildAccess(
-        //   board.allow_read_group_ids,
-        //   isEmpty(board.allow_write_group_ids)
-        //     ? this.discourseKanbanManageBoardAllowedGroupIds
-        //     : board.allow_write_group_ids
-        // ),
       };
     }
 
@@ -106,27 +100,7 @@ export default class KanbanBoardSettings extends Component {
       show_topic_thumbnail: false,
       require_confirmation: false,
       acl: [],
-      // access: this.buildAccess(
-      //   [],
-      //   this.discourseKanbanManageBoardAllowedGroupIds
-      // ),
     };
-  }
-
-  // Build the unified access list from the two stored group-id arrays. Editor
-  // wins on overlap (writers can always read).
-  buildAccess(readIds, writeIds) {
-    const editorIds = writeIds || [];
-    const seen = new Set(editorIds);
-    const access = editorIds.map((id) => ({ group_id: id, level: "editor" }));
-
-    (readIds || []).forEach((id) => {
-      if (!seen.has(id)) {
-        access.push({ group_id: id, level: "viewer" });
-      }
-    });
-
-    return access;
   }
 
   get isNew() {
@@ -198,7 +172,7 @@ export default class KanbanBoardSettings extends Component {
     const hasEditor = (value || []).some(
       (entry) => entry.permission === "editor"
     );
-    console.log(value);
+
     if (!hasEditor) {
       addError(name, {
         title: i18n("discourse_kanban.manage.board_access"),
@@ -256,8 +230,6 @@ export default class KanbanBoardSettings extends Component {
 
   @action
   async save(data) {
-    console.log("data", data);
-
     if (this.constraintWarning) {
       this.dialog.confirm({
         message: this.constraintWarning,
@@ -268,21 +240,6 @@ export default class KanbanBoardSettings extends Component {
 
     await this._performSave(data);
   }
-
-  // Map the unified access list back onto the two group-id arrays the backend
-  // stores, dropping the synthetic `access` key.
-  // _withGroupIds(data) {
-  //   const { access = [], ...rest } = data;
-  //   return {
-  //     ...rest,
-  //     allow_write_group_ids: access
-  //       .filter((entry) => entry.level === "editor")
-  //       .map((entry) => entry.group_id),
-  //     allow_read_group_ids: access
-  //       .filter((entry) => entry.level === "viewer")
-  //       .map((entry) => entry.group_id),
-  //   };
-  // }
 
   async _performSave(data) {
     try {
@@ -300,10 +257,21 @@ export default class KanbanBoardSettings extends Component {
   }
 
   @action
-  transformDAccessControlLevelOptions(options) {
+  transformDAccessControlPermissionOptions(options) {
+    options.find((option) => option.id === "editor").description = i18n(
+      "discourse_kanban.manage.board_access_permission_editor_description"
+    );
+
+    options.find((option) => option.id === "viewer").description = i18n(
+      "discourse_kanban.manage.board_access_permission_viewer_description"
+    );
+
     options.push({
       id: "manager",
-      name: i18n("discourse_kanban.manage.board_access_level_manager"),
+      name: i18n("discourse_kanban.manage.board_access_permission_manager"),
+      description: i18n(
+        "discourse_kanban.manage.board_access_permission_manager_description"
+      ),
     });
 
     return options;
@@ -311,7 +279,6 @@ export default class KanbanBoardSettings extends Component {
 
   @action
   aclChanged(acl) {
-    console.log(acl);
     this.formApi.set("acl", acl);
   }
 
@@ -369,7 +336,7 @@ export default class KanbanBoardSettings extends Component {
                     @groups={{this.site.groups}}
                     @acl={{field.value}}
                     @onChange={{this.aclChanged}}
-                    @transformLevelOptions={{this.transformDAccessControlLevelOptions}}
+                    @transformPermissionOptions={{this.transformDAccessControlPermissionOptions}}
                   />
                 </field.Control>
               </form.Field>
