@@ -68,7 +68,7 @@ module DiscourseKanban
     def create
       raw = board_mutation_params.to_h
 
-      DiscourseKanban::CreateBoard.call(guardian:, params: raw, raw_board_params: raw) do
+      DiscourseKanban::CreateBoard.call(guardian:, params: raw, raw_board_params: raw) do |result|
         on_success { |board:| render json: { board: board_payload(board) }, status: :created }
         on_failed_policy(:can_manage) { raise Discourse::InvalidAccess }
         on_failed_contract do |contract|
