@@ -1,10 +1,5 @@
 @use "lib/viewport";
 
-// Column color keys. Keep in sync with the --color-* custom properties defined
-// on body.discourse-kanban-board, DiscourseKanban::Column::COLORS (Ruby), and
-// COLUMN_COLORS (JS). Adding a color means updating all four spots.
-$column-colors: purple, orange, blue, red, lime, green, pink, yellow, teal;
-
 html:has(body.discourse-kanban-board) {
   overflow-y: hidden;
 }
@@ -14,19 +9,6 @@ body.discourse-kanban-board {
   --kanban-column-header-height: 25px;
   --kanban-column-card-gap: var(--space-2);
   --kanban-column-padding: var(--space-2);
-
-  // Column color palette. Defined on the board body so the values cascade to
-  // both the columns and the (body-portaled) column settings modal.
-  // Keep keys in sync with DiscourseKanban::Column::COLORS and DiscourseKanban.
-  --color-purple: light-dark(#c97cf4, #803fa5);
-  --color-orange: light-dark(#fca700, #9e4c00);
-  --color-blue: light-dark(#669df1, #1558bc);
-  --color-red: light-dark(#f87168, #ae2e24);
-  --color-lime: light-dark(#94c748, #4c6b1f);
-  --color-green: light-dark(#4bce97, #216e4e);
-  --color-pink: light-dark(#e774bb, #943d73);
-  --color-yellow: light-dark(#ddb30e, #614a05);
-  --color-teal: light-dark(#6cc3e0, #206a83);
 
   // Keep in sync with the matching JS constants in kanban-motion.js.
   --kanban-card-reorder-duration: 180ms;
@@ -267,18 +249,12 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     border-color: var(--tertiary);
   }
 
-  @each $color in $column-colors {
-    &[data-color="#{$color}"] {
-      --kanban-column-color: var(--color-#{$color});
-    }
-  }
-
   &__header {
     display: flex;
     align-items: center;
     height: var(--kanban-column-header-height);
     justify-content: space-between;
-    background-color: var(--kanban-column-color, transparent);
+    background-color: var(--column-color, transparent);
     border-top-right-radius: var(--d-border-radius-small);
     border-top-left-radius: var(--d-border-radius-small);
     color: light-dark(var(--secondary), var(--primary));
@@ -289,16 +265,15 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     display: flex;
     gap: var(--space-2);
     align-items: center;
-    padding: 0 var(--space-2);
-    background: rgb(0, 0, 0, 0.3);
-    border-radius: var(--d-border-radius);
   }
 
   &__title {
     text-transform: uppercase;
-    font-size: var(--font-down-1);
+    font-size: var(--font-down-2);
     font-weight: 500;
-    padding: var(--space-1);
+    padding: var(--space-1) var(--space-2);
+    background: rgb(0, 0, 0, 0.3);
+    border-radius: var(--d-border-radius);
     max-width: 20ch;
 
     @include ellipsis;
@@ -905,15 +880,10 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     border: 2px solid transparent;
     cursor: pointer;
     box-shadow: inset 0 0 0 1px rgb(0 0 0 / 10%);
+    background-color: var(--column-color);
     transition:
       transform 0.1s ease,
       border-color 0.1s ease;
-
-    @each $color in $column-colors {
-      &[data-color="#{$color}"] {
-        background-color: var(--color-#{$color});
-      }
-    }
 
     &:hover {
       transform: scale(1.1);

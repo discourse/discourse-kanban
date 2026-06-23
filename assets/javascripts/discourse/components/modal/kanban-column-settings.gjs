@@ -20,6 +20,7 @@ import {
   assignedUserValue,
   COLUMN_COLORS,
   COLUMN_SORT_OPTIONS,
+  columnColorVariable,
   STATUS_OPTIONS,
   tagToArray,
 } from "../../lib/kanban-column-helpers";
@@ -60,7 +61,7 @@ export default class KanbanColumnSettings extends Component {
   }
 
   get colorOptions() {
-    return COLUMN_COLORS.map((color) => ({
+    return Object.keys(COLUMN_COLORS).map((color) => ({
       id: color,
       name: i18n(`discourse_kanban.manage.columns.colors.${color}`),
     }));
@@ -215,7 +216,7 @@ export default class KanbanColumnSettings extends Component {
                         type="button"
                         class="discourse-kanban-color-picker__swatch
                           {{if (eq data.color colorOption.id) 'is-selected'}}"
-                        data-color={{colorOption.id}}
+                        style={{columnColorVariable colorOption.id}}
                         title={{colorOption.name}}
                         aria-label={{colorOption.name}}
                         aria-pressed={{if

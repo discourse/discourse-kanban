@@ -1,3 +1,4 @@
+import { trustHTML } from "@ember/template";
 import { i18n } from "discourse-i18n";
 
 export const COLUMN_SORT_OPTIONS = [
@@ -22,19 +23,27 @@ export const STATUS_OPTIONS = [
   },
 ];
 
-// Keep in sync with DiscourseKanban::Column::COLORS (Ruby) and the
-// --color-* custom properties defined in kanban-board.scss.
-export const COLUMN_COLORS = [
-  "purple",
-  "orange",
-  "blue",
-  "red",
-  "lime",
-  "green",
-  "pink",
-  "yellow",
-  "teal",
-];
+// Single source of truth for the kanban column palette. Each value is a CSS
+// light-dark() pair applied inline via columnColorVariable(), mirroring how core
+// applies --category-color. Ruby only format-validates the stored key and SCSS
+// just reads var(--column-color), so this constant is the only place to edit.
+export const COLUMN_COLORS = {
+  purple: "light-dark(#c97cf4, #803fa5)",
+  orange: "light-dark(#fca700, #9e4c00)",
+  blue: "light-dark(#669df1, #1558bc)",
+  red: "light-dark(#f87168, #ae2e24)",
+  lime: "light-dark(#94c748, #4c6b1f)",
+  green: "light-dark(#4bce97, #216e4e)",
+  pink: "light-dark(#e774bb, #943d73)",
+  yellow: "light-dark(#ddb30e, #614a05)",
+  teal: "light-dark(#6cc3e0, #206a83)",
+};
+
+// Mirrors core's categoryColorVariable: formats a column color key into an
+// inline custom property so markup styles itself via var(--column-color).
+export function columnColorVariable(color) {
+  return trustHTML(`--column-color: ${COLUMN_COLORS[color] ?? "transparent"};`);
+}
 
 export const ASSIGNED_OPTIONS = [
   {
