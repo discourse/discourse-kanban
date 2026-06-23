@@ -95,7 +95,7 @@ module DiscourseKanban
         raw_board_params: raw,
       ) do
         on_success do |board:, cards_removed_count:|
-          response = { board: board_payload(board) }
+          response = { board: board_payload(board, include_acl: true) }
           response[:cards_removed_count] = cards_removed_count if cards_removed_count.to_i > 0
           render json: response
         end

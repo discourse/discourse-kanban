@@ -26,7 +26,7 @@ module DiscourseKanban
     end
 
     def can_write_board?(board)
-      has_any_acl_permissions?(board, %w[edit manage])
+      has_any_acl_permission?(board, %w[edit manage])
     end
 
     def can_view_card?(card)

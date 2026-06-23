@@ -10,7 +10,10 @@ RSpec.describe DiscourseKanban::InlineOneboxHandler do
     DiscourseKanban::Board.create!(
       name: "Roadmap board",
       slug: "roadmap-board",
-      allow_read_group_ids: [Group::AUTO_GROUPS[:anonymous_users], Group::AUTO_GROUPS[:trust_level_0]],
+      allow_read_group_ids: [
+        Group::AUTO_GROUPS[:anonymous_users],
+        Group::AUTO_GROUPS[:trust_level_0],
+      ],
       created_by_id: admin.id,
     )
   end
