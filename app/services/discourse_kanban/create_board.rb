@@ -49,17 +49,29 @@ module DiscourseKanban
 
     def create_acl(board:)
       raw = context[:raw_board_params] || {}
+      flattened_acls = raw["acl"] || []
+
+      # TODO (martin) This feels a bit janky... only_if for this step
+      # would be nice, but we need more structured params first.
+      return if !flattened_acls.present?
+
       # TODO (martin) We need to add the current user as Owner here
       # when we have the user functionality ready for ACLs
-      AccessControlList.insert_all!(
-        AccessControlList.expand_list(
-          raw["acl"],
-          board,
-          # TODO (martin) Need to define this in a central place, maybe some
-          # register_acl_owner plugin API? Or easy lookup for Plugin.self.acl_owner?
-          "plugin:discourse-kanban",
-        ),
-      )
+      AccessControlListManager.call(
+        guardian:,
+        params: {
+          target: board,
+          flattened_acls: flattened_acls,
+          owner: DiscourseKanban::PLUGIN_NAME,
+        },
+      ) do |result|
+        on_failure do
+          Rails.logger.warn(
+            "Failed to create ACL for board #{board.id} (#{flattened_acls.to_json}): #{result.inspect_steps}",
+          )
+          fail!(I18n.t("discourse_kanban.board.errors.acl_create_failed"))
+        end
+      end
     end
 
     def create_history(board:, guardian:)

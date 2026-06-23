@@ -35,7 +35,8 @@ module DiscourseKanban
     end
 
     def update_acl(board:, guardian:)
-      flattened_acls = context[:raw_board_params]["acl"]
+      raw = context[:raw_board_params] || {}
+      flattened_acls = raw["acl"] || []
 
       # TODO (martin) This feels a bit janky... only_if for this step
       # would be nice, but we need more structured params first.

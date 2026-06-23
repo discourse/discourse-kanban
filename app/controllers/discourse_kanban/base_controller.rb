@@ -38,8 +38,6 @@ module DiscourseKanban
         category_ids: board.category_ids,
         tag_ids: visible_tag_ids,
         tag_names: visible_tag_ids.filter_map { |id| tag_name_map[id] }.sort,
-        allow_read_group_ids: board.allow_read_group_ids,
-        allow_write_group_ids: board.allow_write_group_ids,
         anonymous_can_read: board.anonymous_can_read?,
         require_confirmation: board.require_confirmation,
         show_tags: board.show_tags,
@@ -119,8 +117,6 @@ module DiscourseKanban
         :card_style,
         :show_topic_thumbnail,
         acl: %i[id type permission],
-        allow_read_group_ids: [],
-        allow_write_group_ids: [],
         category_ids: [],
         tag_names: [],
         columns: %i[
