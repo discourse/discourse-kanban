@@ -37,13 +37,22 @@ RSpec.describe DiscourseKanban::DestroyBoard do
       it { is_expected.to fail_to_find_a_model(:board) }
     end
 
-    context "when user cannot manage boards" do
+    context "when user cannot destroy the board based on the ACL" do
       let(:dependencies) { { guardian: outsider.guardian } }
 
-      it { is_expected.to fail_a_policy(:can_manage) }
+      it { is_expected.to fail_a_policy(:can_destroy) }
     end
 
     context "when everything is valid" do
+      before do
+        Fabricate(
+          :access_control_list_with_groups,
+          target: board,
+          permission: "manage",
+          groups: [manage_group],
+        )
+      end
+
       it { is_expected.to run_successfully }
 
       it "destroys the board" do

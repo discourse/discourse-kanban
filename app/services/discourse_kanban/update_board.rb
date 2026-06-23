@@ -30,13 +30,19 @@ module DiscourseKanban
       Board.find_by(id: params.id)
     end
 
-    def can_manage(guardian:)
-      guardian.can_update_board?
+    def can_manage(guardian:, board:)
+      guardian.can_manage_board?(board)
     end
 
     def update_acl(board:, guardian:)
+      # TODO (martin) This feels a bit janky... only_if for this step
+      # would be nice, but we need more structured params first.
+      return if !context[:raw_board_params]["acl"].present?
+
       # TODO (martin) Add logging here for the difference of old + new permissions
-      # and who changed them
+      # and who changed them (see below too)
+      #
+      # Also need to make sure owner is always preserved for the AccessControlList
       AccessControlList.where(target: board).destroy_all
       AccessControlList.insert_all!(
         AccessControlList.expand_list(
@@ -62,6 +68,24 @@ module DiscourseKanban
         context[:histories][:renamed] = { previous_value: board.name_was, new_value: board.name }
       end
 
+      # TODO (martin) need to configure how best to track these permission/ACL
+      # changes, probably in core in an AccessControlListManager service...maybe
+      # BoardHistory#board_permissions_changed will be a callback from the ACL service,
+      # which will give back the old group ids + user ids + their permissions, then
+      # the new ones, and we just log this all in the context? Something like:
+      #
+      # {
+      #   previous_permissions: {
+      #     read: { group_ids: [], user_ids: [] },
+      #     edit: { group_ids: [], user_ids: [] },
+      #     manage: { group_ids: [], user_ids: [] },
+      #   },
+      #   new_permissions: {
+      #     read: { group_ids: [], user_ids: [] },
+      #     edit: { group_ids: [], user_ids: [] },
+      #     manage: { group_ids: [], user_ids: [] },
+      #   }
+      # }
       if board.allow_read_group_ids_changed?
         context[:histories][:permissions_changed] ||= {}
         context[:histories][:permissions_changed].merge!(

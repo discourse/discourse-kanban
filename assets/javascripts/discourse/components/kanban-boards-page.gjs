@@ -146,7 +146,7 @@ export default class KanbanBoardsPage extends Component {
                     {{i18n "discourse_kanban.manage.card_style_simple"}}
                   </span>
                 {{/if}}
-                {{#unless board.public_read}}
+                {{#unless board.anonymous_can_read}}
                   <span
                     class="discourse-kanban-badge discourse-kanban-badge--restricted"
                     title={{i18n "discourse_kanban.manage.restricted_access"}}

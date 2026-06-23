@@ -40,7 +40,7 @@ module DiscourseKanban
         tag_names: visible_tag_ids.filter_map { |id| tag_name_map[id] }.sort,
         allow_read_group_ids: board.allow_read_group_ids,
         allow_write_group_ids: board.allow_write_group_ids,
-        public_read: board.public_read?,
+        anonymous_can_read: board.anonymous_can_read?,
         require_confirmation: board.require_confirmation,
         show_tags: board.show_tags,
         card_style: board.card_style,
@@ -52,7 +52,7 @@ module DiscourseKanban
         acl:
           (
             if include_acl
-              AccessControlList.where(target: board).preload_allowed.flattened_list
+              AccessControlList.where(target: board).flattened_list
             else
               nil
             end

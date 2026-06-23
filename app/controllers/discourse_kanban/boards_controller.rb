@@ -14,8 +14,15 @@ module DiscourseKanban
       boards =
         DiscourseKanban::Board
           .includes(:columns, :created_by)
+          .where(
+            "id IN (:kanban_board_ids)",
+            kanban_board_ids:
+              current_user.target_ids_with_any_acl_permissions(
+                DiscourseKanban::Board,
+                %w[view edit manage],
+              ),
+          )
           .to_a
-          .select { |board| guardian.can_read_board?(board) }
       tag_name_map = build_tag_name_map(*boards)
       render json: { boards: boards.map { |board| board_payload(board, tag_name_map:) } }
     end

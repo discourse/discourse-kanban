@@ -8,3 +8,4 @@ discourse_kanban:
     default: "3"
     allow_any: false
     client: true
+    mandatory_values: "1" # auto group admins

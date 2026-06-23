@@ -17,6 +17,10 @@ module DiscourseKanban
              inverse_of: :board
     belongs_to :created_by, class_name: "User"
     belongs_to :updated_by, class_name: "User", optional: true
+    has_many :access_control_lists,
+             as: :target,
+             class_name: "AccessControlList",
+             dependent: :destroy
 
     enum :card_style, { detailed: 0, simple: 1 }, default: :detailed
 
@@ -30,23 +34,22 @@ module DiscourseKanban
     before_validation :normalize_slug
     before_validation :normalize_group_ids
 
+    def permission_acl
+      @permission_acl ||= AccessControlList.where(target: self).target_acl(self)
+    end
+
     def url
       "#{Discourse.base_url}/kanban/boards/#{slug}/#{id}"
     end
 
-    def public_read?
-      # A board is public when it is readable without authentication, i.e. the
-      # anonymous auto-group is among its read/write groups.
-      effective_read_group_ids.include?(Group::AUTO_GROUPS[:anonymous_users])
-    end
-
-    def effective_read_group_ids
-      (allow_read_group_ids + allow_write_group_ids).uniq
+    def anonymous_can_read?
+      permission_acl.group_has_permission?(Group::AUTO_GROUPS[:anonymous_users], "view")
     end
 
     def reload(options = nil)
       @tags = nil
       @categories = nil
+      @permission_acl = nil
       super
     end
 

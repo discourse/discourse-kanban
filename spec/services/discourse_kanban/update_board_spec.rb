@@ -15,13 +15,14 @@ RSpec.describe DiscourseKanban::UpdateBoard do
     fab!(:outsider, :user)
     fab!(:manage_group, :group)
     fab!(:board) do
-      DiscourseKanban::Board.create!(
-        name: "Old",
-        slug: "old",
-        created_by_id: admin.id,
-        allow_read_group_ids: [manage_group.id],
-        allow_write_group_ids: [manage_group.id],
+      board = DiscourseKanban::Board.create!(name: "Old", slug: "old", created_by_id: admin.id)
+      Fabricate(
+        :access_control_list_with_groups,
+        target: board,
+        permission: "manage",
+        groups: [manage_group],
       )
+      board
     end
     fab!(:column) { board.columns.create!(title: "Col", position: 0) }
 
@@ -179,9 +180,7 @@ RSpec.describe DiscourseKanban::UpdateBoard do
 
       context "with permission changes" do
         fab!(:new_group, :group)
-        let(:raw) do
-          { "allow_read_group_ids" => [new_group.id], "allow_write_group_ids" => [new_group.id] }
-        end
+        let(:raw) { { "acl" => [{ type: "group", id: new_group.id, permission: "manage" }] } }
 
         it "tracks the permission change history" do
           result

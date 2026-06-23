@@ -168,12 +168,11 @@ export default class KanbanBoardSettings extends Component {
 
   @action
   validateAccess(name, value, { addError }) {
-    // TODO (martin) Maybe this should require Manager instead?
-    const hasEditor = (value || []).some(
-      (entry) => entry.permission === "editor"
+    const hasManager = (value || []).some(
+      (entry) => entry.permission === "manage"
     );
 
-    if (!hasEditor) {
+    if (!hasManager) {
       addError(name, {
         title: i18n("discourse_kanban.manage.board_access"),
         message: i18n("discourse_kanban.manage.board_access_requires_editor"),
@@ -258,16 +257,19 @@ export default class KanbanBoardSettings extends Component {
 
   @action
   transformDAccessControlPermissionOptions(options) {
-    options.find((option) => option.id === "editor").description = i18n(
-      "discourse_kanban.manage.board_access_permission_editor_description"
-    );
-
-    options.find((option) => option.id === "viewer").description = i18n(
+    const viewOption = options.find((option) => option.id === "view");
+    viewOption.description = i18n(
       "discourse_kanban.manage.board_access_permission_viewer_description"
     );
 
+    const editOption = options.find((option) => option.id === "edit");
+    editOption.description = i18n(
+      "discourse_kanban.manage.board_access_permission_editor_description"
+    );
+
     options.push({
-      id: "manager",
+      id: "manage",
+      level: 3,
       name: i18n("discourse_kanban.manage.board_access_permission_manager"),
       description: i18n(
         "discourse_kanban.manage.board_access_permission_manager_description"

@@ -7,7 +7,7 @@ export default class Board {
 
   @tracked allow_read_group_ids;
   @tracked allow_write_group_ids;
-  @tracked public_read;
+  @tracked anonymous_can_read;
   @tracked can_manage;
   @tracked can_write;
   @tracked card_style;
