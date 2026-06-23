@@ -10,6 +10,7 @@ import DModal from "discourse/components/d-modal";
 import Form from "discourse/components/form";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
+import { AUTO_GROUPS } from "discourse/lib/constants";
 import discourseDebounce from "discourse/lib/debounce";
 import { slugify } from "discourse/lib/utilities";
 import CategorySelector from "discourse/select-kit/components/category-selector";
@@ -99,7 +100,7 @@ export default class KanbanBoardSettings extends Component {
       show_tags: true,
       show_topic_thumbnail: false,
       require_confirmation: false,
-      acl: [],
+      acl: this.#buildDefaultAcl(),
     };
   }
 
@@ -282,6 +283,30 @@ export default class KanbanBoardSettings extends Component {
   @action
   aclChanged(acl) {
     this.formApi.set("acl", acl);
+  }
+
+  #buildDefaultAcl() {
+    const defaultAcl = [];
+    this.discourseKanbanManageBoardAllowedGroupIds.forEach((groupId) => {
+      const group = this.site.groups?.find((g) => g.id === groupId);
+      if (group) {
+        defaultAcl.push({
+          type: "group",
+          id: group.id,
+          permission: "manage",
+          full_name: group.full_name,
+        });
+      }
+    });
+    defaultAcl.push({
+      type: "group",
+      id: AUTO_GROUPS.logged_in_users.id,
+      permission: "view",
+      full_name: this.site.groups.find(
+        (g) => g.id === AUTO_GROUPS.logged_in_users.id
+      )?.full_name,
+    });
+    return defaultAcl;
   }
 
   <template>
