@@ -7,15 +7,22 @@ RSpec.describe DiscourseKanban::InlineOneboxHandler do
   before { enable_current_plugin }
 
   fab!(:board) do
-    DiscourseKanban::Board.create!(
-      name: "Roadmap board",
-      slug: "roadmap-board",
-      allow_read_group_ids: [
+    board =
+      DiscourseKanban::Board.create!(
+        name: "Roadmap board",
+        slug: "roadmap-board",
+        created_by_id: admin.id,
+      )
+    Fabricate(
+      :access_control_list,
+      target: board,
+      permission: "view",
+      allowed_group_ids: [
         Group::AUTO_GROUPS[:anonymous_users],
         Group::AUTO_GROUPS[:trust_level_0],
       ],
-      created_by_id: admin.id,
     )
+    board
   end
 
   fab!(:column) { board.columns.create!(title: "Todo", position: 0) }
@@ -70,7 +77,13 @@ RSpec.describe DiscourseKanban::InlineOneboxHandler do
 
       it "returns nil when the guardian denies board read access" do
         private_group = Fabricate(:group)
-        board.update!(allow_read_group_ids: [private_group.id])
+        board.access_control_lists.destroy_all
+        Fabricate(
+          :access_control_list_with_groups,
+          target: board,
+          permission: "view",
+          groups: [private_group],
+        )
         expect(
           described_class.handle("#{base_url}/boards/x/#{board.id}", route_board_only),
         ).to be_nil
@@ -170,7 +183,13 @@ RSpec.describe DiscourseKanban::InlineOneboxHandler do
 
       it "returns nil when the guardian denies board read access" do
         private_group = Fabricate(:group)
-        board.update!(allow_read_group_ids: [private_group.id])
+        board.access_control_lists.destroy_all
+        Fabricate(
+          :access_control_list_with_groups,
+          target: board,
+          permission: "view",
+          groups: [private_group],
+        )
         expect(
           described_class.handle(
             "#{base_url}/boards/x/#{board.id}/card/#{floater_card.id}",

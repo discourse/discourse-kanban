@@ -34,6 +34,7 @@ RSpec.describe DiscourseKanban::UpdateBoard do
       enable_current_plugin
       SiteSetting.discourse_kanban_manage_board_allowed_groups = manage_group.id.to_s
       manage_group.add(manager)
+      manage_group.add(admin)
     end
 
     context "when contract is invalid" do
@@ -190,10 +191,16 @@ RSpec.describe DiscourseKanban::UpdateBoard do
             acting_user_id: manager.id,
             board_id: board.id,
             details: {
-              "previous_allow_read_group_ids" => [manage_group.id],
-              "new_allow_read_group_ids" => [new_group.id],
-              "previous_allow_write_group_ids" => [manage_group.id],
-              "new_allow_write_group_ids" => [new_group.id],
+              "previous_permissions" => {
+                "manage" => {
+                  "group_ids" => [manage_group.id],
+                },
+              },
+              "new_permissions" => {
+                "manage" => {
+                  "group_ids" => [new_group.id],
+                },
+              },
             },
           )
         end

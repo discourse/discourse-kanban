@@ -9,5 +9,9 @@ Fabricator(:kanban_board, class_name: "DiscourseKanban::Board") do
     (evaluator[:column_names] || []).each_with_index do |column_name, index|
       board.columns.create!(title: column_name, position: index)
     end
+
+    AccessControlList.insert_all!(
+      board.mandatory_acl_as_expanded_list(DiscourseKanban::PLUGIN_NAME),
+    )
   end
 end

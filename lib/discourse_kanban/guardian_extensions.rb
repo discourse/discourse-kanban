@@ -3,7 +3,7 @@
 module DiscourseKanban
   module GuardianExtensions
     def can_manage_kanban_boards?
-      user.in_any_groups?(SiteSetting.discourse_kanban_manage_board_allowed_groups_map)
+      in_any_groups?(SiteSetting.discourse_kanban_manage_board_allowed_groups_map)
     end
 
     def can_create_board?

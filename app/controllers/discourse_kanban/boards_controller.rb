@@ -184,7 +184,7 @@ module DiscourseKanban
       ) do
         on_success { head :no_content }
         on_model_not_found(:board) { raise Discourse::NotFound }
-        on_failed_policy(:can_manage) { raise Discourse::InvalidAccess }
+        on_failed_policy(:can_destroy) { raise Discourse::InvalidAccess }
         on_failed_contract do |contract|
           render json: failed_json.merge(errors: contract.errors.full_messages),
                  status: :bad_request

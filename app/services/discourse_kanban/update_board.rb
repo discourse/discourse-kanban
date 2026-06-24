@@ -36,17 +36,17 @@ module DiscourseKanban
 
     def update_acl(board:, guardian:)
       raw = context[:raw_board_params] || {}
-      flattened_acls = raw["acl"] || []
+      flattened_acl = raw["acl"] || []
 
       # TODO (martin) This feels a bit janky... only_if for this step
       # would be nice, but we need more structured params first.
-      return if !flattened_acls.present?
+      return if !flattened_acl.present?
 
       AccessControlListManager.call(
         guardian:,
         params: {
           target: board,
-          flattened_acls: flattened_acls,
+          flattened_acl: flattened_acl,
           owner: DiscourseKanban::PLUGIN_NAME,
         },
       ) do |result|
@@ -57,7 +57,7 @@ module DiscourseKanban
 
         on_failure do
           Rails.logger.warn(
-            "Failed to update ACL for board #{board.id} (#{flattened_acls.to_json}): #{result.inspect_steps}",
+            "Failed to update ACL for board #{board.id} (#{flattened_acl.to_json}): #{result.inspect_steps}",
           )
           fail!(I18n.t("discourse_kanban.board.errors.acl_update_failed"))
         end

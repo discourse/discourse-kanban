@@ -47,13 +47,13 @@ module DiscourseKanban
       )
     end
 
-    def create_acl(board:)
+    def create_acl(board:, guardian:)
       raw = context[:raw_board_params] || {}
-      flattened_acls = raw["acl"] || []
+      flattened_acl = raw["acl"] || []
 
       # TODO (martin) This feels a bit janky... only_if for this step
       # would be nice, but we need more structured params first.
-      return if !flattened_acls.present?
+      return if !flattened_acl.present?
 
       # TODO (martin) We need to add the current user as Owner here
       # when we have the user functionality ready for ACLs
@@ -61,13 +61,13 @@ module DiscourseKanban
         guardian:,
         params: {
           target: board,
-          flattened_acls: flattened_acls,
+          flattened_acl: flattened_acl,
           owner: DiscourseKanban::PLUGIN_NAME,
         },
       ) do |result|
         on_failure do
           Rails.logger.warn(
-            "Failed to create ACL for board #{board.id} (#{flattened_acls.to_json}): #{result.inspect_steps}",
+            "Failed to create ACL for board #{board.id} (#{flattened_acl.to_json}): #{result.inspect_steps}",
           )
           fail!(I18n.t("discourse_kanban.board.errors.acl_create_failed"))
         end

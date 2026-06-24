@@ -17,13 +17,21 @@ RSpec.describe DiscourseKanban::DestroyCard do
     fab!(:category) { Fabricate(:category, name: "Kanban") }
     fab!(:topic) { Fabricate(:topic, category: category) }
     fab!(:board) do
-      DiscourseKanban::Board.create!(
-        name: "Board",
-        slug: "board-dc",
-        allow_write_group_ids: [write_group.id],
-        allow_read_group_ids: [read_group.id],
-        created_by_id: admin.id,
+      board =
+        DiscourseKanban::Board.create!(name: "Board", slug: "board-dc", created_by_id: admin.id)
+      Fabricate(
+        :access_control_list_with_groups,
+        target: board,
+        permission: "edit",
+        groups: [write_group],
       )
+      Fabricate(
+        :access_control_list_with_groups,
+        target: board,
+        permission: "view",
+        groups: [read_group],
+      )
+      board
     end
     fab!(:column) { board.columns.create!(title: "Col", position: 0) }
 

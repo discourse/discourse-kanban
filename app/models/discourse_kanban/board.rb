@@ -2,6 +2,8 @@
 
 module DiscourseKanban
   class Board < ActiveRecord::Base
+    include AclTarget
+
     self.table_name = "discourse_kanban_boards"
     self.ignored_columns = %w[
       base_filter_query
@@ -22,10 +24,6 @@ module DiscourseKanban
              inverse_of: :board
     belongs_to :created_by, class_name: "User"
     belongs_to :updated_by, class_name: "User", optional: true
-    has_many :access_control_lists,
-             as: :target,
-             class_name: "AccessControlList",
-             dependent: :destroy
 
     enum :card_style, { detailed: 0, simple: 1 }, default: :detailed
 
@@ -37,8 +35,8 @@ module DiscourseKanban
 
     before_validation :normalize_slug
 
-    def permission_acl
-      @permission_acl ||= AccessControlList.where(target: self).target_acl(self)
+    def self.mandatory_acl
+      [{ type: :group, id: Group::AUTO_GROUPS[:admins], permission: "manage" }]
     end
 
     def url
