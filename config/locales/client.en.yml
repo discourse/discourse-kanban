@@ -124,6 +124,7 @@ en:
             pink: "Pink"
             yellow: "Yellow"
             teal: "Teal"
+          custom_color: "Custom color"
           default_sort: "Default sort"
           default_sort_priority: "Priority"
           default_sort_recency: "Recency"

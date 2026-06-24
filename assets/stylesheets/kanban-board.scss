@@ -892,5 +892,32 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     &.is-selected {
       border-color: var(--primary);
     }
+
+    // Custom-color swatch: a circular slot wrapping a hidden native color input,
+    // showing a "+" until the user picks a color.
+    &--custom {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      color: var(--primary-high);
+
+      .d-icon {
+        pointer-events: none;
+      }
+
+      input[type="color"] {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        border: none;
+        opacity: 0;
+        cursor: pointer;
+      }
+    }
   }
 }

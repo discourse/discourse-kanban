@@ -1,4 +1,5 @@
 import { trustHTML } from "@ember/template";
+import { isValidHex, normalizeHex } from "discourse/lib/color-transformations";
 import { i18n } from "discourse-i18n";
 
 export const COLUMN_SORT_OPTIONS = [
@@ -39,10 +40,41 @@ export const COLUMN_COLORS = {
   teal: "light-dark(#6cc3e0, #206a83)",
 };
 
-// Mirrors core's categoryColorVariable: formats a column color key into an
-// inline custom property so markup styles itself via var(--column-color).
+// A stored color is either a preset key from COLUMN_COLORS or a custom 3/6-digit
+// hex (stored without a leading "#", mirroring core's category color).
+export function isPresetColor(color) {
+  return Object.prototype.hasOwnProperty.call(COLUMN_COLORS, color);
+}
+
+// True when a stored color is a usable custom hex rather than a preset.
+export function isCustomColor(color) {
+  return !!color && !isPresetColor(color) && isValidHex(color);
+}
+
+// Resolves a stored color to a CSS value: the preset's light-dark() pair, a
+// custom hex, or transparent when unset/unknown.
+function resolveColumnColor(color) {
+  if (isPresetColor(color)) {
+    return COLUMN_COLORS[color];
+  }
+  if (isCustomColor(color)) {
+    return `#${normalizeHex(color)}`;
+  }
+  return "transparent";
+}
+
+// Mirrors core's categoryColorVariable: formats a column color into an inline
+// custom property so markup styles itself via var(--column-color).
 export function columnColorVariable(color) {
-  return trustHTML(`--column-color: ${COLUMN_COLORS[color] ?? "transparent"};`);
+  return trustHTML(`--column-color: ${resolveColumnColor(color)};`);
+}
+
+// Background for the custom-color swatch in the picker: the working hex if set,
+// otherwise a neutral fill so the empty slot reads as "add a color".
+export function customColorVariable(hex) {
+  const value =
+    hex && isValidHex(hex) ? `#${normalizeHex(hex)}` : "var(--primary-low)";
+  return trustHTML(`--column-color: ${value};`);
 }
 
 export const ASSIGNED_OPTIONS = [
