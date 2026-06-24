@@ -1,7 +1,6 @@
 import Component from "@glimmer/component";
 import { cached, tracked } from "@glimmer/tracking";
 import { fn, hash } from "@ember/helper";
-import { on } from "@ember/modifier";
 import { action } from "@ember/object";
 import { isEmpty } from "@ember/utils";
 import DButton from "discourse/components/d-button";
@@ -13,7 +12,6 @@ import ComboBox from "discourse/select-kit/components/combo-box";
 import EmailGroupUserChooser from "discourse/select-kit/components/email-group-user-chooser";
 import MiniTagChooser from "discourse/select-kit/components/mini-tag-chooser";
 import { eq } from "discourse/truth-helpers";
-import dIcon from "discourse/ui-kit/helpers/d-icon";
 import { i18n } from "discourse-i18n";
 import {
   ASSIGNED_OPTIONS,
@@ -21,9 +19,6 @@ import {
   assignedUserValue,
   COLUMN_COLORS,
   COLUMN_SORT_OPTIONS,
-  columnColorVariable,
-  customColorVariable,
-  isCustomColor,
   STATUS_OPTIONS,
   tagToArray,
 } from "../../lib/kanban-column-helpers";
@@ -31,24 +26,9 @@ import KanbanEditableTitle from "../kanban-editable-title";
 
 export default class KanbanColumnSettings extends Component {
   @tracked showAdvanced = false;
-  @tracked customColorHex = null;
-
-  constructor() {
-    super(...arguments);
-    const color = this.args.model.column?.color;
-    if (isCustomColor(color)) {
-      this.customColorHex = color;
-    }
-  }
 
   get isNew() {
     return !this.args.model.column;
-  }
-
-  // Native color inputs need a full "#rrggbb"; fall back to a neutral default
-  // when no custom color has been chosen yet.
-  get customSwatchValue() {
-    return this.customColorHex ? `#${this.customColorHex}` : "#cccccc";
   }
 
   @cached
@@ -76,13 +56,6 @@ export default class KanbanColumnSettings extends Component {
       move_to_assigned: "",
       move_to_status: "",
     };
-  }
-
-  get colorOptions() {
-    return Object.keys(COLUMN_COLORS).map((color) => ({
-      id: color,
-      name: i18n(`discourse_kanban.manage.columns.colors.${color}`),
-    }));
   }
 
   get statusOptions() {
@@ -134,22 +107,6 @@ export default class KanbanColumnSettings extends Component {
   @action
   onStatusChange(field, value) {
     field.set(value);
-  }
-
-  @action
-  onColorChange(field, color) {
-    // Toggle off when the active swatch is clicked again, so the column
-    // falls back to its default (no color).
-    field.set(field.value === color ? null : color);
-  }
-
-  @action
-  onCustomColorChange(field, event) {
-    // Native color inputs always emit a "#rrggbb" value; store it without the
-    // leading "#", matching how core persists category colors.
-    const hex = event.target.value.replace(/^#/, "");
-    this.customColorHex = hex;
-    field.set(hex);
   }
 
   get showMoveToCategoryField() {
@@ -229,56 +186,10 @@ export default class KanbanColumnSettings extends Component {
                 @name="color"
                 @title={{i18n "discourse_kanban.manage.columns.color"}}
                 @format="max"
-                @type="custom"
+                @type="color"
                 as |field|
               >
-                <field.Control>
-                  <div
-                    class="discourse-kanban-color-picker"
-                    role="group"
-                    aria-label={{i18n "discourse_kanban.manage.columns.color"}}
-                  >
-                    {{#each this.colorOptions as |colorOption|}}
-                      <button
-                        type="button"
-                        class="discourse-kanban-color-picker__swatch
-                          {{if (eq data.color colorOption.id) 'is-selected'}}"
-                        style={{columnColorVariable colorOption.id}}
-                        title={{colorOption.name}}
-                        aria-label={{colorOption.name}}
-                        aria-pressed={{if
-                          (eq data.color colorOption.id)
-                          "true"
-                          "false"
-                        }}
-                        {{on
-                          "click"
-                          (fn this.onColorChange field colorOption.id)
-                        }}
-                      ></button>
-                    {{/each}}
-
-                    <label
-                      class="discourse-kanban-color-picker__swatch discourse-kanban-color-picker__swatch--custom
-                        {{if (isCustomColor data.color) 'is-selected'}}"
-                      style={{customColorVariable this.customColorHex}}
-                      title={{i18n
-                        "discourse_kanban.manage.columns.custom_color"
-                      }}
-                    >
-                      {{#unless this.customColorHex}}{{dIcon "plus"}}{{/unless}}
-                      <input
-                        type="color"
-                        class="discourse-kanban-color-picker__custom-input"
-                        value={{this.customSwatchValue}}
-                        aria-label={{i18n
-                          "discourse_kanban.manage.columns.custom_color"
-                        }}
-                        {{on "input" (fn this.onCustomColorChange field)}}
-                      />
-                    </label>
-                  </div>
-                </field.Control>
+                <field.Control @colors={{COLUMN_COLORS}} />
               </form.Field>
 
               <form.Field

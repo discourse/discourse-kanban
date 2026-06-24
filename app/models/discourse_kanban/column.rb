@@ -18,10 +18,9 @@ module DiscourseKanban
 
     validates :title, presence: true
     validates :position, presence: true
-    # The palette lives in JS (COLUMN_COLORS); like core's category color we only
-    # validate the shape here — a preset key or a custom 3/6-digit hex. Unknown
-    # values render as transparent, never an error.
-    validates :color, format: { with: /\A([a-z]+|\h{3}|\h{6})\z/ }, allow_nil: true
+    # Stored as a bare hex (no leading "#"), like core's category color. The
+    # palette presets live in JS; here we only validate the shape.
+    validates :color, format: { with: /\A(\h{3}|\h{6})\z/ }, allow_nil: true
 
     def matches_topic?(topic)
       tag_id.present? && topic.tag_ids.include?(tag_id)

@@ -24,63 +24,50 @@ export const STATUS_OPTIONS = [
   },
 ];
 
-// Single source of truth for the kanban column palette. Each value is a CSS
-// light-dark() pair applied inline via columnColorVariable(), mirroring how core
-// applies --category-color. Ruby only format-validates the stored key and SCSS
-// just reads var(--column-color), so this constant is the only place to edit.
-export const COLUMN_COLORS = {
-  purple: "light-dark(#c97cf4, #803fa5)",
-  orange: "light-dark(#fca700, #9e4c00)",
-  blue: "light-dark(#669df1, #1558bc)",
-  red: "light-dark(#f87168, #ae2e24)",
-  lime: "light-dark(#94c748, #4c6b1f)",
-  green: "light-dark(#4bce97, #216e4e)",
-  pink: "light-dark(#e774bb, #943d73)",
-  yellow: "light-dark(#ddb30e, #614a05)",
-  teal: "light-dark(#6cc3e0, #206a83)",
-};
+// Suggested palette fed to the FormKit color control as @colors. Values are
+// bare 6-digit hexes (no leading "#"), matching how core stores category colors.
+// These are only presets — the control also accepts any custom hex.
+export const COLUMN_COLORS = [
+  "C97CF4",
+  "FCA700",
+  "669DF1",
+  "F87168",
+  "94C748",
+  "4BCE97",
+  "E774BB",
+  "DDB30E",
+  "6CC3E0",
+];
 
-// A stored color is either a preset key from COLUMN_COLORS or a custom 3/6-digit
-// hex (stored without a leading "#", mirroring core's category color).
-export function isPresetColor(color) {
-  return Object.prototype.hasOwnProperty.call(COLUMN_COLORS, color);
-}
-
-// True when a stored color is a usable custom hex rather than a preset.
-export function isCustomColor(color) {
-  return !!color && !isPresetColor(color) && isValidHex(color);
-}
-
-// True when a stored color resolves to an actual color (preset or custom hex).
-// Drives the --has-color modifier so a colored header can adapt its text.
+// True when a stored color is a usable hex; drives the --has-color modifier.
 export function hasColumnColor(color) {
-  return isPresetColor(color) || isCustomColor(color);
+  return !!isValidHex(color);
 }
 
-// Resolves a stored color to a CSS value: the preset's light-dark() pair, a
-// custom hex, or transparent when unset/unknown.
-function resolveColumnColor(color) {
-  if (isPresetColor(color)) {
-    return COLUMN_COLORS[color];
-  }
-  if (isCustomColor(color)) {
-    return `#${normalizeHex(color)}`;
-  }
-  return "transparent";
+// Relative luminance of a 6-digit hex (0–1), used to pick contrasting text.
+function luminance(hex) {
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 }
 
-// Mirrors core's categoryColorVariable: formats a column color into an inline
-// custom property so markup styles itself via var(--column-color).
+// Mirrors core's categoryColorVariable: turns a stored hex into inline custom
+// properties — the fill plus contrasting text colors so the header stays
+// readable for any color, preset or custom. The title sits on a chip that
+// darkens the fill by ~30%, so it gets its own text color judged against that
+// darker background (and so trends lighter than the count on the bare fill).
 export function columnColorVariable(color) {
-  return trustHTML(`--column-color: ${resolveColumnColor(color)};`);
-}
-
-// Background for the custom-color swatch in the picker: the working hex if set,
-// otherwise a neutral fill so the empty slot reads as "add a color".
-export function customColorVariable(hex) {
-  const value =
-    hex && isValidHex(hex) ? `#${normalizeHex(hex)}` : "var(--primary-low)";
-  return trustHTML(`--column-color: ${value};`);
+  if (!isValidHex(color)) {
+    return trustHTML("--column-color: transparent;");
+  }
+  const hex = normalizeHex(color);
+  const lum = luminance(hex);
+  const text = lum > 0.5 ? "#000000" : "#ffffff";
+  const titleText = lum * 0.7 > 0.5 ? "#000000" : "#ffffff";
+  return trustHTML(
+    `--column-color: #${hex}; --column-text-color: ${text}; --column-title-text-color: ${titleText};`
+  );
 }
 
 export const ASSIGNED_OPTIONS = [
