@@ -50,6 +50,8 @@ after_initialize do
     object.guardian.can_manage_kanban_boards?
   end
 
+  DiscoursePluginRegistry.register_acl_target_class(DiscourseKanban::Board, self)
+
   on(:topic_created) do |topic|
     DiscourseKanban::TopicSync.sync_topic(topic)
   rescue StandardError => e

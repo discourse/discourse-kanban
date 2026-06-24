@@ -287,6 +287,7 @@ export default class KanbanBoardSettings extends Component {
 
   #buildDefaultAcl() {
     const defaultAcl = [];
+
     this.discourseKanbanManageBoardAllowedGroupIds.forEach((groupId) => {
       const group = this.site.groups?.find((g) => g.id === groupId);
       if (group) {
@@ -298,6 +299,7 @@ export default class KanbanBoardSettings extends Component {
         });
       }
     });
+
     defaultAcl.push({
       type: "group",
       id: AUTO_GROUPS.logged_in_users.id,
@@ -362,6 +364,7 @@ export default class KanbanBoardSettings extends Component {
                   <DAccessControl
                     @groups={{this.site.groups}}
                     @acl={{field.value}}
+                    @aclTarget="DiscourseKanban::Board"
                     @onChange={{this.aclChanged}}
                     @transformPermissionOptions={{this.transformDAccessControlPermissionOptions}}
                   />
