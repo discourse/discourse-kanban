@@ -285,6 +285,15 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
 
   &__count {
     font-size: var(--font-down-1);
+
+    // Readable on the default (uncolored) header background.
+    color: var(--primary);
+  }
+
+  // When a color is set the header background is filled, so the count switches
+  // to the contrasting light text used for the rest of the colored header.
+  &.--has-color &__count {
+    color: light-dark(var(--secondary), var(--primary));
   }
 
   &__menu-trigger {

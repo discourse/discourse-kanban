@@ -12,7 +12,10 @@ import { eq } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
 import { autoScrollSpeedForPointer } from "../lib/kanban-auto-scroll";
 import { isRecencyColumn } from "../lib/kanban-card-ordering";
-import { columnColorVariable } from "../lib/kanban-column-helpers";
+import {
+  columnColorVariable,
+  hasColumnColor,
+} from "../lib/kanban-column-helpers";
 import { animateCardReorder, captureCardRects } from "../lib/kanban-motion";
 import KanbanCard from "./kanban-card";
 import KanbanAddTopicAsCardModal from "./modal/kanban-add-topic-as-card";
@@ -460,7 +463,8 @@ export default class KanbanColumn extends Component {
 
   <template>
     <div
-      class="discourse-kanban-column"
+      class="discourse-kanban-column
+        {{if (hasColumnColor @column.color) '--has-color'}}"
       data-column-id={{@column.id}}
       data-default-sort={{@column.default_sort}}
       style={{columnColorVariable @column.color}}

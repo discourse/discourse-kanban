@@ -51,6 +51,12 @@ export function isCustomColor(color) {
   return !!color && !isPresetColor(color) && isValidHex(color);
 }
 
+// True when a stored color resolves to an actual color (preset or custom hex).
+// Drives the --has-color modifier so a colored header can adapt its text.
+export function hasColumnColor(color) {
+  return isPresetColor(color) || isCustomColor(color);
+}
+
 // Resolves a stored color to a CSS value: the preset's light-dark() pair, a
 // custom hex, or transparent when unset/unknown.
 function resolveColumnColor(color) {
