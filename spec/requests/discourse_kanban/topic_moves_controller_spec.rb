@@ -16,8 +16,7 @@ RSpec.describe DiscourseKanban::TopicMovesController do
   end
 
   it "creates or updates a topic card on move" do
-    board =
-      DiscourseKanban::Board.create!(name: "Todo", slug: "todo-3", created_by_id: admin.id)
+    board = DiscourseKanban::Board.create!(name: "Todo", slug: "todo-3", created_by_id: admin.id)
     Fabricate(
       :access_control_list_with_groups,
       target: board,

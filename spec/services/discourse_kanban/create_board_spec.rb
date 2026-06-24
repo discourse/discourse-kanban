@@ -47,6 +47,22 @@ RSpec.describe DiscourseKanban::CreateBoard do
         expect(board.created_by_id).to eq(manager.id)
       end
 
+      it "creates mandatory ACLs when ACL params are omitted" do
+        result
+
+        manage_acl = AccessControlList.find_by!(target: result[:board], permission: "manage")
+        expect(manage_acl.allowed_group_ids).to contain_exactly(Group::AUTO_GROUPS[:admins])
+      end
+
+      it "creates mandatory ACLs when ACL params are empty" do
+        raw["acl"] = []
+
+        result
+
+        manage_acl = AccessControlList.find_by!(target: result[:board], permission: "manage")
+        expect(manage_acl.allowed_group_ids).to contain_exactly(Group::AUTO_GROUPS[:admins])
+      end
+
       it "creates a board history" do
         expect { result }.to change { DiscourseKanban::BoardHistory.count }.by(1)
         board = DiscourseKanban::Board.last

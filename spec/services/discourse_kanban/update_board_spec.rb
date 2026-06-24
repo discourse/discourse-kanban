@@ -79,6 +79,15 @@ RSpec.describe DiscourseKanban::UpdateBoard do
         )
       end
 
+      it "replaces existing ACLs with mandatory ACLs when ACL params are empty" do
+        raw["acl"] = []
+
+        result
+
+        manage_acl = AccessControlList.find_by!(target: board, permission: "manage")
+        expect(manage_acl.allowed_group_ids).to contain_exactly(Group::AUTO_GROUPS[:admins])
+      end
+
       it "does not delete topic cards on unconstrained boards" do
         let_raw = { "name" => "Updated", "columns" => [{ "id" => column.id, "title" => "Col" }] }
         let_params = let_raw.merge("id" => board.id)

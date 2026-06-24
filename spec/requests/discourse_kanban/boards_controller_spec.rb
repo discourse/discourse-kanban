@@ -211,11 +211,7 @@ RSpec.describe DiscourseKanban::BoardsController do
 
     it "includes can_manage for users in the manage group" do
       board =
-        DiscourseKanban::Board.create!(
-          name: "Test",
-          slug: "test-manage",
-          created_by_id: admin.id,
-        )
+        DiscourseKanban::Board.create!(name: "Test", slug: "test-manage", created_by_id: admin.id)
       Fabricate(
         :access_control_list_with_groups,
         target: board,
@@ -247,11 +243,7 @@ RSpec.describe DiscourseKanban::BoardsController do
 
     it "sets can_manage to false for users not in the manage group" do
       board =
-        DiscourseKanban::Board.create!(
-          name: "Test",
-          slug: "test-nomanage",
-          created_by_id: admin.id,
-        )
+        DiscourseKanban::Board.create!(name: "Test", slug: "test-nomanage", created_by_id: admin.id)
       Fabricate(
         :access_control_list_with_groups,
         target: board,
@@ -416,11 +408,7 @@ RSpec.describe DiscourseKanban::BoardsController do
 
     it "denies access to users without read permission" do
       board =
-        DiscourseKanban::Board.create!(
-          name: "Secret",
-          slug: "secret",
-          created_by_id: admin.id,
-        )
+        DiscourseKanban::Board.create!(name: "Secret", slug: "secret", created_by_id: admin.id)
       Fabricate(
         :access_control_list_with_groups,
         target: board,

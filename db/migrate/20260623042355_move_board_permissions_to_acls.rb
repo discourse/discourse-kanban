@@ -14,7 +14,7 @@ class MoveBoardPermissionsToAcls < ActiveRecord::Migration[8.0]
     if kanban_manage_group_ids.blank?
       kanban_manage_group_ids = [1] # admins only by default/mandatory
     else
-      kanban_manage_group_ids = kanban_manage_group_ids.split("|").map(&:to_i)
+      kanban_manage_group_ids = (kanban_manage_group_ids.split("|").map(&:to_i) + [1]).uniq # ensure admins are always included
     end
 
     target_type = "DiscourseKanban::Board"

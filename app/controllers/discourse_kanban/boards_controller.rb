@@ -71,7 +71,7 @@ module DiscourseKanban
                  board_payload(
                    @board,
                    tag_name_map:,
-                   include_acl: guardian.can_manage_kanban_boards?,
+                   include_acl: guardian.can_manage_kanban_board?(@board),
                  ),
                columns: columns,
              }
@@ -100,9 +100,7 @@ module DiscourseKanban
         raw_board_params: raw,
       ) do
         on_success do |board:, cards_removed_count:|
-          response = {
-            board: board_payload(board, include_acl: guardian.can_manage_kanban_boards?),
-          }
+          response = { board: board_payload(board, include_acl: guardian.can_manage_board?(board)) }
           response[:cards_removed_count] = cards_removed_count if cards_removed_count.to_i > 0
           render json: response
         end

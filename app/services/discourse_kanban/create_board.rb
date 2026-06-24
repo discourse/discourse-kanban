@@ -51,10 +51,6 @@ module DiscourseKanban
       raw = context[:raw_board_params] || {}
       flattened_acl = raw["acl"] || []
 
-      # TODO (martin) This feels a bit janky... only_if for this step
-      # would be nice, but we need more structured params first.
-      return if !flattened_acl.present?
-
       # TODO (martin) We need to add the current user as Owner here
       # when we have the user functionality ready for ACLs
       AccessControlListManager.call(

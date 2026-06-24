@@ -2,7 +2,7 @@
 
 module DiscourseKanban
   class Board < ActiveRecord::Base
-    include AclTarget
+    include ::AclTarget
 
     self.table_name = "discourse_kanban_boards"
     self.ignored_columns = %w[

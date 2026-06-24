@@ -115,11 +115,7 @@ RSpec.describe DiscourseKanban::GuardianExtensions do
 
     it "does not allow creator special priveleges to write if they are not in a write group" do
       board =
-        DiscourseKanban::Board.create!(
-          name: "Support",
-          slug: "support",
-          created_by_id: creator.id,
-        )
+        DiscourseKanban::Board.create!(name: "Support", slug: "support", created_by_id: creator.id)
       Fabricate(
         :access_control_list_with_groups,
         target: board,

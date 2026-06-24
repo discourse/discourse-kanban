@@ -16,10 +16,7 @@ RSpec.describe DiscourseKanban::OneboxHandler do
       :access_control_list,
       target: board,
       permission: "view",
-      allowed_group_ids: [
-        Group::AUTO_GROUPS[:anonymous_users],
-        Group::AUTO_GROUPS[:trust_level_0],
-      ],
+      allowed_group_ids: [Group::AUTO_GROUPS[:anonymous_users], Group::AUTO_GROUPS[:trust_level_0]],
     )
     board
   end
