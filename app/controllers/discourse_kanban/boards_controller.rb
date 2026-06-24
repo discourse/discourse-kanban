@@ -17,7 +17,7 @@ module DiscourseKanban
           .where(
             "id IN (:kanban_board_ids)",
             kanban_board_ids:
-              current_user.target_ids_with_any_acl_permissions(
+              guardian.target_ids_with_any_acl_permissions(
                 DiscourseKanban::Board,
                 %w[view edit manage],
               ),
@@ -67,7 +67,12 @@ module DiscourseKanban
         end
 
       render json: {
-               board: board_payload(@board, tag_name_map:, include_acl: true),
+               board:
+                 board_payload(
+                   @board,
+                   tag_name_map:,
+                   include_acl: guardian.can_manage_kanban_boards?,
+                 ),
                columns: columns,
              }
     end
@@ -95,7 +100,9 @@ module DiscourseKanban
         raw_board_params: raw,
       ) do
         on_success do |board:, cards_removed_count:|
-          response = { board: board_payload(board, include_acl: true) }
+          response = {
+            board: board_payload(board, include_acl: guardian.can_manage_kanban_boards?),
+          }
           response[:cards_removed_count] = cards_removed_count if cards_removed_count.to_i > 0
           render json: response
         end
@@ -134,7 +141,7 @@ module DiscourseKanban
 
     def constraint_preview
       board = DiscourseKanban::Board.find(params[:id])
-      guardian.ensure_can_manage_kanban_boards!
+      guardian.ensure_can_manage_board!(board)
 
       new_category_ids = Array(params[:category_ids]).map(&:to_i).reject(&:zero?)
       new_tag_ids =

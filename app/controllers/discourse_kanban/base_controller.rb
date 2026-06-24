@@ -44,7 +44,7 @@ module DiscourseKanban
         card_style: board.card_style,
         show_topic_thumbnail: board.show_topic_thumbnail,
         can_write: guardian.can_write_board?(board),
-        can_manage: guardian.can_manage_kanban_boards?,
+        can_manage: guardian.can_manage_board?(board),
         created_by: created_by_payload(board.created_by),
         columns: board.columns.map { |column| column_payload(column, tag_name_map:) },
         acl:

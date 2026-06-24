@@ -50,7 +50,6 @@ module DiscourseKanban
     def reload(options = nil)
       @tags = nil
       @categories = nil
-      @permission_acl = nil
       super
     end
 
