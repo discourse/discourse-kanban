@@ -9,19 +9,11 @@ module DiscourseKanban
     def respond
       render body: nil
     end
-
     def index
       boards =
         DiscourseKanban::Board
           .includes(:columns, :created_by)
-          .where(
-            "id IN (:kanban_board_ids)",
-            kanban_board_ids:
-              guardian.target_ids_with_any_acl_permissions(
-                DiscourseKanban::Board,
-                %w[view edit manage],
-              ),
-          )
+          .with_any_acl_permissions(guardian, %w[view edit manage])
           .to_a
       tag_name_map = build_tag_name_map(*boards)
       render json: { boards: boards.map { |board| board_payload(board, tag_name_map:) } }
