@@ -63,7 +63,7 @@ module DiscourseKanban
                  board_payload(
                    @board,
                    tag_name_map:,
-                   include_acl: guardian.can_manage_kanban_board?(@board),
+                   include_acl: guardian.can_manage_board?(@board),
                  ),
                columns: columns,
              }

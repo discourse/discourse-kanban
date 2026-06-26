@@ -36,7 +36,8 @@ module DiscourseKanban
 
     def update_acl(board:, guardian:)
       raw = context[:raw_board_params] || {}
-      flattened_acl = raw["acl"] || []
+      return if !raw.key?("acl")
+      flattened_acl = raw["acl"]
 
       AccessControlListManager.call(
         guardian:,
@@ -99,6 +100,8 @@ module DiscourseKanban
       board.save!
     end
 
+    # TODO (martin) Split this out into a dedicated BoardColumnUpdater service,
+    # it feels out of place here
     def replace_columns(board:, guardian:)
       raw = context[:raw_board_params] || {}
       ColumnsReplacer.replace!(

@@ -41,7 +41,8 @@ describe "Kanban Board Viewer" do
     write_groups: []
   )
     board =
-      DiscourseKanban::Board.create!(
+      Fabricate(
+        :kanban_board,
         {
           name: "Sprint Board",
           slug: "sprint-board",
@@ -49,6 +50,7 @@ describe "Kanban Board Viewer" do
           require_confirmation: true,
           show_tags: true,
           category_ids: [category.id],
+          additional_manage_groups: [manage_group],
         }.merge(attrs),
       )
 

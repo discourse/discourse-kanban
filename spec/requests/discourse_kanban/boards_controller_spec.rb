@@ -23,16 +23,14 @@ RSpec.describe DiscourseKanban::BoardsController do
     it "returns only boards visible to the current user" do
       other_group = Fabricate(:group)
 
-      visible =
-        DiscourseKanban::Board.create!(name: "Visible", slug: "visible", created_by_id: admin.id)
+      visible = Fabricate(:kanban_board, name: "Visible", slug: "visible", created_by: admin)
       Fabricate(
         :access_control_list_with_groups,
         target: visible,
         permission: "view",
         groups: [read_group],
       )
-      hidden =
-        DiscourseKanban::Board.create!(name: "Hidden", slug: "hidden", created_by_id: admin.id)
+      hidden = Fabricate(:kanban_board, name: "Hidden", slug: "hidden", created_by: admin)
       Fabricate(
         :access_control_list_with_groups,
         target: hidden,
@@ -53,8 +51,7 @@ RSpec.describe DiscourseKanban::BoardsController do
     it "returns all boards for admins" do
       other_group = Fabricate(:group)
 
-      private_board =
-        DiscourseKanban::Board.create!(name: "Private", slug: "private", created_by_id: admin.id)
+      private_board = Fabricate(:kanban_board, name: "Private", slug: "private", created_by: admin)
       Fabricate(
         :access_control_list_with_groups,
         target: private_board,
@@ -74,13 +71,14 @@ RSpec.describe DiscourseKanban::BoardsController do
     it "returns full board payload with columns and cards" do
       topic = Fabricate(:topic, category: category)
       board =
-        DiscourseKanban::Board.create!(
+        Fabricate(
+          :kanban_board,
           name: "Sprint",
           slug: "sprint",
           show_tags: true,
           card_style: "detailed",
           category_ids: [category.id],
-          created_by_id: admin.id,
+          created_by: admin,
         )
       Fabricate(
         :access_control_list_with_groups,
@@ -133,11 +131,12 @@ RSpec.describe DiscourseKanban::BoardsController do
       staff_tag_group.save!
 
       board =
-        DiscourseKanban::Board.create!(
+        Fabricate(
+          :kanban_board,
           name: "Public Roadmap",
           slug: "public-roadmap",
           tag_ids: [hidden_tag.id, visible_tag.id],
-          created_by_id: admin.id,
+          created_by: admin,
         )
       Fabricate(
         :access_control_list,
@@ -179,10 +178,11 @@ RSpec.describe DiscourseKanban::BoardsController do
       visible_tag = Fabricate(:tag, name: "public-floater")
       Fabricate(:tag_group, permissions: { "staff" => 1 }, tag_names: [hidden_tag.name])
       board =
-        DiscourseKanban::Board.create!(
+        Fabricate(
+          :kanban_board,
           name: "Public Roadmap",
           slug: "public-roadmap-floaters",
-          created_by_id: admin.id,
+          created_by: admin,
         )
       Fabricate(
         :access_control_list,
@@ -211,13 +211,13 @@ RSpec.describe DiscourseKanban::BoardsController do
 
     it "includes can_manage for users in the manage group" do
       board =
-        DiscourseKanban::Board.create!(name: "Test", slug: "test-manage", created_by_id: admin.id)
-      Fabricate(
-        :access_control_list_with_groups,
-        target: board,
-        permission: "manage",
-        groups: [manage_group],
-      )
+        Fabricate(
+          :kanban_board,
+          name: "Test",
+          slug: "test-manage",
+          created_by: admin,
+          additional_manage_groups: [manage_group],
+        )
       board.columns.create!(title: "Col", position: 0)
 
       sign_in(manager)
@@ -227,12 +227,7 @@ RSpec.describe DiscourseKanban::BoardsController do
     end
 
     it "includes can_manage for admins" do
-      board =
-        DiscourseKanban::Board.create!(
-          name: "Test",
-          slug: "test-admin-manage",
-          created_by_id: admin.id,
-        )
+      board = Fabricate(:kanban_board, name: "Test", slug: "test-admin-manage", created_by: admin)
       board.columns.create!(title: "Col", position: 0)
 
       sign_in(admin)
@@ -242,8 +237,7 @@ RSpec.describe DiscourseKanban::BoardsController do
     end
 
     it "sets can_manage to false for users not in the manage group" do
-      board =
-        DiscourseKanban::Board.create!(name: "Test", slug: "test-nomanage", created_by_id: admin.id)
+      board = Fabricate(:kanban_board, name: "Test", slug: "test-nomanage", created_by: admin)
       Fabricate(
         :access_control_list_with_groups,
         target: board,
@@ -260,11 +254,7 @@ RSpec.describe DiscourseKanban::BoardsController do
 
     it "includes the creator's username and avatar_template" do
       board =
-        DiscourseKanban::Board.create!(
-          name: "Creator Test",
-          slug: "creator-test",
-          created_by_id: admin.id,
-        )
+        Fabricate(:kanban_board, name: "Creator Test", slug: "creator-test", created_by: admin)
       board.columns.create!(title: "Col", position: 0)
 
       sign_in(admin)
@@ -280,12 +270,13 @@ RSpec.describe DiscourseKanban::BoardsController do
     it "includes topic details for detailed cards" do
       topic = Fabricate(:topic, category: category)
       board =
-        DiscourseKanban::Board.create!(
+        Fabricate(
+          :kanban_board,
           name: "Detailed",
           slug: "detailed",
           card_style: "detailed",
           category_ids: [category.id],
-          created_by_id: admin.id,
+          created_by: admin,
         )
       col = board.columns.create!(title: "Col", position: 0)
       board.cards.create!(
@@ -312,11 +303,12 @@ RSpec.describe DiscourseKanban::BoardsController do
       private_topic = Fabricate(:topic, category: private_category)
 
       board =
-        DiscourseKanban::Board.create!(
+        Fabricate(
+          :kanban_board,
           name: "Mixed",
           slug: "mixed",
           category_ids: [category.id, private_category.id],
-          created_by_id: admin.id,
+          created_by: admin,
         )
       Fabricate(
         :access_control_list_with_groups,
@@ -352,11 +344,12 @@ RSpec.describe DiscourseKanban::BoardsController do
     it "does not backfill cards into unconstrained columns even when the board filter matches" do
       topic = Fabricate(:topic, category: category)
       board =
-        DiscourseKanban::Board.create!(
+        Fabricate(
+          :kanban_board,
           name: "Auto Board",
           slug: "auto-board",
           category_ids: [category.id],
-          created_by_id: admin.id,
+          created_by: admin,
         )
       board.columns.create!(title: "Backlog", position: 0)
 
@@ -371,11 +364,7 @@ RSpec.describe DiscourseKanban::BoardsController do
 
     it "orders columns by recency default sort order based on computed recency_at" do
       board =
-        DiscourseKanban::Board.create!(
-          name: "Recent Board",
-          slug: "recent-board",
-          created_by_id: admin.id,
-        )
+        Fabricate(:kanban_board, name: "Recent Board", slug: "recent-board", created_by: admin)
       col = board.columns.create!(title: "Done", position: 0, default_sort: "recency")
       old_card =
         board.cards.create!(
@@ -407,8 +396,7 @@ RSpec.describe DiscourseKanban::BoardsController do
     end
 
     it "denies access to users without read permission" do
-      board =
-        DiscourseKanban::Board.create!(name: "Secret", slug: "secret", created_by_id: admin.id)
+      board = Fabricate(:kanban_board, name: "Secret", slug: "secret", created_by: admin)
       Fabricate(
         :access_control_list_with_groups,
         target: board,
@@ -424,8 +412,7 @@ RSpec.describe DiscourseKanban::BoardsController do
     end
 
     it "reports public_read based on the anonymous group" do
-      public_board =
-        DiscourseKanban::Board.create!(name: "Public", slug: "public", created_by_id: admin.id)
+      public_board = Fabricate(:kanban_board, name: "Public", slug: "public", created_by: admin)
       Fabricate(
         :access_control_list,
         target: public_board,
@@ -435,11 +422,7 @@ RSpec.describe DiscourseKanban::BoardsController do
       public_board.columns.create!(title: "Col", position: 0)
 
       restricted_board =
-        DiscourseKanban::Board.create!(
-          name: "Restricted",
-          slug: "restricted",
-          created_by_id: admin.id,
-        )
+        Fabricate(:kanban_board, name: "Restricted", slug: "restricted", created_by: admin)
       Fabricate(
         :access_control_list_with_groups,
         target: restricted_board,
@@ -488,17 +471,13 @@ RSpec.describe DiscourseKanban::BoardsController do
 
     it "persists column default sort" do
       board =
-        DiscourseKanban::Board.create!(
+        Fabricate(
+          :kanban_board,
           name: "Sort Board",
           slug: "sort-board",
-          created_by_id: admin.id,
+          created_by: admin,
+          additional_manage_groups: [manage_group],
         )
-      Fabricate(
-        :access_control_list_with_groups,
-        target: board,
-        permission: "manage",
-        groups: [manage_group],
-      )
       column = board.columns.create!(title: "Col", position: 0)
 
       sign_in(manager)
@@ -528,13 +507,13 @@ RSpec.describe DiscourseKanban::BoardsController do
   describe "PUT /kanban/boards/:id" do
     it "updates board attributes for users in the manage group" do
       board =
-        DiscourseKanban::Board.create!(name: "Old Name", slug: "old-name", created_by_id: admin.id)
-      Fabricate(
-        :access_control_list_with_groups,
-        target: board,
-        permission: "manage",
-        groups: [manage_group],
-      )
+        Fabricate(
+          :kanban_board,
+          name: "Old Name",
+          slug: "old-name",
+          created_by: admin,
+          additional_manage_groups: [manage_group],
+        )
       board.columns.create!(title: "Col", position: 0)
 
       sign_in(manager)
@@ -556,12 +535,7 @@ RSpec.describe DiscourseKanban::BoardsController do
     end
 
     it "rejects users not in the manage group" do
-      board =
-        DiscourseKanban::Board.create!(
-          name: "Protected",
-          slug: "protected",
-          created_by_id: admin.id,
-        )
+      board = Fabricate(:kanban_board, name: "Protected", slug: "protected", created_by: admin)
       Fabricate(
         :access_control_list_with_groups,
         target: board,
@@ -581,18 +555,14 @@ RSpec.describe DiscourseKanban::BoardsController do
     fab!(:sales_tag, :tag) { Fabricate(:tag, name: "sales") }
     fab!(:board_mc) do
       board =
-        DiscourseKanban::Board.create!(
+        Fabricate(
+          :kanban_board,
           name: "Move Col",
           slug: "move-col",
           tag_ids: [sales_tag.id],
-          created_by_id: admin.id,
+          created_by: admin,
+          additional_manage_groups: [manage_group],
         )
-      Fabricate(
-        :access_control_list_with_groups,
-        target: board,
-        permission: "manage",
-        groups: [manage_group],
-      )
       board
     end
     fab!(:col_a) { board_mc.columns.create!(title: "A", position: 0) }
@@ -682,17 +652,13 @@ RSpec.describe DiscourseKanban::BoardsController do
   describe "DELETE /kanban/boards/:id" do
     it "deletes a board for users in the manage group" do
       board =
-        DiscourseKanban::Board.create!(
+        Fabricate(
+          :kanban_board,
           name: "Deletable",
           slug: "deletable",
-          created_by_id: admin.id,
+          created_by: admin,
+          additional_manage_groups: [manage_group],
         )
-      Fabricate(
-        :access_control_list_with_groups,
-        target: board,
-        permission: "manage",
-        groups: [manage_group],
-      )
 
       sign_in(manager)
 
@@ -704,12 +670,7 @@ RSpec.describe DiscourseKanban::BoardsController do
     end
 
     it "rejects users not in the manage group" do
-      board =
-        DiscourseKanban::Board.create!(
-          name: "Protected",
-          slug: "protected",
-          created_by_id: admin.id,
-        )
+      board = Fabricate(:kanban_board, name: "Protected", slug: "protected", created_by: admin)
 
       sign_in(outsider)
 

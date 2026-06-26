@@ -4,14 +4,22 @@ Fabricator(:kanban_board, class_name: "DiscourseKanban::Board") do
   name { sequence(:kanban_board_name) { |i| "#{Faker::Company.buzzword.capitalize} Board #{i}" } }
   created_by { Fabricate(:user) }
   transient :column_names
+  transient :additional_manage_groups
 
   after_create do |board, evaluator|
     (evaluator[:column_names] || []).each_with_index do |column_name, index|
       board.columns.create!(title: column_name, position: index)
     end
 
-    AccessControlList.insert_all!(
-      board.mandatory_acl_as_expanded_list(DiscourseKanban::PLUGIN_NAME),
+    additional_manage_groups =
+      Array
+        .wrap(evaluator[:additional_manage_groups])
+        .map { |group| AccessControlList.flat_acl_for(group, "manage") }
+
+    AccessControlList.bulk_insert_flattened_acl!(
+      AccessControlList.inject_mandatory_acl(additional_manage_groups, board),
+      board,
+      DiscourseKanban::PLUGIN_NAME,
     )
   end
 end

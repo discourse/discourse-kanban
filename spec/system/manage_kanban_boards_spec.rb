@@ -12,14 +12,6 @@ describe "Manage Kanban Boards" do
   let(:permanently_delete_confirm) { PageObjects::Modals::PermanentlyDeleteConfirm.new }
   let(:toasts) { PageObjects::Components::Toasts.new }
 
-  # Boards always carry a mandatory "manage" ACL for the admins group, so grant
-  # the manage group access by extending that ACL rather than creating a second
-  # (conflicting) manage ACL.
-  def grant_board_manage(board, group)
-    acl = AccessControlList.find_by(target: board, permission: "manage")
-    acl.update!(allowed_group_ids: (acl.allowed_group_ids + [group.id]).uniq)
-  end
-
   before do
     enable_current_plugin
     SiteSetting.discourse_kanban_manage_board_allowed_groups = manage_group.id.to_s
@@ -115,8 +107,7 @@ describe "Manage Kanban Boards" do
     end
 
     it "can delete a column with no cards without confirmation" do
-      board = Fabricate(:kanban_board)
-      grant_board_manage(board, manage_group)
+      board = Fabricate(:kanban_board, additional_manage_groups: [manage_group])
       column = Fabricate(:kanban_column, board: board)
       boards_page.visit_page
       boards_page.click_board(board.name)
@@ -128,8 +119,7 @@ describe "Manage Kanban Boards" do
     end
 
     it "requires confirmation when deleting a column with cards" do
-      board = Fabricate(:kanban_board)
-      grant_board_manage(board, manage_group)
+      board = Fabricate(:kanban_board, additional_manage_groups: [manage_group])
       column = Fabricate(:kanban_column, board: board)
       Fabricate(:kanban_card, board: board, column: column)
       boards_page.visit_page
@@ -143,8 +133,7 @@ describe "Manage Kanban Boards" do
     end
 
     it "requires entering the column name as delete confirmation when deleting a column with more than 5 cards" do
-      board = Fabricate(:kanban_board)
-      grant_board_manage(board, manage_group)
+      board = Fabricate(:kanban_board, additional_manage_groups: [manage_group])
       column = Fabricate(:kanban_column, board: board)
       6.times { Fabricate(:kanban_card, board: board, column: column) }
       boards_page.visit_page
@@ -177,9 +166,12 @@ describe "Manage Kanban Boards" do
 
     describe "for an existing board" do
       fab!(:board) do
-        board = Fabricate(:kanban_board, name: "Simple Board", created_by: admin)
-        grant_board_manage(board, manage_group)
-        board
+        Fabricate(
+          :kanban_board,
+          name: "Simple Board",
+          created_by: admin,
+          additional_manage_groups: [manage_group],
+        )
       end
 
       it "creates a column with a tag" do
