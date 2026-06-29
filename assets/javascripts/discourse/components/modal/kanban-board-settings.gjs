@@ -257,7 +257,7 @@ export default class KanbanBoardSettings extends Component {
   }
 
   @action
-  transformDAccessControlPermissionOptions(options) {
+  transformPermissionOptions(options) {
     const viewOption = options.find((option) => option.id === "view");
     viewOption.description = i18n(
       "discourse_kanban.manage.board_access_permission_viewer_description"
@@ -366,7 +366,7 @@ export default class KanbanBoardSettings extends Component {
                     @acl={{field.value}}
                     @aclTarget="DiscourseKanban::Board"
                     @onChange={{this.aclChanged}}
-                    @transformPermissionOptions={{this.transformDAccessControlPermissionOptions}}
+                    @transformPermissionOptions={{this.transformPermissionOptions}}
                   />
                 </field.Control>
               </form.Field>

@@ -39,6 +39,15 @@ module DiscourseKanban
       [{ type: :group, id: Group::AUTO_GROUPS[:admins], permission: "manage" }]
     end
 
+    def self.banned_acl
+      [
+        { type: :group, id: Group::AUTO_GROUPS[:anonymous_users], permission: "manage" },
+        { type: :group, id: Group::AUTO_GROUPS[:anonymous_users], permission: "edit" },
+        { type: :group, id: Group::AUTO_GROUPS[:everyone], permission: "manage" },
+        { type: :group, id: Group::AUTO_GROUPS[:everyone], permission: "edit" },
+      ]
+    end
+
     def url
       "#{Discourse.base_url}/kanban/boards/#{slug}/#{id}"
     end
