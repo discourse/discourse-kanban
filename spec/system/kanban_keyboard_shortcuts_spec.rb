@@ -13,14 +13,17 @@ describe "Kanban Keyboard Shortcuts" do
   end
 
   def create_board(attrs = {})
-    DiscourseKanban::Board.create!(
-      {
-        name: "Sprint Board",
-        slug: "sprint-board",
-        created_by_id: admin.id,
-        allow_write_group_ids: [write_group.id],
-      }.merge(attrs),
+    board =
+      DiscourseKanban::Board.create!(
+        { name: "Sprint Board", slug: "sprint-board", created_by_id: admin.id }.merge(attrs),
+      )
+    Fabricate(
+      :access_control_list_with_groups,
+      target: board,
+      permission: "edit",
+      groups: [write_group],
     )
+    board
   end
 
   def add_floater_card(board, column, title)
@@ -45,8 +48,13 @@ describe "Kanban Keyboard Shortcuts" do
           name: "Sprint Board",
           slug: "sprint-board",
           created_by_id: User.last.id,
-          allow_write_group_ids: [write_group.id],
         )
+      Fabricate(
+        :access_control_list_with_groups,
+        target: b,
+        permission: "edit",
+        groups: [write_group],
+      )
       col1 = b.columns.create!(title: "To Do", position: 0)
       col2 = b.columns.create!(title: "Done", position: 1)
       3.times do |i|
@@ -147,10 +155,17 @@ describe "Kanban Keyboard Shortcuts" do
   context "when navigating the boards list" do
     before do
       3.times do |i|
-        DiscourseKanban::Board.create!(
-          name: "Board #{i + 1}",
-          slug: "board-#{i + 1}",
-          created_by_id: admin.id,
+        board =
+          DiscourseKanban::Board.create!(
+            name: "Board #{i + 1}",
+            slug: "board-#{i + 1}",
+            created_by_id: admin.id,
+          )
+        Fabricate(
+          :access_control_list_with_groups,
+          target: board,
+          permission: "edit",
+          groups: [write_group],
         )
       end
     end

@@ -12,16 +12,17 @@ RSpec.describe DiscourseKanban::TopicMovesController do
   before do
     enable_current_plugin
     write_group.add(writer)
+    write_group.add(admin)
   end
 
   it "creates or updates a topic card on move" do
-    board =
-      DiscourseKanban::Board.create!(
-        name: "Todo",
-        slug: "todo-3",
-        allow_write_group_ids: [write_group.id],
-        created_by_id: admin.id,
-      )
+    board = DiscourseKanban::Board.create!(name: "Todo", slug: "todo-3", created_by_id: admin.id)
+    Fabricate(
+      :access_control_list_with_groups,
+      target: board,
+      permission: "edit",
+      groups: [write_group],
+    )
     column = board.columns.create!(title: "Doing", position: 0)
 
     sign_in(admin)
@@ -49,9 +50,14 @@ RSpec.describe DiscourseKanban::TopicMovesController do
       DiscourseKanban::Board.create!(
         name: "Todo",
         slug: "todo-assignments",
-        allow_write_group_ids: [write_group.id],
         created_by_id: admin.id,
       )
+    Fabricate(
+      :access_control_list_with_groups,
+      target: board,
+      permission: "edit",
+      groups: [write_group],
+    )
     column = board.columns.create!(title: "Doing", position: 0)
 
     sign_in(writer)

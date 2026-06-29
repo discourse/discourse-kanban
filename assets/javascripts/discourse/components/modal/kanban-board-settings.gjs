@@ -10,11 +10,12 @@ import DModal from "discourse/components/d-modal";
 import Form from "discourse/components/form";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
+import { AUTO_GROUPS } from "discourse/lib/constants";
 import discourseDebounce from "discourse/lib/debounce";
 import { slugify } from "discourse/lib/utilities";
 import CategorySelector from "discourse/select-kit/components/category-selector";
-import GroupChooser from "discourse/select-kit/components/group-chooser";
 import { eq, or } from "discourse/truth-helpers";
+import DAccessControl from "discourse/ui-kit/d-access-control";
 import { i18n } from "discourse-i18n";
 import KanbanEditableTitle from "../kanban-editable-title";
 
@@ -84,10 +85,7 @@ export default class KanbanBoardSettings extends Component {
         show_tags: board.show_tags ?? false,
         show_topic_thumbnail: board.show_topic_thumbnail ?? false,
         require_confirmation: board.require_confirmation ?? false,
-        allow_read_group_ids: board.allow_read_group_ids || [],
-        allow_write_group_ids: isEmpty(board.allow_write_group_ids)
-          ? this.discourseKanbanManageBoardAllowedGroupIds
-          : board.allow_write_group_ids,
+        acl: board.acl,
       };
     }
 
@@ -102,8 +100,7 @@ export default class KanbanBoardSettings extends Component {
       show_tags: true,
       show_topic_thumbnail: false,
       require_confirmation: false,
-      allow_read_group_ids: [],
-      allow_write_group_ids: this.discourseKanbanManageBoardAllowedGroupIds,
+      acl: this.#buildDefaultAcl(),
     };
   }
 
@@ -171,14 +168,16 @@ export default class KanbanBoardSettings extends Component {
   }
 
   @action
-  setGroupIds(field, groupIds) {
-    field.set(groupIds || []);
-  }
+  validateAccess(name, value, { addError }) {
+    const hasManager = (value || []).some(
+      (entry) => entry.permission === "manage"
+    );
 
-  @action
-  onCloseWriteGroupChooser(field) {
-    if (field.name === "allow_write_group_ids" && isEmpty(field.value)) {
-      field.set(this.discourseKanbanManageBoardAllowedGroupIds);
+    if (!hasManager) {
+      addError(name, {
+        title: i18n("discourse_kanban.manage.board_access"),
+        message: i18n("discourse_kanban.manage.board_access_requires_editor"),
+      });
     }
   }
 
@@ -257,6 +256,61 @@ export default class KanbanBoardSettings extends Component {
     this.args.closeModal();
   }
 
+  @action
+  transformPermissionOptions(options) {
+    const viewOption = options.find((option) => option.id === "view");
+    viewOption.description = i18n(
+      "discourse_kanban.manage.board_access_permission_viewer_description"
+    );
+
+    const editOption = options.find((option) => option.id === "edit");
+    editOption.description = i18n(
+      "discourse_kanban.manage.board_access_permission_editor_description"
+    );
+
+    options.push({
+      id: "manage",
+      level: 3,
+      name: i18n("discourse_kanban.manage.board_access_permission_manager"),
+      description: i18n(
+        "discourse_kanban.manage.board_access_permission_manager_description"
+      ),
+    });
+
+    return options;
+  }
+
+  @action
+  aclChanged(acl) {
+    this.formApi.set("acl", acl);
+  }
+
+  #buildDefaultAcl() {
+    const defaultAcl = [];
+
+    this.discourseKanbanManageBoardAllowedGroupIds.forEach((groupId) => {
+      const group = this.site.groups?.find((g) => g.id === groupId);
+      if (group) {
+        defaultAcl.push({
+          type: "group",
+          id: group.id,
+          permission: "manage",
+          full_name: group.full_name,
+        });
+      }
+    });
+
+    defaultAcl.push({
+      type: "group",
+      id: AUTO_GROUPS.logged_in_users.id,
+      permission: "view",
+      full_name: this.site.groups.find(
+        (g) => g.id === AUTO_GROUPS.logged_in_users.id
+      )?.full_name,
+    });
+    return defaultAcl;
+  }
+
   <template>
     <DModal
       @closeModal={{@closeModal}}
@@ -296,41 +350,23 @@ export default class KanbanBoardSettings extends Component {
 
             <form.Section>
               <form.Field
-                @name="allow_read_group_ids"
-                @title={{i18n "discourse_kanban.manage.allow_read_groups"}}
+                @name="acl"
+                @title={{i18n "discourse_kanban.manage.board_access"}}
+                @description={{i18n
+                  "discourse_kanban.manage.board_access_description"
+                }}
                 @format="max"
                 @type="custom"
-                @description={{i18n
-                  "discourse_kanban.manage.allow_read_groups_description"
-                }}
+                @validate={{this.validateAccess}}
                 as |field|
               >
                 <field.Control>
-                  <GroupChooser
-                    @content={{this.site.groups}}
-                    @value={{data.allow_read_group_ids}}
-                    @onChange={{fn this.setGroupIds field}}
-                  />
-                </field.Control>
-              </form.Field>
-
-              <form.Field
-                @name="allow_write_group_ids"
-                @title={{i18n "discourse_kanban.manage.allow_write_groups"}}
-                @format="max"
-                @type="custom"
-                @validation="required"
-                @description={{i18n
-                  "discourse_kanban.manage.allow_write_groups_description"
-                }}
-                as |field|
-              >
-                <field.Control>
-                  <GroupChooser
-                    @content={{this.site.groups}}
-                    @value={{data.allow_write_group_ids}}
-                    @onChange={{fn this.setGroupIds field}}
-                    @onClose={{fn this.onCloseWriteGroupChooser field}}
+                  <DAccessControl
+                    @groups={{this.site.groups}}
+                    @acl={{field.value}}
+                    @aclTarget="DiscourseKanban::Board"
+                    @onChange={{this.aclChanged}}
+                    @transformPermissionOptions={{this.transformPermissionOptions}}
                   />
                 </field.Control>
               </form.Field>

@@ -14,8 +14,7 @@ module DiscourseKanban
 
     def self.build_card_onebox(url, card_id, board_id, opts)
       card = DiscourseKanban::Card.find_by(id: card_id, board_id: board_id)
-      guardian = Discourse.system_user.guardian
-      return "" if !card || !guardian.can_read_board?(card.board)
+      return "" if !card || !card.board.anonymous_can_read?
       if card.topic? &&
            (
              card.topic.blank? ||
@@ -68,7 +67,7 @@ module DiscourseKanban
 
     def self.build_board_onebox(url, board_id)
       board = DiscourseKanban::Board.find_by(id: board_id)
-      return "" if !board || !Discourse.system_user.guardian.can_read_board?(board)
+      return "" if !board || !board.anonymous_can_read?
 
       tag_html = ""
       if board.tags.any?
@@ -108,7 +107,6 @@ module DiscourseKanban
         categories_preview: board.categories.any?,
         has_constraints: board.tags.any? || board.categories.any?,
         columns_preview: board.columns.any?,
-        restricted: board.allow_read_group_ids.any?,
       }
 
       Mustache.render(DiscourseKanban.board_onebox_template, args)

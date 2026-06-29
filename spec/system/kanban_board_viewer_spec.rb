@@ -18,6 +18,7 @@ describe "Kanban Board Viewer" do
     SiteSetting.discourse_kanban_manage_board_allowed_groups = manage_group.id.to_s
     manage_group.add(manager)
     write_group.add(user)
+    write_group.add(admin)
   end
 
   class CreateBoardResult
@@ -33,9 +34,15 @@ describe "Kanban Board Viewer" do
     end
   end
 
-  def create_board(attrs = {}, with_columns: [])
+  def create_board(
+    attrs = {},
+    with_columns: [],
+    read_groups: [write_group, manage_group],
+    write_groups: []
+  )
     board =
-      DiscourseKanban::Board.create!(
+      Fabricate(
+        :kanban_board,
         {
           name: "Sprint Board",
           slug: "sprint-board",
@@ -43,8 +50,28 @@ describe "Kanban Board Viewer" do
           require_confirmation: true,
           show_tags: true,
           category_ids: [category.id],
+          additional_manage_groups: [manage_group],
         }.merge(attrs),
       )
+
+    # Make the board readable by the signed-in actors (a write_group
+    # member and a manage_group member). Move tests override write access.
+    if read_groups.present?
+      Fabricate(
+        :access_control_list_with_groups,
+        target: board,
+        permission: "view",
+        groups: read_groups,
+      )
+    end
+    if write_groups.present?
+      Fabricate(
+        :access_control_list_with_groups,
+        target: board,
+        permission: "edit",
+        groups: write_groups,
+      )
+    end
 
     columns =
       with_columns.each_with_object({}) do |column_attrs, hash|
@@ -126,7 +153,8 @@ describe "Kanban Board Viewer" do
     it "moves card after confirming" do
       result =
         create_board(
-          { allow_write_group_ids: [write_group.id] },
+          {},
+          write_groups: [write_group],
           with_columns: [{ title: "To Do", position: 0 }, { title: "Done", position: 1 }],
         )
       board = result.board
@@ -151,7 +179,8 @@ describe "Kanban Board Viewer" do
     it "moves card immediately" do
       result =
         create_board(
-          { allow_write_group_ids: [write_group.id], require_confirmation: false },
+          { require_confirmation: false },
+          write_groups: [write_group],
           with_columns: [{ title: "To Do", position: 0 }, { title: "Done", position: 1 }],
         )
       board = result.board
@@ -189,7 +218,8 @@ describe "Kanban Board Viewer" do
     it "shows tags but filters column tags" do
       result =
         create_board(
-          { show_tags: true, allow_write_group_ids: [write_group.id] },
+          { show_tags: true },
+          write_groups: [write_group],
           with_columns: [{ title: "To Do", position: 0, tag_id: tag1.id }],
         )
       board = result.board
@@ -215,7 +245,8 @@ describe "Kanban Board Viewer" do
     it "creates a floater card via the add card button" do
       result =
         create_board(
-          { allow_write_group_ids: [write_group.id] },
+          {},
+          write_groups: [write_group],
           with_columns: [{ title: "To Do", position: 0 }],
         )
       board = result.board
@@ -237,7 +268,8 @@ describe "Kanban Board Viewer" do
 
       result =
         create_board(
-          { allow_write_group_ids: [write_group.id] },
+          {},
+          write_groups: [write_group],
           with_columns: [{ title: "To Do", position: 0 }],
         )
       board = result.board
@@ -258,7 +290,8 @@ describe "Kanban Board Viewer" do
     it "opens the card detail modal when clicking a floater card" do
       result =
         create_board(
-          { allow_write_group_ids: [write_group.id] },
+          {},
+          write_groups: [write_group],
           with_columns: [{ title: "To Do", position: 0 }],
         )
       board = result.board
@@ -287,7 +320,8 @@ describe "Kanban Board Viewer" do
     it "shows an edit action in the floater card menu" do
       result =
         create_board(
-          { allow_write_group_ids: [write_group.id] },
+          {},
+          write_groups: [write_group],
           with_columns: [{ title: "To Do", position: 0 }],
         )
       board = result.board
@@ -315,7 +349,8 @@ describe "Kanban Board Viewer" do
 
       result =
         create_board(
-          { allow_write_group_ids: [write_group.id] },
+          {},
+          write_groups: [write_group],
           with_columns: [{ title: "To Do", position: 0 }],
         )
       board = result.board
@@ -346,7 +381,8 @@ describe "Kanban Board Viewer" do
 
       result =
         create_board(
-          { allow_write_group_ids: [write_group.id] },
+          {},
+          write_groups: [write_group],
           with_columns: [{ title: "To Do", position: 0 }],
         )
       board = result.board
@@ -379,7 +415,8 @@ describe "Kanban Board Viewer" do
     it "tabs from the title to notes and leaves close last" do
       result =
         create_board(
-          { allow_write_group_ids: [write_group.id] },
+          {},
+          write_groups: [write_group],
           with_columns: [{ title: "To Do", position: 0 }],
         )
       board = result.board
@@ -468,7 +505,8 @@ describe "Kanban Board Viewer" do
     it "adds the topic as a card when pasting a URL and clicking submit" do
       result =
         create_board(
-          { allow_write_group_ids: [write_group.id], require_confirmation: false },
+          { require_confirmation: false },
+          write_groups: [write_group],
           with_columns: [{ title: "To Do", position: 0 }],
         )
       board = result.board
@@ -491,7 +529,8 @@ describe "Kanban Board Viewer" do
     it "adds the topic as a card when pasting a URL and pressing Enter" do
       result =
         create_board(
-          { allow_write_group_ids: [write_group.id], require_confirmation: false },
+          { require_confirmation: false },
+          write_groups: [write_group],
           with_columns: [{ title: "To Do", position: 0 }],
         )
       board = result.board
@@ -514,7 +553,8 @@ describe "Kanban Board Viewer" do
     it "does not add a card when pasting an external URL that shares a local topic id" do
       result =
         create_board(
-          { allow_write_group_ids: [write_group.id], require_confirmation: false },
+          { require_confirmation: false },
+          write_groups: [write_group],
           with_columns: [{ title: "To Do", position: 0 }],
         )
       board = result.board
@@ -537,7 +577,8 @@ describe "Kanban Board Viewer" do
     it "does not add a card when an external topic URL is embedded in surrounding text" do
       result =
         create_board(
-          { allow_write_group_ids: [write_group.id], require_confirmation: false },
+          { require_confirmation: false },
+          write_groups: [write_group],
           with_columns: [{ title: "To Do", position: 0 }],
         )
       board = result.board

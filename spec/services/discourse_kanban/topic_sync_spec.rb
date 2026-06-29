@@ -6,6 +6,8 @@ RSpec.describe DiscourseKanban::TopicSync do
   fab!(:tag_a) { Fabricate(:tag, name: "sync-alpha") }
   fab!(:tag_b) { Fabricate(:tag, name: "sync-beta") }
   fab!(:topic) { Fabricate(:topic, category: category) }
+  fab!(:read_group, :group)
+  fab!(:write_group, :group)
 
   before { enable_current_plugin }
 
@@ -40,6 +42,66 @@ RSpec.describe DiscourseKanban::TopicSync do
     card = DiscourseKanban::Card.last
     expect(card.column_id).to eq(column.id)
     expect(card.column_changed_at).to be_present
+  end
+
+  it "publishes created topic cards to board ACL groups" do
+    tagged_topic = Fabricate(:topic, tags: [tag_a])
+    board =
+      DiscourseKanban::Board.create!(
+        name: "ACL Tag Board",
+        slug: "acl-tag-board",
+        tag_ids: [tag_a.id],
+        created_by_id: admin.id,
+      )
+    board.columns.create!(title: "Alpha", position: 0, tag_id: tag_a.id)
+    Fabricate(
+      :access_control_list_with_groups,
+      target: board,
+      permission: "view",
+      groups: [read_group],
+    )
+    Fabricate(
+      :access_control_list_with_groups,
+      target: board,
+      permission: "edit",
+      groups: [write_group],
+    )
+
+    messages =
+      MessageBus.track_publish("/kanban/boards/#{board.id}") do
+        described_class.sync_topic(tagged_topic)
+      end
+
+    expect(messages.size).to eq(1)
+    expect(messages.first.data[:type]).to eq("card_created")
+    expect(messages.first.group_ids).to contain_exactly(read_group.id, write_group.id)
+  end
+
+  it "publishes created topic cards without group restrictions for anonymous board ACLs" do
+    tagged_topic = Fabricate(:topic, tags: [tag_a])
+    board =
+      DiscourseKanban::Board.create!(
+        name: "Anonymous ACL Tag Board",
+        slug: "anonymous-acl-tag-board",
+        tag_ids: [tag_a.id],
+        created_by_id: admin.id,
+      )
+    board.columns.create!(title: "Alpha", position: 0, tag_id: tag_a.id)
+    Fabricate(
+      :access_control_list,
+      target: board,
+      permission: "view",
+      allowed_group_ids: [Group::AUTO_GROUPS[:anonymous_users]],
+    )
+
+    messages =
+      MessageBus.track_publish("/kanban/boards/#{board.id}") do
+        described_class.sync_topic(tagged_topic)
+      end
+
+    expect(messages.size).to eq(1)
+    expect(messages.first.data[:type]).to eq("card_created")
+    expect(messages.first.group_ids).to be_nil
   end
 
   it "does not match topics when board has no constraints" do
@@ -240,6 +302,40 @@ RSpec.describe DiscourseKanban::TopicSync do
     expect { described_class.remove_topic(topic.id) }.to change { DiscourseKanban::Card.count }.by(
       -1,
     )
+  end
+
+  it "publishes topic card removals to board ACL groups" do
+    board =
+      DiscourseKanban::Board.create!(
+        name: "ACL Remove Board",
+        slug: "acl-remove-board",
+        created_by_id: admin.id,
+      )
+    column = board.columns.create!(title: "Backlog", position: 0)
+    card =
+      board.cards.create!(
+        topic_id: topic.id,
+        card_type: :topic,
+        column_id: column.id,
+        position: 0,
+        created_by_id: admin.id,
+      )
+    Fabricate(
+      :access_control_list_with_groups,
+      target: board,
+      permission: "view",
+      groups: [read_group],
+    )
+
+    messages =
+      MessageBus.track_publish("/kanban/boards/#{board.id}") do
+        described_class.remove_topic(topic.id)
+      end
+
+    expect(messages.size).to eq(1)
+    expect(messages.first.data[:type]).to eq("card_deleted")
+    expect(messages.first.data[:card_id]).to eq(card.id)
+    expect(messages.first.group_ids).to contain_exactly(read_group.id)
   end
 
   describe "multi-column card semantics" do

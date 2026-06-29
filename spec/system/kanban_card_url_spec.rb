@@ -20,8 +20,13 @@ describe "Kanban Card URL" do
         name: "URL Test Board",
         slug: "url-test-board",
         created_by_id: admin.id,
-        allow_write_group_ids: [write_group.id],
       )
+    Fabricate(
+      :access_control_list_with_groups,
+      target: board,
+      permission: "edit",
+      groups: [write_group],
+    )
     column = board.columns.create!(title: "To Do", position: 0)
     card =
       board.cards.create!(

@@ -29,8 +29,8 @@ module DiscourseKanban
       Board.find_by(id: params.board_id)
     end
 
-    def can_manage(guardian:)
-      guardian.can_move_board_column?
+    def can_manage(guardian:, board:)
+      guardian.can_manage_board?(board)
     end
 
     def fetch_column(board:, params:)

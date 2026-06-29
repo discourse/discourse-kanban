@@ -9,13 +9,12 @@ module DiscourseKanban
     def respond
       render body: nil
     end
-
     def index
       boards =
         DiscourseKanban::Board
           .includes(:columns, :created_by)
+          .with_any_acl_permissions(guardian, %w[view edit manage])
           .to_a
-          .select { |board| guardian.can_read_board?(board) }
       tag_name_map = build_tag_name_map(*boards)
       render json: { boards: boards.map { |board| board_payload(board, tag_name_map:) } }
     end
@@ -59,13 +58,21 @@ module DiscourseKanban
           )
         end
 
-      render json: { board: board_payload(@board, tag_name_map:), columns: columns }
+      render json: {
+               board:
+                 board_payload(
+                   @board,
+                   tag_name_map:,
+                   include_acl: guardian.can_manage_board?(@board),
+                 ),
+               columns: columns,
+             }
     end
 
     def create
       raw = board_mutation_params.to_h
 
-      DiscourseKanban::CreateBoard.call(guardian:, params: raw, raw_board_params: raw) do
+      DiscourseKanban::CreateBoard.call(guardian:, params: raw, raw_board_params: raw) do |result|
         on_success { |board:| render json: { board: board_payload(board) }, status: :created }
         on_failed_policy(:can_manage) { raise Discourse::InvalidAccess }
         on_failed_contract do |contract|
@@ -85,7 +92,7 @@ module DiscourseKanban
         raw_board_params: raw,
       ) do
         on_success do |board:, cards_removed_count:|
-          response = { board: board_payload(board) }
+          response = { board: board_payload(board, include_acl: guardian.can_manage_board?(board)) }
           response[:cards_removed_count] = cards_removed_count if cards_removed_count.to_i > 0
           render json: response
         end
@@ -124,7 +131,7 @@ module DiscourseKanban
 
     def constraint_preview
       board = DiscourseKanban::Board.find(params[:id])
-      guardian.ensure_can_manage_kanban_boards!
+      guardian.ensure_can_manage_board!(board)
 
       new_category_ids = Array(params[:category_ids]).map(&:to_i).reject(&:zero?)
       new_tag_ids =
@@ -174,7 +181,7 @@ module DiscourseKanban
       ) do
         on_success { head :no_content }
         on_model_not_found(:board) { raise Discourse::NotFound }
-        on_failed_policy(:can_manage) { raise Discourse::InvalidAccess }
+        on_failed_policy(:can_destroy) { raise Discourse::InvalidAccess }
         on_failed_contract do |contract|
           render json: failed_json.merge(errors: contract.errors.full_messages),
                  status: :bad_request

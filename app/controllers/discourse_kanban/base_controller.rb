@@ -26,7 +26,8 @@ module DiscourseKanban
       end
     end
 
-    def board_payload(board, tag_name_map: nil)
+    # TODO (martin) Needs to be a serializer
+    def board_payload(board, tag_name_map: nil, include_acl: false)
       tag_name_map ||= build_tag_name_map(board)
       visible_tag_ids = board.tag_ids.select { |tag_id| tag_name_map.key?(tag_id) }
 
@@ -37,16 +38,23 @@ module DiscourseKanban
         category_ids: board.category_ids,
         tag_ids: visible_tag_ids,
         tag_names: visible_tag_ids.filter_map { |id| tag_name_map[id] }.sort,
-        allow_read_group_ids: board.allow_read_group_ids,
-        allow_write_group_ids: board.allow_write_group_ids,
+        anonymous_can_read: board.anonymous_can_read?,
         require_confirmation: board.require_confirmation,
         show_tags: board.show_tags,
         card_style: board.card_style,
         show_topic_thumbnail: board.show_topic_thumbnail,
         can_write: guardian.can_write_board?(board),
-        can_manage: guardian.can_manage_kanban_boards?,
+        can_manage: guardian.can_manage_board?(board),
         created_by: created_by_payload(board.created_by),
         columns: board.columns.map { |column| column_payload(column, tag_name_map:) },
+        acl:
+          (
+            if include_acl
+              AccessControlList.where(target: board).flattened_list
+            else
+              nil
+            end
+          ),
       }
     end
 
@@ -108,8 +116,7 @@ module DiscourseKanban
         :show_tags,
         :card_style,
         :show_topic_thumbnail,
-        allow_read_group_ids: [],
-        allow_write_group_ids: [],
+        acl: %i[id type permission],
         category_ids: [],
         tag_names: [],
         columns: %i[

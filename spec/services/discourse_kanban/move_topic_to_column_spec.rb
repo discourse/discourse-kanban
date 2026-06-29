@@ -18,13 +18,21 @@ RSpec.describe DiscourseKanban::MoveTopicToColumn do
     fab!(:category)
     fab!(:topic) { Fabricate(:topic, category: category, user: writer) }
     fab!(:board) do
-      DiscourseKanban::Board.create!(
-        name: "Board",
-        slug: "board-mtc",
-        allow_write_group_ids: [write_group.id],
-        allow_read_group_ids: [read_group.id],
-        created_by_id: admin.id,
+      board =
+        DiscourseKanban::Board.create!(name: "Board", slug: "board-mtc", created_by_id: admin.id)
+      Fabricate(
+        :access_control_list_with_groups,
+        target: board,
+        permission: "edit",
+        groups: [write_group],
       )
+      Fabricate(
+        :access_control_list_with_groups,
+        target: board,
+        permission: "view",
+        groups: [read_group],
+      )
+      board
     end
     fab!(:column) { board.columns.create!(title: "Doing", position: 0) }
     fab!(:recency_column) do
@@ -42,6 +50,7 @@ RSpec.describe DiscourseKanban::MoveTopicToColumn do
     before do
       enable_current_plugin
       write_group.add(writer)
+      write_group.add(admin)
       read_group.add(reader)
     end
 

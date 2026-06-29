@@ -12,13 +12,25 @@ RSpec.describe DiscourseKanban::CardsController do
   fab!(:urgent_tag, :tag) { Fabricate(:tag, name: "urgent") }
 
   fab!(:board) do
-    DiscourseKanban::Board.create!(
-      name: "Test Board",
-      slug: "test-board",
-      allow_write_group_ids: [write_group.id],
-      allow_read_group_ids: [read_group.id],
-      created_by_id: admin.id,
+    board =
+      DiscourseKanban::Board.create!(
+        name: "Test Board",
+        slug: "test-board",
+        created_by_id: admin.id,
+      )
+    Fabricate(
+      :access_control_list_with_groups,
+      target: board,
+      permission: "edit",
+      groups: [write_group],
     )
+    Fabricate(
+      :access_control_list_with_groups,
+      target: board,
+      permission: "view",
+      groups: [read_group],
+    )
+    board
   end
   fab!(:col_todo) { board.columns.create!(title: "To Do", position: 0) }
   fab!(:done_tag, :tag) { Fabricate(:tag, name: "done") }
@@ -28,6 +40,7 @@ RSpec.describe DiscourseKanban::CardsController do
   before do
     enable_current_plugin
     write_group.add(writer)
+    write_group.add(admin)
     read_group.add(reader)
   end
 

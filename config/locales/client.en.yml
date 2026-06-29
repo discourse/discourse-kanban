@@ -63,6 +63,9 @@ en:
         constraint_tooltip: "Only topics with these categories and tags are allowed on this board."
         created_by: "Created by"
         show_older_cards: "Show %{count} older cards"
+        errors:
+          acl_update_failed: "Failed to update board permissions."
+          acl_create_failed: "Failed to create board permissions."
       manage:
         title: "Kanban boards"
         description: "Create and manage kanban boards with columns."
@@ -88,10 +91,14 @@ en:
         show_tags: "Show tags"
         show_topic_thumbnail: "Show topic thumbnail"
         require_confirmation: "Require confirmation on moves"
-        allow_read_groups: "Who can see this board?"
-        allow_read_groups_description: "Leave blank to allow public visibility for anonymous and logged in users. Admins can always see all boards."
-        allow_write_groups: "Who can edit this board?"
-        allow_write_groups_description: "Groups which can modify and move cards and board settings for this board. Admins can always edit all boards."
+        board_access: "Who can access this board?"
+        board_access_description: "Only groups added here can view, manage, or edit this board."
+        board_access_requires_editor: "Select at least one group that can edit this board."
+        board_access_permission_manager: "Manager"
+        board_access_permission_manager_description: "Can manage board settings, edit columns, add, remove, and edit cards"
+        board_access_permission_editor_description: "Can add, remove, and edit cards"
+        board_access_permission_viewer_description: "Can read all cards on the board but cannot move or edit them"
+        add_group: "Add group"
         constraint_warning:
           one: "Warning: %{count} card will be removed because it no longer matches the board constraints"
           other: "Warning: %{count} cards will be removed because they no longer match the board constraints"

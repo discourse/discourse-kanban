@@ -16,6 +16,7 @@ describe "Manage Kanban Boards" do
     enable_current_plugin
     SiteSetting.discourse_kanban_manage_board_allowed_groups = manage_group.id.to_s
     manage_group.add(manager)
+    manage_group.add(admin)
   end
 
   context "when user is in the manage group" do
@@ -36,7 +37,10 @@ describe "Manage Kanban Boards" do
       board = DiscourseKanban::Board.last
       expect(board.name).to eq("Sprint Board")
       expect(board.require_confirmation).to eq(true)
-      expect(board.allow_write_group_ids).to eq([manage_group.id])
+      expect(board.permission_acl.permission_group_ids("manage")).to contain_exactly(
+        Group::AUTO_GROUPS[:admins],
+        manage_group.id,
+      )
 
       boards_page.visit_page
       expect(boards_page).to have_board_listed("Sprint Board")
@@ -103,7 +107,7 @@ describe "Manage Kanban Boards" do
     end
 
     it "can delete a column with no cards without confirmation" do
-      board = Fabricate(:kanban_board)
+      board = Fabricate(:kanban_board, additional_manage_groups: [manage_group])
       column = Fabricate(:kanban_column, board: board)
       boards_page.visit_page
       boards_page.click_board(board.name)
@@ -115,7 +119,7 @@ describe "Manage Kanban Boards" do
     end
 
     it "requires confirmation when deleting a column with cards" do
-      board = Fabricate(:kanban_board)
+      board = Fabricate(:kanban_board, additional_manage_groups: [manage_group])
       column = Fabricate(:kanban_column, board: board)
       Fabricate(:kanban_card, board: board, column: column)
       boards_page.visit_page
@@ -129,7 +133,7 @@ describe "Manage Kanban Boards" do
     end
 
     it "requires entering the column name as delete confirmation when deleting a column with more than 5 cards" do
-      board = Fabricate(:kanban_board)
+      board = Fabricate(:kanban_board, additional_manage_groups: [manage_group])
       column = Fabricate(:kanban_column, board: board)
       6.times { Fabricate(:kanban_card, board: board, column: column) }
       boards_page.visit_page
@@ -161,7 +165,14 @@ describe "Manage Kanban Boards" do
     end
 
     describe "for an existing board" do
-      fab!(:board) { Fabricate(:kanban_board, name: "Simple Board", created_by: admin) }
+      fab!(:board) do
+        Fabricate(
+          :kanban_board,
+          name: "Simple Board",
+          created_by: admin,
+          additional_manage_groups: [manage_group],
+        )
+      end
 
       it "creates a column with a tag" do
         boards_page.visit_page
@@ -215,10 +226,23 @@ describe "Manage Kanban Boards" do
   end
 
   context "when user is a regular user not in the manage group" do
-    fab!(:board) { Fabricate(:kanban_board, name: "Visible Board", created_by: admin) }
+    fab!(:read_group, :group)
+    fab!(:board) do
+      board = Fabricate(:kanban_board, name: "Visible Board", created_by: admin)
+      Fabricate(
+        :access_control_list_with_groups,
+        target: board,
+        permission: "view",
+        groups: [read_group],
+      )
+      board
+    end
     fab!(:column) { Fabricate(:kanban_column, board: board) }
 
-    before { sign_in(regular_user) }
+    before do
+      read_group.add(regular_user)
+      sign_in(regular_user)
+    end
 
     it "can see the boards list but not management controls" do
       boards_page.visit_page
