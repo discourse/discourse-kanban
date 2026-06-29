@@ -207,7 +207,7 @@ RSpec.describe DiscourseKanban::UpdateBoard do
               },
               "new_permissions" => {
                 "manage" => {
-                  "group_ids" => [new_group.id],
+                  "group_ids" => [new_group.id, Group::AUTO_GROUPS[:admins]],
                 },
               },
             },
