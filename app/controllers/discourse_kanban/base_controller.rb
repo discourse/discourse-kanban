@@ -26,61 +26,6 @@ module DiscourseKanban
       end
     end
 
-    # TODO (martin) Needs to be a serializer
-    def board_payload(board, tag_name_map: nil, include_acl: false)
-      tag_name_map ||= build_tag_name_map(board)
-      visible_tag_ids = board.tag_ids.select { |tag_id| tag_name_map.key?(tag_id) }
-
-      {
-        id: board.id,
-        name: board.name,
-        slug: board.slug,
-        category_ids: board.category_ids,
-        tag_ids: visible_tag_ids,
-        tag_names: visible_tag_ids.filter_map { |id| tag_name_map[id] }.sort,
-        anonymous_can_read: board.anonymous_can_read?,
-        require_confirmation: board.require_confirmation,
-        show_tags: board.show_tags,
-        card_style: board.card_style,
-        show_topic_thumbnail: board.show_topic_thumbnail,
-        can_write: guardian.can_write_board?(board),
-        can_manage: guardian.can_manage_board?(board),
-        created_by: created_by_payload(board.created_by),
-        columns: board.columns.map { |column| column_payload(column, tag_name_map:) },
-        acl:
-          (
-            if include_acl
-              AccessControlList.where(target: board).flattened_list
-            else
-              nil
-            end
-          ),
-      }
-    end
-
-    def created_by_payload(user)
-      return nil if user.blank?
-
-      { username: user.username, avatar_template: user.avatar_template }
-    end
-
-    def column_payload(column, tag_name_map: {})
-      visible_tag_id = column.tag_id if column.tag_id && tag_name_map.key?(column.tag_id)
-
-      {
-        id: column.id,
-        title: column.title,
-        icon: column.icon,
-        position: column.position,
-        default_sort: column.default_sort,
-        tag_id: visible_tag_id,
-        tag_name: visible_tag_id ? tag_name_map[visible_tag_id] : nil,
-        move_to_category_id: column.move_to_category_id,
-        move_to_assigned: column.move_to_assigned,
-        move_to_status: column.move_to_status,
-      }
-    end
-
     def build_tag_name_map(*boards)
       all_tag_ids = boards.flat_map { |b| b.tag_ids + b.columns.filter_map(&:tag_id) }.uniq
       return {} if all_tag_ids.empty?

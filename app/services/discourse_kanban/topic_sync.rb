@@ -361,7 +361,7 @@ module DiscourseKanban
       end
 
       created_cards.each do |card|
-        payload = CardPayloadSerializer.new(card, root: false).as_json.except("topic", :topic)
+        payload = CardSerializer.new(card, root: false).as_json.except("topic", :topic)
         publish_to_board(board_groups, card.board_id, type: "card_created", card: payload)
       end
     end

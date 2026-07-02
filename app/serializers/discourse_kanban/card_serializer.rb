@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module DiscourseKanban
-  class CardPayloadSerializer < ApplicationSerializer
+  class CardSerializer < ApplicationSerializer
     attributes :id,
                :board_id,
                :column_id,
