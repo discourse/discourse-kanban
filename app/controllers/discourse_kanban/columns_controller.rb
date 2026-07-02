@@ -21,6 +21,14 @@ module DiscourseKanban
                  status: :created
         end
         on_model_not_found(:board) { raise Discourse::NotFound }
+        on_model_not_found(:column) do |model_step|
+          if model_step.exception
+            render json: failed_json.merge(errors: [model_step.exception.message]),
+                   status: :unprocessable_entity
+          else
+            raise Discourse::NotFound.new(I18n.t("discourse_kanban.errors.column_not_found"))
+          end
+        end
         on_failed_policy(:can_manage) { raise Discourse::InvalidAccess }
         on_failed_contract do |contract|
           render json: failed_json.merge(errors: contract.errors.full_messages),

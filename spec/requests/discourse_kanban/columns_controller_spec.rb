@@ -50,6 +50,25 @@ RSpec.describe DiscourseKanban::ColumnsController do
 
       expect(response.status).to eq(400)
     end
+
+    it "returns service errors for invalid column settings" do
+      tag = Fabricate(:tag, name: "todo")
+      board.columns.create!(title: "Todo", position: 1, tag_id: tag.id)
+      sign_in(manager)
+
+      post "/kanban/boards/#{board.id}/columns.json",
+           params: {
+             column: {
+               title: "Duplicate",
+               tag_name: tag.name,
+             },
+           }
+
+      expect(response.status).to eq(422)
+      expect(response.parsed_body["errors"]).to contain_exactly(
+        I18n.t("discourse_kanban.errors.cannot_use_same_tag_multiple_times", tag_name: tag.name),
+      )
+    end
   end
 
   describe "PUT /kanban/boards/:board_id/columns/:id" do
