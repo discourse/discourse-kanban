@@ -49,6 +49,18 @@ module DiscourseKanban
       params.permit(constraint_fix: [:category_id, tag_names: []])[:constraint_fix]
     end
 
+    def column_mutation_params
+      params.require(:column).permit(
+        :title,
+        :icon,
+        :default_sort,
+        :tag_name,
+        :move_to_category_id,
+        :move_to_assigned,
+        :move_to_status,
+      )
+    end
+
     def message_bus_client_id
       params[:client_id]
     end

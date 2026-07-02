@@ -79,6 +79,10 @@ export default class KanbanCardDetail extends Component {
       return;
     }
 
+    if (this.isNew) {
+      return;
+    }
+
     ajax(
       `/kanban/boards/${this.args.model.card.board_id}/cards/${this.args.model.card.id}/view`,
       { method: "POST" }

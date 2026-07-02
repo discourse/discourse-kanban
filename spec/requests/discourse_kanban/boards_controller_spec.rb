@@ -469,32 +469,6 @@ RSpec.describe DiscourseKanban::BoardsController do
       expect(response.status).to eq(201)
     end
 
-    it "persists column default sort" do
-      board =
-        Fabricate(
-          :kanban_board,
-          name: "Sort Board",
-          slug: "sort-board",
-          created_by: admin,
-          additional_manage_groups: [manage_group],
-        )
-      column = board.columns.create!(title: "Col", position: 0)
-
-      sign_in(manager)
-
-      put "/kanban/boards/#{board.id}.json",
-          params: {
-            board: {
-              name: board.name,
-              columns: [{ id: column.id, title: "Col", default_sort: "recency" }],
-            },
-          }
-
-      expect(response.status).to eq(200)
-      expect(column.reload.default_sort).to eq("recency")
-      expect(response.parsed_body["board"]["columns"][0]["default_sort"]).to eq("recency")
-    end
-
     it "rejects users not in the manage group" do
       sign_in(outsider)
 
@@ -531,7 +505,32 @@ RSpec.describe DiscourseKanban::BoardsController do
       board.reload
       expect(board.name).to eq("New Name")
       expect(board.show_tags).to eq(true)
-      expect(board.columns.first.title).to eq("Renamed")
+      expect(board.columns.first.title).to eq("Col")
+    end
+
+    it "does not update columns when a columns payload is submitted" do
+      board =
+        Fabricate(
+          :kanban_board,
+          name: "Column Payload",
+          slug: "column-payload",
+          created_by: admin,
+          additional_manage_groups: [manage_group],
+        )
+      column = board.columns.create!(title: "Col", position: 0)
+
+      sign_in(manager)
+
+      put "/kanban/boards/#{board.id}.json",
+          params: {
+            board: {
+              name: "Updated",
+              columns: [{ id: column.id, title: "Renamed", default_sort: "recency" }],
+            },
+          }
+
+      expect(response.status).to eq(200)
+      expect(column.reload).to have_attributes(title: "Col", default_sort: "priority")
     end
 
     it "rejects users not in the manage group" do

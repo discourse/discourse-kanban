@@ -489,9 +489,9 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
     });
 
     let saveRequests = 0;
-    pretender.put("/kanban/boards/1", () => {
+    pretender.delete("/kanban/boards/1/columns/10", () => {
       saveRequests++;
-      return response({ board: { id: 1 } });
+      return response(204);
     });
     pretender.get("/kanban/boards/1.json", () =>
       response({ board: {}, columns: [] })

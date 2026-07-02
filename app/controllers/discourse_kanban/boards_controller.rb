@@ -80,7 +80,7 @@ module DiscourseKanban
     end
 
     def update
-      raw = board_mutation_params.to_h
+      raw = board_mutation_params.to_h.except("columns")
 
       DiscourseKanban::UpdateBoard.call(
         guardian:,
