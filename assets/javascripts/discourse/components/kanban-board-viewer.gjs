@@ -974,22 +974,23 @@ export default class KanbanBoardViewer extends Component {
 
   @action
   async addColumn(columnData) {
-    const columnsPayload = this.columns.map((col) =>
-      this._serializeColumn(col)
-    );
-    columnsPayload.push(this._serializeColumn(columnData));
-    await this._saveColumnsUpdate(columnsPayload);
+    await this._saveColumn("POST", `/kanban/boards/${this.board.id}/columns`, {
+      column: this._serializeColumn(columnData),
+    });
   }
 
   @action
   async editColumn(columnId, columnData) {
-    const columnsPayload = this.columns.map((col) => {
-      if (col.id === columnId) {
-        return this._serializeColumn({ ...col, ...columnData });
-      }
-      return this._serializeColumn(col);
-    });
-    await this._saveColumnsUpdate(columnsPayload);
+    const column = this.columns.find((col) => col.id === columnId);
+    if (!column) {
+      return;
+    }
+
+    await this._saveColumn(
+      "PUT",
+      `/kanban/boards/${this.board.id}/columns/${columnId}`,
+      { column: this._serializeColumn({ ...column, ...columnData }) }
+    );
   }
 
   @action
@@ -1032,11 +1033,11 @@ export default class KanbanBoardViewer extends Component {
   @action
   async deleteColumn(column) {
     const saveColumns = async () => {
-      const columnsPayload = this.columns
-        .filter((col) => col.id !== column.id)
-        .map((col) => this._serializeColumn(col));
       try {
-        return await this._saveColumnsUpdate(columnsPayload);
+        return await this._saveColumn(
+          "DELETE",
+          `/kanban/boards/${this.board.id}/columns/${column.id}`
+        );
       } catch (error) {
         popupAjaxError(error);
       }
@@ -1148,15 +1149,8 @@ export default class KanbanBoardViewer extends Component {
 
   @action
   async saveBoardSettings(boardData) {
-    const columnsPayload = this.columns.map((col) =>
-      this._serializeColumn(col)
-    );
-
     const payload = {
-      board: {
-        ...boardData,
-        columns: columnsPayload,
-      },
+      board: boardData,
     };
 
     const originalSlug = this.board.slug;
@@ -1169,12 +1163,6 @@ export default class KanbanBoardViewer extends Component {
 
     if (result.board) {
       this.board = { ...this.board, ...result.board };
-      if (result.board.columns) {
-        this.columns = this.columns.map((col) => {
-          const serverCol = result.board.columns.find((s) => s.id === col.id);
-          return serverCol ? { ...col, ...serverCol } : col;
-        });
-      }
     }
 
     this.toasts.success({
@@ -1211,25 +1199,14 @@ export default class KanbanBoardViewer extends Component {
     this.router.transitionTo("kanbanBoards");
   }
 
-  async _saveColumnsUpdate(columnsPayload) {
-    const payload = {
-      board: {
-        name: this.board.name,
-        slug: this.board.slug,
-        category_ids: this.board.category_ids || [],
-        tag_names: this.board.tag_names || [],
-        card_style: this.board.card_style,
-        show_tags: this.board.show_tags,
-        show_topic_thumbnail: this.board.show_topic_thumbnail,
-        require_confirmation: this.board.require_confirmation,
-        columns: columnsPayload,
-      },
-    };
-
-    const result = await ajax(`/kanban/boards/${this.board.id}`, {
-      type: "PUT",
+  async _saveColumn(type, url, payload = {}) {
+    await ajax(url, {
+      type,
       contentType: "application/json",
-      data: JSON.stringify(payload),
+      data: JSON.stringify({
+        ...payload,
+        client_id: this.messageBus.clientId,
+      }),
     });
 
     this.toasts.success({
@@ -1238,10 +1215,6 @@ export default class KanbanBoardViewer extends Component {
     });
 
     await this.#handleBoardUpdated();
-
-    if (result.board) {
-      this.board = { ...this.board, ...result.board };
-    }
   }
 
   @bind

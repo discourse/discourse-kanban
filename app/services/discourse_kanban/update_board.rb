@@ -17,7 +17,6 @@ module DiscourseKanban
     transaction do
       step :update_acl
       step :update_board
-      step :replace_columns
       step :remove_non_matching_cards
       step :create_histories
     end
@@ -98,18 +97,6 @@ module DiscourseKanban
       end
 
       board.save!
-    end
-
-    # TODO (martin) Split this out into a dedicated BoardColumnUpdater service,
-    # it feels out of place here
-    def replace_columns(board:, guardian:)
-      raw = context[:raw_board_params] || {}
-      ColumnsReplacer.replace!(
-        board:,
-        columns_payload: raw["columns"] || [],
-        user: guardian.user,
-        guardian:,
-      )
     end
 
     def remove_non_matching_cards(board:, guardian:)
