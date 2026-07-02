@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe DiscourseKanban::CardPayloadSerializer do
+RSpec.describe DiscourseKanban::CardSerializer do
   fab!(:admin)
   fab!(:viewer, :user)
   fab!(:allowed_group, :group)
