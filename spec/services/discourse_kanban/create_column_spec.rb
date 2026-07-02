@@ -54,6 +54,24 @@ RSpec.describe DiscourseKanban::CreateColumn do
         expect(result[:column]).to have_attributes(title: "Backlog", position: 1)
       end
 
+      it "tracks the column added history" do
+        result
+
+        expect(board.history.last).to have_attributes(
+          action: "column_added",
+          acting_user_id: manager.id,
+          board_id: board.id,
+          column_id: result[:column].id,
+          details: {
+            "title" => "Backlog",
+            "tag_id" => nil,
+            "move_to_category_id" => nil,
+            "move_to_assigned" => nil,
+            "move_to_status" => nil,
+          },
+        )
+      end
+
       it "publishes a board_updated event" do
         messages = MessageBus.track_publish("/kanban/boards/#{board.id}") { result }
 

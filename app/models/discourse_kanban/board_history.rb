@@ -21,6 +21,10 @@ module DiscourseKanban
            board_permissions_changed: 5,
            board_deleted: 6,
            board_viewed: 7,
+           column_added: 8,
+           column_renamed: 9,
+           column_edited: 10,
+           column_deleted: 11,
          }
   end
 end

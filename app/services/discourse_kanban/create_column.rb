@@ -22,7 +22,10 @@ module DiscourseKanban
     model :board
     policy :can_manage
 
-    transaction { model :column, :create_column }
+    transaction do
+      model :column, :create_column
+      step :create_history
+    end
 
     step :publish_update
 
@@ -46,8 +49,28 @@ module DiscourseKanban
       )
     end
 
+    def create_history(board:, column:, guardian:)
+      BoardHistory.create!(
+        board:,
+        column:,
+        acting_user: guardian.user,
+        action: :column_added,
+        details: column_details(column),
+      )
+    end
+
     def publish_update(board:, params:)
       Publisher.publish_board_updated!(board, client_id: params.client_id)
+    end
+
+    def column_details(column)
+      {
+        title: column.title,
+        tag_id: column.tag_id,
+        move_to_category_id: column.move_to_category_id,
+        move_to_assigned: column.move_to_assigned,
+        move_to_status: column.move_to_status,
+      }
     end
   end
 end

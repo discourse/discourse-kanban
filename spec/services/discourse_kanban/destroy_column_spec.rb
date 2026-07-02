@@ -79,6 +79,20 @@ RSpec.describe DiscourseKanban::DestroyColumn do
         expect(third_column.reload.position).to eq(1)
       end
 
+      it "tracks the column deleted history" do
+        result
+
+        expect(board.history.last).to have_attributes(
+          action: "column_deleted",
+          acting_user_id: manager.id,
+          board_id: board.id,
+          column_id: column.id,
+          details: {
+            "title" => "Second",
+          },
+        )
+      end
+
       it "publishes a board_updated event" do
         messages = MessageBus.track_publish("/kanban/boards/#{board.id}") { result }
 

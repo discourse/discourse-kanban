@@ -17,7 +17,10 @@ module DiscourseKanban
     policy :can_manage
     model :column
 
-    transaction { step :destroy_column }
+    transaction do
+      step :create_history
+      step :destroy_column
+    end
 
     step :publish_update
 
@@ -35,12 +38,26 @@ module DiscourseKanban
       board.columns.find_by(id: params.id)
     end
 
+    def create_history(board:, column:, guardian:)
+      BoardHistory.create!(
+        board:,
+        column:,
+        acting_user: guardian.user,
+        action: :column_deleted,
+        details: column_details(column),
+      )
+    end
+
     def destroy_column(column:)
       ColumnMutator.destroy!(column:)
     end
 
     def publish_update(board:, params:)
       Publisher.publish_board_updated!(board, client_id: params.client_id)
+    end
+
+    def column_details(column)
+      { title: column.title }
     end
   end
 end

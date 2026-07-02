@@ -61,6 +61,66 @@ RSpec.describe DiscourseKanban::UpdateColumn do
         expect(column.reload).to have_attributes(title: "New", position: 0)
       end
 
+      it "tracks the column renamed history" do
+        result
+
+        expect(board.history.last).to have_attributes(
+          action: "column_renamed",
+          acting_user_id: manager.id,
+          board_id: board.id,
+          column_id: column.id,
+          details: {
+            "previous_value" => "Old",
+            "new_value" => "New",
+          },
+        )
+      end
+
+      context "with non-title changes" do
+        let(:params) do
+          {
+            board_id: board.id,
+            id: column.id,
+            title: "Old",
+            icon: "check",
+            default_sort: "recency",
+          }
+        end
+
+        it "tracks the column edited history" do
+          result
+
+          expect(board.history.last).to have_attributes(
+            action: "column_edited",
+            acting_user_id: manager.id,
+            board_id: board.id,
+            column_id: column.id,
+            details: {
+              "previous_values" => {
+                "icon" => nil,
+                "default_sort" => "priority",
+              },
+              "new_values" => {
+                "icon" => "check",
+                "default_sort" => "recency",
+              },
+            },
+          )
+        end
+      end
+
+      context "with title and non-title changes" do
+        let(:params) do
+          { board_id: board.id, id: column.id, title: "New", default_sort: "recency" }
+        end
+
+        it "tracks the renamed and edited histories separately" do
+          result
+
+          expect(board.history.map(&:action)).to eq(%w[column_renamed column_edited])
+        end
+      end
+
       it "publishes a board_updated event" do
         messages = MessageBus.track_publish("/kanban/boards/#{board.id}") { result }
 
