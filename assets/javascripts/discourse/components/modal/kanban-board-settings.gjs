@@ -295,7 +295,7 @@ export default class KanbanBoardSettings extends Component {
           type: "group",
           id: group.id,
           permission: "manage",
-          full_name: group.full_name,
+          display_name: group.full_name,
         });
       }
     });
@@ -304,7 +304,7 @@ export default class KanbanBoardSettings extends Component {
       type: "group",
       id: AUTO_GROUPS.logged_in_users.id,
       permission: "view",
-      full_name: this.site.groups.find(
+      display_name: this.site.groups.find(
         (g) => g.id === AUTO_GROUPS.logged_in_users.id
       )?.full_name,
     });
