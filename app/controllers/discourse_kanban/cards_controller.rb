@@ -128,6 +128,7 @@ module DiscourseKanban
           raise Discourse::NotFound.new(I18n.t("discourse_kanban.errors.card_not_found"))
         end
         on_failed_policy(:can_write) { raise Discourse::InvalidAccess }
+        on_failed_policy(:can_see_card_topic) { raise Discourse::NotFound }
         on_failed_policy(:card_is_deletable) do
           render json: {
                    errors: [I18n.t("discourse_kanban.errors.topic_covered_by_filter")],

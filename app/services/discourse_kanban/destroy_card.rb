@@ -15,6 +15,7 @@ module DiscourseKanban
     model :board
     policy :can_write
     model :card
+    policy :can_see_card_topic
     policy :card_is_deletable
     step :destroy
 
@@ -30,6 +31,10 @@ module DiscourseKanban
 
     def fetch_card(board:, params:)
       board.cards.find_by(id: params.id)
+    end
+
+    def can_see_card_topic(card:, guardian:)
+      !card.topic? || card.topic.blank? || guardian.can_see?(card.topic)
     end
 
     def card_is_deletable(card:)
