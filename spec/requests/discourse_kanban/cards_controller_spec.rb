@@ -1603,5 +1603,27 @@ RSpec.describe DiscourseKanban::CardsController do
 
       expect(response.status).to eq(204)
     end
+
+    it "returns 404 when deleting a topic card whose topic is hidden" do
+      private_category = Fabricate(:private_category, group: Fabricate(:group))
+      private_topic = Fabricate(:topic, category: private_category)
+      private_card =
+        board.cards.create!(
+          card_type: :topic,
+          topic_id: private_topic.id,
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+
+      sign_in(writer)
+
+      expect { delete "/kanban/boards/#{board.id}/cards/#{private_card.id}.json" }.not_to change {
+        DiscourseKanban::Card.count
+      }
+
+      expect(response.status).to eq(404)
+      expect(response.body).not_to include(private_topic.title)
+    end
   end
 end

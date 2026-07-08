@@ -80,6 +80,25 @@ RSpec.describe DiscourseKanban::DestroyCard do
       it { is_expected.to run_successfully }
     end
 
+    context "when topic card is hidden from the user" do
+      fab!(:private_category) { Fabricate(:private_category, group: Fabricate(:group)) }
+      fab!(:private_topic) { Fabricate(:topic, category: private_category) }
+
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :topic,
+          topic_id: private_topic.id,
+          column_id: column.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      end
+
+      let(:params) { { board_id: board.id, id: card.id } }
+
+      it { is_expected.to fail_a_policy(:can_see_card_topic) }
+    end
+
     context "when topic card is covered by board filter" do
       before { board.update!(category_ids: [category.id]) }
 
