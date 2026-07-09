@@ -37,7 +37,7 @@ module DiscourseKanban
     def tag_ids
       return [] unless SiteSetting.tagging_enabled
 
-      object.topic? ? [] : object.tag_ids
+      object.topic? ? [] : ordered_tags.map(&:id)
     end
 
     def tags
@@ -74,10 +74,20 @@ module DiscourseKanban
     def ordered_tags
       return [] unless SiteSetting.tagging_enabled
 
+      tag_ids = visible_tag_ids(object.tag_ids)
       tags_by_id = @options[:tags_by_id]
-      return Card.ordered_tags(object.tag_ids) if tags_by_id.blank?
+      return Card.ordered_tags(tag_ids) if tags_by_id.blank?
 
-      object.tag_ids.filter_map { |tag_id| tags_by_id[tag_id] }
+      tag_ids.filter_map { |tag_id| tags_by_id[tag_id] }
+    end
+
+    def visible_tag_ids(tag_ids)
+      normalized_tag_ids = Array(tag_ids).compact_blank.map(&:to_i).reject(&:zero?).uniq
+      guardian = scope || Guardian.new
+      return normalized_tag_ids if normalized_tag_ids.blank? || guardian.is_admin?
+
+      visible_ids = DiscourseTagging.visible_tags(guardian).where(id: normalized_tag_ids).pluck(:id)
+      normalized_tag_ids & visible_ids
     end
   end
 end
