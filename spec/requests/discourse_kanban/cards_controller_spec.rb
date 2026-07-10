@@ -468,6 +468,45 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(response.parsed_body.dig("card", "tags").pluck("name")).to eq([urgent_tag.name])
     end
 
+    it "omits restricted tags from update broadcasts" do
+      hidden_tag = Fabricate(:tag, name: "secret-kanban")
+      private_category = Fabricate(:private_category, group: Fabricate(:group))
+      private_category.update!(allowed_tags: [hidden_tag.name])
+      card =
+        board.cards.create!(
+          card_type: :floater,
+          title: "Retitle me",
+          column_id: col_todo.id,
+          position: 0,
+          tag_ids: [urgent_tag.id, hidden_tag.id],
+          created_by_id: admin.id,
+        )
+
+      sign_in(admin)
+
+      messages =
+        MessageBus.track_publish("/kanban/boards/#{board.id}") do
+          put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+              params: {
+                card: {
+                  title: "Retitled",
+                },
+              }
+        end
+
+      expect(response.status).to eq(200)
+      expect(response.parsed_body.dig("card", "tags").pluck("name")).to contain_exactly(
+        urgent_tag.name,
+        hidden_tag.name,
+      )
+      expect(messages.size).to eq(1)
+      expect(messages.first.data[:type]).to eq("card_updated")
+      expect(messages.first.data[:card][:tag_ids]).to contain_exactly(urgent_tag.id)
+      expect(messages.first.data[:card][:tags].map { |tag| tag[:name] }).to contain_exactly(
+        urgent_tag.name,
+      )
+    end
+
     it "rejects unknown floater card tag ids on update" do
       card =
         board.cards.create!(

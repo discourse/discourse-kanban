@@ -10,7 +10,7 @@ module DiscourseKanban
       ) do
         on_success do |card:|
           render json: {
-                   card: CardPayloadSerializer.new(card, root: false).as_json,
+                   card: CardPayloadSerializer.new(card, root: false, scope: guardian).as_json,
                  },
                  status: :created
         end
