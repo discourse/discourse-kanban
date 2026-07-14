@@ -176,7 +176,7 @@ export default class KanbanBoardSettings extends Component {
     if (!hasManager) {
       addError(name, {
         title: i18n("discourse_kanban.manage.board_access"),
-        message: i18n("discourse_kanban.manage.board_access_requires_editor"),
+        message: i18n("discourse_kanban.manage.board_access_requires_manager"),
       });
     }
   }
