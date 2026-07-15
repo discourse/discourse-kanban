@@ -4,7 +4,6 @@ import { action } from "@ember/object";
 import { LinkTo } from "@ember/routing";
 import { service } from "@ember/service";
 import { trustHTML } from "@ember/template";
-import AdminFilterControls from "discourse/admin/components/admin-filter-controls";
 import DButton from "discourse/components/d-button";
 import UserLink from "discourse/components/user-link";
 import avatar from "discourse/helpers/avatar";
@@ -13,8 +12,10 @@ import icon from "discourse/helpers/d-icon";
 import discourseTags from "discourse/helpers/discourse-tags";
 import { ajax } from "discourse/lib/ajax";
 import { emojiUnescape } from "discourse/lib/text";
+import { escapeExpression } from "discourse/lib/utilities";
 import Category from "discourse/models/category";
 import { eq, or } from "discourse/truth-helpers";
+import DFilterControls from "discourse/ui-kit/d-filter-controls";
 import DPageHeader from "discourse/ui-kit/d-page-header";
 import { i18n } from "discourse-i18n";
 import KanbanBoardSettings from "./modal/kanban-board-settings";
@@ -85,7 +86,7 @@ export default class KanbanBoardsPage extends Component {
         </:actions>
       </DPageHeader>
 
-      <AdminFilterControls
+      <DFilterControls
         @array={{@boards}}
         @searchableProps={{array "name"}}
         @textFilterQueryParam="filter"
@@ -104,7 +105,7 @@ export default class KanbanBoardsPage extends Component {
                     @models={{array board.slug board.id}}
                     class="discourse-kanban-board-card__name"
                   >
-                    {{trustHTML (emojiUnescape board.name)}}
+                    {{trustHTML (emojiUnescape (escapeExpression board.name))}}
                   </LinkTo>
                 </div>
 
@@ -186,7 +187,7 @@ export default class KanbanBoardsPage extends Component {
             {{/if}}
           </div>
         </:customEmptyState>
-      </AdminFilterControls>
+      </DFilterControls>
     </div>
   </template>
 }

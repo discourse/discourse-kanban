@@ -181,11 +181,13 @@ RSpec.describe DiscourseKanban::UpdateBoard do
               "previous_permissions" => {
                 "manage" => {
                   "group_ids" => [manage_group.id],
+                  "user_ids" => [],
                 },
               },
               "new_permissions" => {
                 "manage" => {
                   "group_ids" => [new_group.id, Group::AUTO_GROUPS[:admins]],
+                  "user_ids" => [],
                 },
               },
             },
