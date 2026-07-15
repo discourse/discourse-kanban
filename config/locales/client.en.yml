@@ -1,6 +1,8 @@
 en:
   js:
     discourse_kanban:
+      filter_boards: "Filter boards"
+      filter_boards_no_results: "No boards match your search"
       board:
         empty_board: "This board has no columns yet"
         empty_board_cta: "Add your first column to get started"
