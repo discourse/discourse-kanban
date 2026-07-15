@@ -15,6 +15,7 @@ module DiscourseKanban
         DiscourseKanban::Board
           .includes(:columns, :created_by)
           .with_any_acl_permissions(guardian, %w[view edit manage])
+          .order(:name)
           .to_a
       tag_name_map = build_tag_name_map(*boards)
       render json: { boards: serialize_boards(boards, tag_name_map:) }

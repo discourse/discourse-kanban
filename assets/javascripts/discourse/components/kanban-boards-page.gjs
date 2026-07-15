@@ -3,6 +3,8 @@ import { array } from "@ember/helper";
 import { action } from "@ember/object";
 import { LinkTo } from "@ember/routing";
 import { service } from "@ember/service";
+import { trustHTML } from "@ember/template";
+import AdminFilterControls from "discourse/admin/components/admin-filter-controls";
 import DButton from "discourse/components/d-button";
 import UserLink from "discourse/components/user-link";
 import avatar from "discourse/helpers/avatar";
@@ -10,6 +12,7 @@ import boundCategoryLink from "discourse/helpers/bound-category-link";
 import icon from "discourse/helpers/d-icon";
 import discourseTags from "discourse/helpers/discourse-tags";
 import { ajax } from "discourse/lib/ajax";
+import { emojiUnescape } from "discourse/lib/text";
 import Category from "discourse/models/category";
 import { eq, or } from "discourse/truth-helpers";
 import DPageHeader from "discourse/ui-kit/d-page-header";
@@ -82,97 +85,108 @@ export default class KanbanBoardsPage extends Component {
         </:actions>
       </DPageHeader>
 
-      {{#if @boards.length}}
-        <div class="discourse-kanban-boards-grid">
-          {{#each @boards as |board|}}
-            <div class="discourse-kanban-board-card">
-              <div class="discourse-kanban-board-card__header">
-                <LinkTo
-                  @route="kanbanBoard"
-                  @models={{array board.slug board.id}}
-                  class="discourse-kanban-board-card__name"
-                >
-                  {{board.name}}
-                </LinkTo>
-              </div>
+      <AdminFilterControls
+        @array={{@boards}}
+        @searchableProps={{array "name"}}
+        @textFilterQueryParam="filter"
+        @inputPlaceholder={{i18n "discourse_kanban.filter_boards"}}
+        @noResultsMessage={{i18n "discourse_kanban.filter_boards_no_results"}}
+        @showCustomEmptyState={{true}}
+        @minItemsForFilter={{1}}
+      >
+        <:content as |filteredBoards|>
+          <div class="discourse-kanban-boards-grid">
+            {{#each filteredBoards as |board|}}
+              <div class="discourse-kanban-board-card">
+                <div class="discourse-kanban-board-card__header">
+                  <LinkTo
+                    @route="kanbanBoard"
+                    @models={{array board.slug board.id}}
+                    class="discourse-kanban-board-card__name"
+                  >
+                    {{trustHTML (emojiUnescape board.name)}}
+                  </LinkTo>
+                </div>
 
-              {{#if (or board.category_ids.length board.tag_names.length)}}
-                <div class="discourse-kanban-board-card__constraints">
-                  {{#each (boardCategories board) as |category|}}
-                    {{boundCategoryLink category link=false}}
-                  {{/each}}
-                  {{#if board.tag_names.length}}
-                    <div class="list-tags">
-                      {{discourseTags null tags=board.tag_names}}
-                    </div>
+                {{#if (or board.category_ids.length board.tag_names.length)}}
+                  <div class="discourse-kanban-board-card__constraints">
+                    {{#each (boardCategories board) as |category|}}
+                      {{boundCategoryLink category link=false}}
+                    {{/each}}
+                    {{#if board.tag_names.length}}
+                      <div class="list-tags">
+                        {{discourseTags null tags=board.tag_names}}
+                      </div>
+                    {{/if}}
+                  </div>
+                {{/if}}
+
+                <div class="discourse-kanban-board-card__columns">
+                  {{#if board.columns.length}}
+                    {{#each board.columns as |column|}}
+                      <span class="discourse-kanban-column-pill">
+                        {{#if column.icon}}
+                          {{icon column.icon}}
+                        {{/if}}
+                        {{column.title}}
+                      </span>
+                    {{/each}}
+                  {{else}}
+                    <span class="discourse-kanban-board-card__no-columns">
+                      {{i18n "discourse_kanban.manage.no_columns"}}
+                    </span>
                   {{/if}}
                 </div>
-              {{/if}}
 
-              <div class="discourse-kanban-board-card__columns">
-                {{#if board.columns.length}}
-                  {{#each board.columns as |column|}}
-                    <span class="discourse-kanban-column-pill">
-                      {{#if column.icon}}
-                        {{icon column.icon}}
-                      {{/if}}
-                      {{column.title}}
-                    </span>
-                  {{/each}}
-                {{else}}
-                  <span class="discourse-kanban-board-card__no-columns">
-                    {{i18n "discourse_kanban.manage.no_columns"}}
-                  </span>
-                {{/if}}
-              </div>
-
-              <div class="discourse-kanban-board-card__footer">
-                <UserLink
-                  class="discourse-kanban-board-card__creator discourse-kanban-badge"
-                  @user={{board.created_by}}
-                >
-                  {{i18n "discourse_kanban.board.created_by"}}
-                  {{avatar board.created_by imageSize="micro"}}
-                </UserLink>
-
-                <span class="discourse-kanban-badge">
-                  {{i18n
-                    "discourse_kanban.manage.column_count"
-                    count=board.columns.length
-                  }}
-                </span>
-                {{#if (eq board.card_style "simple")}}
-                  <span class="discourse-kanban-badge">
-                    {{i18n "discourse_kanban.manage.card_style_simple"}}
-                  </span>
-                {{/if}}
-                {{#unless board.anonymous_can_read}}
-                  <span
-                    class="discourse-kanban-badge discourse-kanban-badge--restricted"
-                    title={{i18n "discourse_kanban.manage.restricted_access"}}
+                <div class="discourse-kanban-board-card__footer">
+                  <UserLink
+                    class="discourse-kanban-board-card__creator discourse-kanban-badge"
+                    @user={{board.created_by}}
                   >
-                    {{icon "lock"}}
+                    {{i18n "discourse_kanban.board.created_by"}}
+                    {{avatar board.created_by imageSize="micro"}}
+                  </UserLink>
+
+                  <span class="discourse-kanban-badge">
+                    {{i18n
+                      "discourse_kanban.manage.column_count"
+                      count=board.columns.length
+                    }}
                   </span>
-                {{/unless}}
+                  {{#if (eq board.card_style "simple")}}
+                    <span class="discourse-kanban-badge">
+                      {{i18n "discourse_kanban.manage.card_style_simple"}}
+                    </span>
+                  {{/if}}
+                  {{#unless board.anonymous_can_read}}
+                    <span
+                      class="discourse-kanban-badge discourse-kanban-badge--restricted"
+                      title={{i18n "discourse_kanban.manage.restricted_access"}}
+                    >
+                      {{icon "lock"}}
+                    </span>
+                  {{/unless}}
+                </div>
               </div>
-            </div>
-          {{/each}}
-        </div>
-      {{else}}
-        <div class="discourse-kanban-boards-empty">
-          {{icon "table-columns"}}
-          <h3>{{i18n "discourse_kanban.manage.empty_title"}}</h3>
-          {{#if @canManageBoards}}
-            <p>{{i18n "discourse_kanban.manage.get_started"}}</p>
-            <DButton
-              @action={{this.openNewBoardModal}}
-              @icon="plus"
-              @label="discourse_kanban.manage.new"
-              class="btn-primary"
-            />
-          {{/if}}
-        </div>
-      {{/if}}
+            {{/each}}
+          </div>
+        </:content>
+        <:customEmptyState>
+          <div class="discourse-kanban-boards-empty">
+            {{icon "table-columns"}}
+            <h3>{{i18n "discourse_kanban.manage.empty_title"}}</h3>
+            {{#if @canManageBoards}}
+              <p>{{i18n "discourse_kanban.manage.get_started"}}</p>
+              <DButton
+                @action={{this.openNewBoardModal}}
+                @icon="plus"
+                @label="discourse_kanban.manage.new"
+                class="btn-primary"
+              />
+            {{/if}}
+          </div>
+        </:customEmptyState>
+      </AdminFilterControls>
     </div>
   </template>
 }
