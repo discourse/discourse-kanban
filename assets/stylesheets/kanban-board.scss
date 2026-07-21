@@ -330,7 +330,10 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     -webkit-overflow-scrolling: touch;
     transform: translate3d(0, 0, 0);
     scrollbar-width: thin;
-    scrollbar-color: var(--primary-low-mid) transparent;
+    scrollbar-color: oklch(
+        from var(--column-color, var(--primary-500)) l c h/0.5
+      )
+      transparent;
     padding: var(--kanban-column-padding);
   }
 
