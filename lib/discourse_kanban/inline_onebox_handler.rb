@@ -14,8 +14,7 @@ module DiscourseKanban
 
     def self.build_card_onebox(url, card_id, board_id, opts)
       board = DiscourseKanban::Board.find_by(id: board_id)
-      guardian = Discourse.system_user.guardian
-      return if !board || !guardian.can_read_board?(board)
+      return if !board || !board.anonymous_can_read?
 
       card = DiscourseKanban::Card.includes(:topic).find_by(id: card_id, board_id: board_id)
       return if !card
@@ -39,7 +38,7 @@ module DiscourseKanban
 
     def self.build_board_onebox(url, board_id)
       board = DiscourseKanban::Board.find_by(id: board_id)
-      return if !board || !Discourse.system_user.guardian.can_read_board?(board)
+      return if !board || !board.anonymous_can_read?
 
       title = I18n.t("discourse_kanban.onebox.inline_to_board", board_name: board.name)
 

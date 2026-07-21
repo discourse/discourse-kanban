@@ -6,11 +6,19 @@ RSpec.describe DiscourseKanban::OneboxHandler do
   before { enable_current_plugin }
 
   fab!(:board) do
-    DiscourseKanban::Board.create!(
-      name: "Roadmap board",
-      slug: "roadmap-board",
-      created_by_id: admin.id,
+    board =
+      DiscourseKanban::Board.create!(
+        name: "Roadmap board",
+        slug: "roadmap-board",
+        created_by_id: admin.id,
+      )
+    Fabricate(
+      :access_control_list,
+      target: board,
+      permission: "view",
+      allowed_group_ids: [Group::AUTO_GROUPS[:anonymous_users], Group::AUTO_GROUPS[:trust_level_0]],
     )
+    board
   end
 
   fab!(:topic) { Fabricate(:topic, title: "Topic card headline") }
@@ -55,9 +63,18 @@ RSpec.describe DiscourseKanban::OneboxHandler do
 
     it "returns empty string if the user does not have permission to read the board" do
       private_group = Fabricate(:group)
-      board.update!(
-        allow_read_group_ids: [private_group.id],
-        allow_write_group_ids: [private_group.id],
+      board.access_control_lists.destroy_all
+      Fabricate(
+        :access_control_list_with_groups,
+        target: board,
+        permission: "view",
+        groups: [private_group],
+      )
+      Fabricate(
+        :access_control_list_with_groups,
+        target: board,
+        permission: "edit",
+        groups: [private_group],
       )
       expect(
         DiscourseKanban::OneboxHandler.handle(
@@ -189,9 +206,18 @@ RSpec.describe DiscourseKanban::OneboxHandler do
 
     it "returns empty string if the user does not have permission to read the board" do
       private_group = Fabricate(:group)
-      board.update!(
-        allow_read_group_ids: [private_group.id],
-        allow_write_group_ids: [private_group.id],
+      board.access_control_lists.destroy_all
+      Fabricate(
+        :access_control_list_with_groups,
+        target: board,
+        permission: "view",
+        groups: [private_group],
+      )
+      Fabricate(
+        :access_control_list_with_groups,
+        target: board,
+        permission: "edit",
+        groups: [private_group],
       )
       expect(DiscourseKanban::OneboxHandler.handle(board.url, { id: board.id })).to eq("")
     end
@@ -285,23 +311,23 @@ RSpec.describe DiscourseKanban::OneboxHandler do
       fab!(:private_group, :group)
 
       before do
-        board.update!(
-          allow_read_group_ids: [private_group.id],
-          allow_write_group_ids: [private_group.id],
+        board.access_control_lists.destroy_all
+        Fabricate(
+          :access_control_list_with_groups,
+          target: board,
+          permission: "view",
+          groups: [private_group],
         )
-        guardian = instance_double(Guardian, can_read_board?: true)
-        allow(Guardian).to receive(:new).with(Discourse.system_user).and_return(guardian)
+        Fabricate(
+          :access_control_list_with_groups,
+          target: board,
+          permission: "edit",
+          groups: [private_group],
+        )
       end
 
-      it "has the correct HTML structure" do
-        onebox_html = DiscourseKanban::OneboxHandler.handle(board.url, { id: board.id })
-
-        expect(onebox_html).to have_tag(
-          "span",
-          with: {
-            class: "discourse-kanban-badge discourse-kanban-badge--restricted",
-          },
-        )
+      it "returns an empty string" do
+        expect(DiscourseKanban::OneboxHandler.handle(board.url, { id: board.id })).to eq("")
       end
     end
   end

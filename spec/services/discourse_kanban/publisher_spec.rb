@@ -8,13 +8,25 @@ RSpec.describe DiscourseKanban::Publisher do
   before { enable_current_plugin }
 
   fab!(:board) do
-    DiscourseKanban::Board.create!(
-      name: "Test Board",
-      slug: "test-publisher",
-      allow_write_group_ids: [write_group.id],
-      allow_read_group_ids: [read_group.id],
-      created_by_id: admin.id,
+    board =
+      DiscourseKanban::Board.create!(
+        name: "Test Board",
+        slug: "test-publisher",
+        created_by_id: admin.id,
+      )
+    Fabricate(
+      :access_control_list_with_groups,
+      target: board,
+      permission: "edit",
+      groups: [write_group],
     )
+    Fabricate(
+      :access_control_list_with_groups,
+      target: board,
+      permission: "view",
+      groups: [read_group],
+    )
+    board
   end
   fab!(:column) { board.columns.create!(title: "To Do", position: 0) }
   fab!(:card) do

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module DiscourseKanban
-  class CardPayloadSerializer < ApplicationSerializer
+  class CardSerializer < ApplicationSerializer
     attributes :id,
                :board_id,
                :column_id,
@@ -83,9 +83,10 @@ module DiscourseKanban
 
     def visible_tag_ids(tag_ids)
       normalized_tag_ids = Array(tag_ids).compact_blank.map(&:to_i).reject(&:zero?).uniq
-      return normalized_tag_ids if normalized_tag_ids.blank? || scope&.is_admin?
+      guardian = scope || Guardian.new
+      return normalized_tag_ids if normalized_tag_ids.blank? || guardian.is_admin?
 
-      visible_ids = DiscourseTagging.visible_tags(scope).where(id: normalized_tag_ids).pluck(:id)
+      visible_ids = DiscourseTagging.visible_tags(guardian).where(id: normalized_tag_ids).pluck(:id)
       normalized_tag_ids & visible_ids
     end
 

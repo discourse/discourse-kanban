@@ -10,13 +10,21 @@ RSpec.describe DiscourseKanban::ViewCard do
     fab!(:read_group, :group)
     fab!(:write_group, :group)
     fab!(:board) do
-      DiscourseKanban::Board.create!(
-        name: "Board",
-        slug: "board-view",
-        allow_write_group_ids: [write_group.id],
-        allow_read_group_ids: [read_group.id],
-        created_by_id: admin.id,
+      board =
+        DiscourseKanban::Board.create!(name: "Board", slug: "board-view", created_by_id: admin.id)
+      Fabricate(
+        :access_control_list_with_groups,
+        target: board,
+        permission: "edit",
+        groups: [write_group],
       )
+      Fabricate(
+        :access_control_list_with_groups,
+        target: board,
+        permission: "view",
+        groups: [read_group],
+      )
+      board
     end
     fab!(:column) { board.columns.create!(title: "Col", position: 0) }
     fab!(:card) do

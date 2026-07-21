@@ -15,13 +15,14 @@ RSpec.describe DiscourseKanban::UpdateBoard do
     fab!(:outsider, :user)
     fab!(:manage_group, :group)
     fab!(:board) do
-      DiscourseKanban::Board.create!(
-        name: "Old",
-        slug: "old",
-        created_by_id: admin.id,
-        allow_read_group_ids: [manage_group.id],
-        allow_write_group_ids: [manage_group.id],
+      board = DiscourseKanban::Board.create!(name: "Old", slug: "old", created_by_id: admin.id)
+      Fabricate(
+        :access_control_list_with_groups,
+        target: board,
+        permission: "manage",
+        groups: [manage_group],
       )
+      board
     end
     fab!(:column) { board.columns.create!(title: "Col", position: 0) }
 
@@ -33,6 +34,7 @@ RSpec.describe DiscourseKanban::UpdateBoard do
       enable_current_plugin
       SiteSetting.discourse_kanban_manage_board_allowed_groups = manage_group.id.to_s
       manage_group.add(manager)
+      manage_group.add(admin)
     end
 
     context "when contract is invalid" do
@@ -75,6 +77,15 @@ RSpec.describe DiscourseKanban::UpdateBoard do
             "new_value" => "Updated",
           },
         )
+      end
+
+      it "replaces existing ACLs with mandatory ACLs when ACL params are empty" do
+        raw["acl"] = []
+
+        result
+
+        manage_acl = AccessControlList.find_by!(target: board, permission: "manage")
+        expect(manage_acl.allowed_group_ids).to contain_exactly(Group::AUTO_GROUPS[:admins])
       end
 
       it "does not delete topic cards on unconstrained boards" do
@@ -147,41 +158,17 @@ RSpec.describe DiscourseKanban::UpdateBoard do
           }
         end
 
-        it "replaces columns" do
+        it "does not update columns" do
           result
           board.reload
-          expect(board.columns.count).to eq(2)
-          expect(column.reload.title).to eq("Renamed")
-        end
-
-        context "when a column tag is not visible to the user" do
-          fab!(:restricted_tag, :tag)
-
-          let(:raw) do
-            {
-              "name" => "Updated",
-              "columns" => [
-                { "id" => column.id, "title" => "Restricted", "tag_name" => restricted_tag.name },
-              ],
-            }
-          end
-
-          before { Fabricate(:tag_group, permissions: { "staff" => 1 }, tags: [restricted_tag]) }
-
-          it "does not resolve the hidden tag" do
-            expect { result }.to raise_error(
-              Discourse::InvalidParameters,
-              I18n.t("discourse_kanban.errors.unknown_tag_name", tag_name: restricted_tag.name),
-            )
-          end
+          expect(board.columns.count).to eq(1)
+          expect(column.reload.title).to eq("Col")
         end
       end
 
       context "with permission changes" do
         fab!(:new_group, :group)
-        let(:raw) do
-          { "allow_read_group_ids" => [new_group.id], "allow_write_group_ids" => [new_group.id] }
-        end
+        let(:raw) { { "acl" => [{ type: "group", id: new_group.id, permission: "manage" }] } }
 
         it "tracks the permission change history" do
           result
@@ -191,10 +178,18 @@ RSpec.describe DiscourseKanban::UpdateBoard do
             acting_user_id: manager.id,
             board_id: board.id,
             details: {
-              "previous_allow_read_group_ids" => [manage_group.id],
-              "new_allow_read_group_ids" => [new_group.id],
-              "previous_allow_write_group_ids" => [manage_group.id],
-              "new_allow_write_group_ids" => [new_group.id],
+              "previous_permissions" => {
+                "manage" => {
+                  "group_ids" => [manage_group.id],
+                  "user_ids" => [],
+                },
+              },
+              "new_permissions" => {
+                "manage" => {
+                  "group_ids" => [new_group.id, Group::AUTO_GROUPS[:admins]],
+                  "user_ids" => [],
+                },
+              },
             },
           )
         end

@@ -5,8 +5,7 @@ export default class Board {
     return new Board(args);
   }
 
-  @tracked allow_read_group_ids;
-  @tracked allow_write_group_ids;
+  @tracked anonymous_can_read;
   @tracked can_manage;
   @tracked can_write;
   @tracked card_style;

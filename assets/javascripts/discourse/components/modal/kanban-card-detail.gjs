@@ -79,6 +79,10 @@ export default class KanbanCardDetail extends Component {
       return;
     }
 
+    if (this.isNew) {
+      return;
+    }
+
     ajax(
       `/kanban/boards/${this.args.model.card.board_id}/cards/${this.args.model.card.id}/view`,
       { method: "POST" }
@@ -125,6 +129,7 @@ export default class KanbanCardDetail extends Component {
               @title={{i18n "discourse_kanban.board.tags"}}
               @format="max"
               @type="tag-chooser"
+              @disabled={{not this.canWrite}}
               as |field|
             >
               <field.Control @allowCreate={{true}} />
@@ -136,6 +141,7 @@ export default class KanbanCardDetail extends Component {
                 @title={{i18n "discourse_kanban.board.assigned_to"}}
                 @format="max"
                 @type="custom"
+                @disabled={{not this.canWrite}}
                 as |field|
               >
                 <field.Control>

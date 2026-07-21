@@ -14,10 +14,11 @@ module DiscourseKanban
       boards =
         DiscourseKanban::Board
           .includes(:columns, :created_by)
+          .with_any_acl_permissions(guardian, %w[view edit manage])
+          .order(:name)
           .to_a
-          .select { |board| guardian.can_read_board?(board) }
       tag_name_map = build_tag_name_map(*boards)
-      render json: { boards: boards.map { |board| board_payload(board, tag_name_map:) } }
+      render json: { boards: serialize_boards(boards, tag_name_map:) }
     end
 
     def show
@@ -44,29 +45,32 @@ module DiscourseKanban
           .reject { |card| card.topic? && !visible_topic_ids.include?(card.topic_id) }
           .group_by(&:column_id)
       columns =
-        board_columns.map do |column|
-          column_payload(column, tag_name_map:).merge(
-            cards:
-              sort_cards_for_column(column, cards_by_column[column.id] || []).map do |card|
-                CardPayloadSerializer.new(
-                  card,
-                  root: false,
-                  scope: guardian,
-                  assignments_by_topic:,
-                  tags_by_id:,
-                ).as_json
-              end,
-          )
-        end
+        serialize_data(
+          board_columns,
+          DiscourseKanban::ColumnSerializer,
+          root: false,
+          tag_name_map:,
+          cards_by_column:,
+          assignments_by_topic:,
+          tags_by_id:,
+        )
 
-      render json: { board: board_payload(@board, tag_name_map:), columns: columns }
+      render json: {
+               board:
+                 serialize_board(
+                   @board,
+                   tag_name_map:,
+                   include_acl: guardian.can_manage_board?(@board),
+                 ),
+               columns: columns,
+             }
     end
 
     def create
       raw = board_mutation_params.to_h
 
-      DiscourseKanban::CreateBoard.call(guardian:, params: raw, raw_board_params: raw) do
-        on_success { |board:| render json: { board: board_payload(board) }, status: :created }
+      DiscourseKanban::CreateBoard.call(guardian:, params: raw, raw_board_params: raw) do |result|
+        on_success { |board:| render json: { board: serialize_board(board) }, status: :created }
         on_failed_policy(:can_manage) { raise Discourse::InvalidAccess }
         on_failed_contract do |contract|
           render json: failed_json.merge(errors: contract.errors.full_messages),
@@ -77,7 +81,7 @@ module DiscourseKanban
     end
 
     def update
-      raw = board_mutation_params.to_h
+      raw = board_mutation_params.to_h.except("columns")
 
       DiscourseKanban::UpdateBoard.call(
         guardian:,
@@ -85,7 +89,9 @@ module DiscourseKanban
         raw_board_params: raw,
       ) do
         on_success do |board:, cards_removed_count:|
-          response = { board: board_payload(board) }
+          response = {
+            board: serialize_board(board, include_acl: guardian.can_manage_board?(board)),
+          }
           response[:cards_removed_count] = cards_removed_count if cards_removed_count.to_i > 0
           render json: response
         end
@@ -124,7 +130,7 @@ module DiscourseKanban
 
     def constraint_preview
       board = DiscourseKanban::Board.find(params[:id])
-      guardian.ensure_can_manage_kanban_boards!
+      guardian.ensure_can_manage_board!(board)
 
       new_category_ids = Array(params[:category_ids]).map(&:to_i).reject(&:zero?)
       new_tag_ids =
@@ -174,7 +180,7 @@ module DiscourseKanban
       ) do
         on_success { head :no_content }
         on_model_not_found(:board) { raise Discourse::NotFound }
-        on_failed_policy(:can_manage) { raise Discourse::InvalidAccess }
+        on_failed_policy(:can_destroy) { raise Discourse::InvalidAccess }
         on_failed_contract do |contract|
           render json: failed_json.merge(errors: contract.errors.full_messages),
                  status: :bad_request
@@ -185,12 +191,18 @@ module DiscourseKanban
 
     private
 
-    def sort_cards_for_column(column, cards)
-      if column.recency?
-        cards.sort_by { |card| [card.recency_at || Time.zone.at(0), card.id] }.reverse
-      else
-        cards.sort_by { |card| [card.position, card.id] }
-      end
+    def serialize_board(board, tag_name_map: nil, include_acl: false)
+      serialize_data(
+        board,
+        DiscourseKanban::BoardSerializer,
+        root: false,
+        tag_name_map: tag_name_map || build_tag_name_map(board),
+        include_acl:,
+      )
+    end
+
+    def serialize_boards(boards, tag_name_map:)
+      serialize_data(boards, DiscourseKanban::BoardSerializer, root: false, tag_name_map:)
     end
 
     def preload_all_assignments(cards, visible_topic_ids)

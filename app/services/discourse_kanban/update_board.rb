@@ -15,8 +15,8 @@ module DiscourseKanban
     policy :can_manage
 
     transaction do
+      step :update_acl
       step :update_board
-      step :replace_columns
       step :remove_non_matching_cards
       step :create_histories
     end
@@ -29,37 +29,48 @@ module DiscourseKanban
       Board.find_by(id: params.id)
     end
 
-    def can_manage(guardian:)
-      guardian.can_update_board?
+    def can_manage(guardian:, board:)
+      guardian.can_manage_board?(board)
+    end
+
+    def update_acl(board:, guardian:)
+      raw = context[:raw_board_params] || {}
+      return if !raw.key?("acl")
+      flattened_acl = raw["acl"]
+
+      AccessControlListManager.call(
+        guardian:,
+        params: {
+          target: board,
+          flattened_acl: flattened_acl,
+          owner: DiscourseKanban::PLUGIN_NAME,
+        },
+      ) do |result|
+        on_success do |previous_permissions:, new_permissions:|
+          context[:histories] ||= {}
+          context[:histories][:permissions_changed] = { previous_permissions:, new_permissions: }
+        end
+
+        on_failure do
+          Rails.logger.warn(
+            "Failed to update ACL for board #{board.id} (#{flattened_acl.to_json}): #{result.inspect_steps}",
+          )
+          fail!(I18n.t("discourse_kanban.board.errors.acl_update_failed"))
+        end
+      end
     end
 
     def update_board(board:, guardian:)
       raw = context[:raw_board_params]&.dup || {}
-      context[:histories] = {}
+      context[:histories] ||= {}
       if raw.key?("tag_names")
         raw["tag_ids"] = VisibleTagResolver.resolve_names!(raw.delete("tag_names"), guardian:)
       end
-      board.assign_attributes(raw.except("columns"))
+      board.assign_attributes(raw.except("columns", "acl"))
       board.updated_by_id = guardian.user.id
 
       if board.name_changed?
         context[:histories][:renamed] = { previous_value: board.name_was, new_value: board.name }
-      end
-
-      if board.allow_read_group_ids_changed?
-        context[:histories][:permissions_changed] ||= {}
-        context[:histories][:permissions_changed].merge!(
-          previous_allow_read_group_ids: board.allow_read_group_ids_was,
-          new_allow_read_group_ids: board.allow_read_group_ids,
-        )
-      end
-
-      if board.allow_write_group_ids_changed?
-        context[:histories][:permissions_changed] ||= {}
-        context[:histories][:permissions_changed].merge!(
-          previous_allow_write_group_ids: board.allow_write_group_ids_was,
-          new_allow_write_group_ids: board.allow_write_group_ids,
-        )
       end
 
       if board.category_ids_changed?
@@ -86,16 +97,6 @@ module DiscourseKanban
       end
 
       board.save!
-    end
-
-    def replace_columns(board:, guardian:)
-      raw = context[:raw_board_params] || {}
-      ColumnsReplacer.replace!(
-        board:,
-        columns_payload: raw["columns"] || [],
-        user: guardian.user,
-        guardian:,
-      )
     end
 
     def remove_non_matching_cards(board:, guardian:)

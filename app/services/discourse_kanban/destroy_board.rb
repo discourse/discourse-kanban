@@ -12,7 +12,7 @@ module DiscourseKanban
     end
 
     model :board
-    policy :can_manage
+    policy :can_destroy
     step :publish_update
 
     transaction do
@@ -26,8 +26,8 @@ module DiscourseKanban
       Board.find_by(id: params.id)
     end
 
-    def can_manage(guardian:)
-      guardian.can_destroy_board?
+    def can_destroy(guardian:, board:)
+      guardian.can_destroy_board?(board)
     end
 
     def publish_update(board:, params:)

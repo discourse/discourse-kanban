@@ -2,8 +2,15 @@
 
 module DiscourseKanban
   class Board < ActiveRecord::Base
+    include ::AclTarget
+
     self.table_name = "discourse_kanban_boards"
-    self.ignored_columns = %w[base_filter_query show_activity_indicators]
+    self.ignored_columns = %w[
+      base_filter_query
+      show_activity_indicators
+      allow_read_group_ids
+      allow_write_group_ids
+    ]
 
     has_many :columns,
              -> { order(:position, :id) },
@@ -23,23 +30,30 @@ module DiscourseKanban
     validates :name, :slug, presence: true
     validates :slug, uniqueness: true
 
-    validate :validate_group_ids
     validate :validate_category_ids
     validate :validate_tag_ids
 
     before_validation :normalize_slug
-    before_validation :normalize_group_ids
+
+    def self.mandatory_acl
+      [{ type: :group, id: Group::AUTO_GROUPS[:admins], permission: "manage" }]
+    end
+
+    def self.banned_acl
+      [
+        { type: :group, id: Group::AUTO_GROUPS[:anonymous_users], permission: "manage" },
+        { type: :group, id: Group::AUTO_GROUPS[:anonymous_users], permission: "edit" },
+        { type: :group, id: Group::AUTO_GROUPS[:everyone], permission: "manage" },
+        { type: :group, id: Group::AUTO_GROUPS[:everyone], permission: "edit" },
+      ]
+    end
 
     def url
       "#{Discourse.base_url}/kanban/boards/#{slug}/#{id}"
     end
 
-    def public_read?
-      allow_read_group_ids.empty?
-    end
-
-    def effective_read_group_ids
-      (allow_read_group_ids + allow_write_group_ids).uniq
+    def anonymous_can_read?
+      permission_acl.group_has_permission?(Group::AUTO_GROUPS[:anonymous_users], "view")
     end
 
     def reload(options = nil)
@@ -142,30 +156,11 @@ module DiscourseKanban
       self.slug = Slug.for(source) if source.present?
     end
 
-    def normalize_group_ids
-      self.allow_read_group_ids = normalize_group_array(allow_read_group_ids)
-      self.allow_write_group_ids = normalize_group_array(allow_write_group_ids)
-    end
-
     def normalize_id_array(values)
       Array(values).map(&:to_i).uniq.reject(&:zero?)
     end
 
     alias_method :normalize_group_array, :normalize_id_array
-
-    def validate_group_ids
-      all_group_ids = allow_read_group_ids + allow_write_group_ids
-      return if all_group_ids.empty?
-
-      existing_group_ids = Group.where(id: all_group_ids.uniq).pluck(:id)
-      missing_group_ids = all_group_ids.uniq - existing_group_ids
-      return if missing_group_ids.empty?
-
-      errors.add(
-        :base,
-        I18n.t("discourse_kanban.errors.unknown_group_ids", group_ids: missing_group_ids.join(",")),
-      )
-    end
 
     def validate_category_ids
       return if category_ids.blank?
@@ -201,21 +196,19 @@ end
 #
 # Table name: discourse_kanban_boards
 #
-#  id                    :bigint           not null, primary key
-#  allow_read_group_ids  :integer          default([]), not null, is an Array
-#  allow_write_group_ids :integer          default([]), not null, is an Array
-#  card_style            :integer          default("detailed"), not null
-#  category_ids          :integer          default([]), not null, is an Array
-#  name                  :string           not null
-#  require_confirmation  :boolean          default(TRUE), not null
-#  show_tags             :boolean          default(FALSE), not null
-#  show_topic_thumbnail  :boolean          default(FALSE), not null
-#  slug                  :string           not null
-#  tag_ids               :integer          default([]), not null, is an Array
-#  created_at            :datetime         not null
-#  updated_at            :datetime         not null
-#  created_by_id         :bigint
-#  updated_by_id         :bigint
+#  id                   :bigint           not null, primary key
+#  card_style           :integer          default("detailed"), not null
+#  category_ids         :integer          default([]), not null, is an Array
+#  name                 :string           not null
+#  require_confirmation :boolean          default(TRUE), not null
+#  show_tags            :boolean          default(FALSE), not null
+#  show_topic_thumbnail :boolean          default(FALSE), not null
+#  slug                 :string           not null
+#  tag_ids              :integer          default([]), not null, is an Array
+#  created_at           :datetime         not null
+#  updated_at           :datetime         not null
+#  created_by_id        :bigint
+#  updated_by_id        :bigint
 #
 # Indexes
 #

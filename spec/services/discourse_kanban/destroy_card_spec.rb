@@ -17,13 +17,21 @@ RSpec.describe DiscourseKanban::DestroyCard do
     fab!(:category) { Fabricate(:category, name: "Kanban") }
     fab!(:topic) { Fabricate(:topic, category: category) }
     fab!(:board) do
-      DiscourseKanban::Board.create!(
-        name: "Board",
-        slug: "board-dc",
-        allow_write_group_ids: [write_group.id],
-        allow_read_group_ids: [read_group.id],
-        created_by_id: admin.id,
+      board =
+        DiscourseKanban::Board.create!(name: "Board", slug: "board-dc", created_by_id: admin.id)
+      Fabricate(
+        :access_control_list_with_groups,
+        target: board,
+        permission: "edit",
+        groups: [write_group],
       )
+      Fabricate(
+        :access_control_list_with_groups,
+        target: board,
+        permission: "view",
+        groups: [read_group],
+      )
+      board
     end
     fab!(:column) { board.columns.create!(title: "Col", position: 0) }
 
@@ -70,6 +78,25 @@ RSpec.describe DiscourseKanban::DestroyCard do
       let(:params) { { board_id: board.id, id: card.id } }
 
       it { is_expected.to run_successfully }
+    end
+
+    context "when topic card is hidden from the user" do
+      fab!(:private_category) { Fabricate(:private_category, group: Fabricate(:group)) }
+      fab!(:private_topic) { Fabricate(:topic, category: private_category) }
+
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :topic,
+          topic_id: private_topic.id,
+          column_id: column.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      end
+
+      let(:params) { { board_id: board.id, id: card.id } }
+
+      it { is_expected.to fail_a_policy(:can_see_card_topic) }
     end
 
     context "when topic card is covered by board filter" do

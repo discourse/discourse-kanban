@@ -2,14 +2,7 @@
 
 describe "Board Category Constraints" do
   fab!(:current_user, :admin)
-  fab!(:board) do
-    Fabricate(
-      :kanban_board,
-      allow_write_group_ids: [Group::AUTO_GROUPS[:staff]],
-      allow_read_group_ids: [Group::AUTO_GROUPS[:staff]],
-      column_names: ["To Do", "In Progress", "Done"],
-    )
-  end
+  fab!(:board) { Fabricate(:kanban_board, column_names: ["To Do", "In Progress", "Done"]) }
 
   let(:board_viewer) { PageObjects::Pages::KanbanBoardViewer.new }
   let(:board_component) { PageObjects::Components::Board.new }

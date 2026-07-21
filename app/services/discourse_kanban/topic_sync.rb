@@ -96,10 +96,19 @@ module DiscourseKanban
 
       rows = DB.query(<<~SQL, topic_id: topic_id)
           SELECT c.id AS card_id, c.board_id,
-                 b.allow_read_group_ids, b.allow_write_group_ids
+                 COALESCE(
+                   ARRAY_AGG(DISTINCT acl_group_id) FILTER (WHERE acl_group_id IS NOT NULL),
+                   '{}'::bigint[]
+                 ) AS allowed_group_ids
           FROM discourse_kanban_cards c
           JOIN discourse_kanban_boards b ON b.id = c.board_id
+          LEFT JOIN access_control_lists acl
+            ON acl.target_id = b.id
+           AND acl.target_type = 'DiscourseKanban::Board'
+           AND acl.permission IN ('view', 'edit', 'manage')
+          LEFT JOIN LATERAL UNNEST(acl.allowed_group_ids) AS acl_groups(acl_group_id) ON TRUE
           WHERE c.topic_id = :topic_id
+          GROUP BY c.id, c.board_id
         SQL
 
       return if rows.empty?
@@ -108,9 +117,7 @@ module DiscourseKanban
       board_groups = {}
       rows.each do |row|
         (deleted_by_board[row.board_id] ||= []) << row.card_id
-        board_groups[row.board_id] ||= (
-          (row.allow_read_group_ids || []) + (row.allow_write_group_ids || [])
-        ).uniq
+        board_groups[row.board_id] ||= row.allowed_group_ids || []
       end
 
       Card.where(topic_id: topic_id).delete_all
@@ -142,17 +149,27 @@ module DiscourseKanban
           GROUP BY k.column_id
         ),
         board_info AS (
-          SELECT DISTINCT b.id AS board_id, b.allow_read_group_ids, b.allow_write_group_ids
+          SELECT b.id AS board_id,
+                 COALESCE(
+                   ARRAY_AGG(DISTINCT acl_group_id) FILTER (WHERE acl_group_id IS NOT NULL),
+                   '{}'::bigint[]
+                 ) AS allowed_group_ids
           FROM discourse_kanban_boards b
+          LEFT JOIN access_control_lists acl
+            ON acl.target_id = b.id
+           AND acl.target_type = 'DiscourseKanban::Board'
+           AND acl.permission IN ('view', 'edit', 'manage')
+          LEFT JOIN LATERAL UNNEST(acl.allowed_group_ids) AS acl_groups(acl_group_id) ON TRUE
           WHERE b.id IN (
             SELECT board_id FROM matching
             UNION ALL
             SELECT board_id FROM discourse_kanban_cards WHERE topic_id = :topic_id
           )
+          GROUP BY b.id
         )
         SELECT 'existing'::text AS source, ec.card_id, ec.board_id, ec.column_id,
                NULL::bigint AS column_tag_id, NULL::bigint AS max_pos,
-               NULL::integer[] AS allow_read_group_ids, NULL::integer[] AS allow_write_group_ids
+               NULL::bigint[] AS allowed_group_ids
         FROM (
           SELECT c.id AS card_id, c.board_id, c.column_id
           FROM discourse_kanban_cards c
@@ -164,17 +181,17 @@ module DiscourseKanban
         UNION ALL
         SELECT 'matching'::text, NULL, m.board_id, m.column_id,
                m.column_tag_id, NULL,
-               NULL, NULL
+               NULL
         FROM matching m
         UNION ALL
         SELECT 'max_pos'::text, NULL, NULL, mp.column_id,
                NULL, mp.max_pos,
-               NULL, NULL
+               NULL
         FROM max_positions mp
         UNION ALL
         SELECT 'board'::text, NULL, bi.board_id, NULL,
                NULL, NULL,
-               bi.allow_read_group_ids, bi.allow_write_group_ids
+               bi.allowed_group_ids
         FROM board_info bi
       SQL
 
@@ -203,9 +220,7 @@ module DiscourseKanban
           when "max_pos"
             max_positions[row.column_id] = row.max_pos
           when "board"
-            board_groups[row.board_id] = (
-              (row.allow_read_group_ids || []) + (row.allow_write_group_ids || [])
-            ).uniq
+            board_groups[row.board_id] = row.allowed_group_ids || []
           end
         end
 
@@ -346,7 +361,7 @@ module DiscourseKanban
       end
 
       created_cards.each do |card|
-        payload = CardPayloadSerializer.new(card, root: false).as_json.except("topic", :topic)
+        payload = CardSerializer.new(card, root: false).as_json.except("topic", :topic)
         publish_to_board(board_groups, card.board_id, type: "card_created", card: payload)
       end
     end
@@ -356,7 +371,9 @@ module DiscourseKanban
       group_ids = board_groups[board_id]
       return if group_ids.nil?
       opts = {}
-      opts[:group_ids] = group_ids if group_ids.present?
+      if group_ids.present? && !group_ids.include?(Group::AUTO_GROUPS[:anonymous_users])
+        opts[:group_ids] = group_ids
+      end
       MessageBus.publish(
         "#{Publisher::CHANNEL_PREFIX}/#{board_id}",
         data.merge(client_id: nil),

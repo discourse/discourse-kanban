@@ -12,13 +12,25 @@ RSpec.describe DiscourseKanban::CardsController do
   fab!(:urgent_tag, :tag) { Fabricate(:tag, name: "urgent") }
 
   fab!(:board) do
-    DiscourseKanban::Board.create!(
-      name: "Test Board",
-      slug: "test-board",
-      allow_write_group_ids: [write_group.id],
-      allow_read_group_ids: [read_group.id],
-      created_by_id: admin.id,
+    board =
+      DiscourseKanban::Board.create!(
+        name: "Test Board",
+        slug: "test-board",
+        created_by_id: admin.id,
+      )
+    Fabricate(
+      :access_control_list_with_groups,
+      target: board,
+      permission: "edit",
+      groups: [write_group],
     )
+    Fabricate(
+      :access_control_list_with_groups,
+      target: board,
+      permission: "view",
+      groups: [read_group],
+    )
+    board
   end
   fab!(:col_todo) { board.columns.create!(title: "To Do", position: 0) }
   fab!(:done_tag, :tag) { Fabricate(:tag, name: "done") }
@@ -28,6 +40,7 @@ RSpec.describe DiscourseKanban::CardsController do
   before do
     enable_current_plugin
     write_group.add(writer)
+    write_group.add(admin)
     read_group.add(reader)
   end
 
@@ -519,6 +532,45 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(card.reload.tag_ids).to eq([urgent_tag.id])
       expect(response.parsed_body.dig("card", "tag_ids")).to eq([urgent_tag.id])
       expect(response.parsed_body.dig("card", "tags").pluck("name")).to eq([urgent_tag.name])
+    end
+
+    it "omits restricted tags from update broadcasts" do
+      hidden_tag = Fabricate(:tag, name: "secret-kanban")
+      private_category = Fabricate(:private_category, group: Fabricate(:group))
+      private_category.update!(allowed_tags: [hidden_tag.name])
+      card =
+        board.cards.create!(
+          card_type: :floater,
+          title: "Retitle me",
+          column_id: col_todo.id,
+          position: 0,
+          tag_ids: [urgent_tag.id, hidden_tag.id],
+          created_by_id: admin.id,
+        )
+
+      sign_in(admin)
+
+      messages =
+        MessageBus.track_publish("/kanban/boards/#{board.id}") do
+          put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+              params: {
+                card: {
+                  title: "Retitled",
+                },
+              }
+        end
+
+      expect(response.status).to eq(200)
+      expect(response.parsed_body.dig("card", "tags").pluck("name")).to contain_exactly(
+        urgent_tag.name,
+        hidden_tag.name,
+      )
+      expect(messages.size).to eq(1)
+      expect(messages.first.data[:type]).to eq("card_updated")
+      expect(messages.first.data[:card][:tag_ids]).to contain_exactly(urgent_tag.id)
+      expect(messages.first.data[:card][:tags].map { |tag| tag[:name] }).to contain_exactly(
+        urgent_tag.name,
+      )
     end
 
     it "rejects unknown floater card tag ids on update" do
@@ -1589,6 +1641,28 @@ RSpec.describe DiscourseKanban::CardsController do
       }.by(-1)
 
       expect(response.status).to eq(204)
+    end
+
+    it "returns 404 when deleting a topic card whose topic is hidden" do
+      private_category = Fabricate(:private_category, group: Fabricate(:group))
+      private_topic = Fabricate(:topic, category: private_category)
+      private_card =
+        board.cards.create!(
+          card_type: :topic,
+          topic_id: private_topic.id,
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+
+      sign_in(writer)
+
+      expect { delete "/kanban/boards/#{board.id}/cards/#{private_card.id}.json" }.not_to change {
+        DiscourseKanban::Card.count
+      }
+
+      expect(response.status).to eq(404)
+      expect(response.body).not_to include(private_topic.title)
     end
   end
 end

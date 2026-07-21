@@ -14,8 +14,8 @@ module DiscourseKanban
         ),
       ) do
         on_success do |card:, board:|
-          payload = CardPayloadSerializer.new(card, root: false, scope: guardian).as_json
-          publish_payload = CardPayloadSerializer.new(card, root: false).as_json
+          payload = CardSerializer.new(card, root: false, scope: guardian).as_json
+          publish_payload = CardSerializer.new(card, root: false).as_json
           Publisher.publish_card_created!(board, publish_payload, client_id: message_bus_client_id)
           render json: { card: payload }, status: :created
         end
@@ -46,8 +46,8 @@ module DiscourseKanban
       ) do
         on_success do |card:, board:, original_column_id:, adopted_floater_id:|
           card.topic&.reload
-          response = CardPayloadSerializer.new(card, root: false, scope: guardian).as_json
-          publish_response = CardPayloadSerializer.new(card, root: false).as_json
+          response = CardSerializer.new(card, root: false, scope: guardian).as_json
+          publish_response = CardSerializer.new(card, root: false).as_json
 
           if adopted_floater_id
             Publisher.publish_card_deleted!(
@@ -128,6 +128,7 @@ module DiscourseKanban
           raise Discourse::NotFound.new(I18n.t("discourse_kanban.errors.card_not_found"))
         end
         on_failed_policy(:can_write) { raise Discourse::InvalidAccess }
+        on_failed_policy(:can_see_card_topic) { raise Discourse::NotFound }
         on_failed_policy(:card_is_deletable) do
           render json: {
                    errors: [I18n.t("discourse_kanban.errors.topic_covered_by_filter")],
