@@ -57,6 +57,10 @@ function luminance(hex) {
 // readable for any color, preset or custom. The title sits on a chip that
 // darkens the fill by ~30%, so it gets its own text color judged against that
 // darker background (and so trends lighter than the count on the bare fill).
+// The header text (count included) stays a tint of the fill's own hue:
+// --column-header-lightness holds a relative-color lightness expression that
+// darkens the hue on light fills and lightens it on dark fills, evaluated by
+// the oklch(from ...) rule in SCSS.
 export function columnColorVariable(color) {
   if (!isValidHex(color)) {
     return trustHTML("--column-color: transparent;");
@@ -65,8 +69,10 @@ export function columnColorVariable(color) {
   const lum = luminance(hex);
   const text = lum > 0.5 ? "#000000" : "#ffffff";
   const titleText = lum * 0.7 > 0.5 ? "#000000" : "#ffffff";
+  const headerLightness =
+    lum > 0.5 ? "calc(l * 0.625)" : "calc(l + (1 - l) * 0.7)";
   return trustHTML(
-    `--column-color: #${hex}; --column-text-color: ${text}; --column-title-text-color: ${titleText};`
+    `--column-color: #${hex}; --column-text-color: ${text}; --column-title-text-color: ${titleText}; --column-header-lightness: ${headerLightness};`
   );
 }
 

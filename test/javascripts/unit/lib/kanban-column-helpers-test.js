@@ -21,17 +21,17 @@ module(
     test("columnColorVariable emits the fill plus contrasting text colors", function (assert) {
       assert.strictEqual(
         columnColorVariable("1a2b3c").toString(),
-        "--column-color: #1a2b3c; --column-text-color: #ffffff; --column-title-text-color: #ffffff;",
-        "a dark color gets white text everywhere"
+        "--column-color: #1a2b3c; --column-text-color: #ffffff; --column-title-text-color: #ffffff; --column-header-lightness: calc(l + (1 - l) * 0.7);",
+        "a dark color gets white text everywhere and a lightened header tint"
       );
       assert.strictEqual(
         columnColorVariable("ddb30e").toString(),
-        "--column-color: #ddb30e; --column-text-color: #000000; --column-title-text-color: #ffffff;",
-        "a light color gets black text on the fill but lighter text on the darker title chip"
+        "--column-color: #ddb30e; --column-text-color: #000000; --column-title-text-color: #ffffff; --column-header-lightness: calc(l * 0.625);",
+        "a light color gets black text on the fill, lighter text on the darker title chip, and a darkened header tint"
       );
       assert.strictEqual(
         columnColorVariable("f0a").toString(),
-        "--column-color: #ff00aa; --column-text-color: #ffffff; --column-title-text-color: #ffffff;",
+        "--column-color: #ff00aa; --column-text-color: #ffffff; --column-title-text-color: #ffffff; --column-header-lightness: calc(l + (1 - l) * 0.7);",
         "short hexes are expanded"
       );
       assert.strictEqual(
