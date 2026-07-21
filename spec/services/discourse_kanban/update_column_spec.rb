@@ -5,6 +5,8 @@ RSpec.describe DiscourseKanban::UpdateColumn do
     it { is_expected.to validate_presence_of(:board_id) }
     it { is_expected.to validate_presence_of(:id) }
     it { is_expected.to validate_presence_of(:title) }
+    it { is_expected.to allow_value(nil, "f0a", "1A2B3C").for(:color) }
+    it { is_expected.not_to allow_value("#1A2B3C", "purple").for(:color) }
   end
 
   describe ".call" do
@@ -19,7 +21,9 @@ RSpec.describe DiscourseKanban::UpdateColumn do
     end
     fab!(:column) { board.columns.create!(title: "Old", position: 0) }
 
-    let(:params) { { board_id: board.id, id: column.id, title: "New", default_sort: "priority" } }
+    let(:params) do
+      { board_id: board.id, id: column.id, title: "New", color: "1A2B3C", default_sort: "priority" }
+    end
     let(:dependencies) { { guardian: manager.guardian } }
 
     before do
@@ -58,13 +62,13 @@ RSpec.describe DiscourseKanban::UpdateColumn do
       it "updates the column without changing position" do
         result
 
-        expect(column.reload).to have_attributes(title: "New", position: 0)
+        expect(column.reload).to have_attributes(title: "New", color: "1A2B3C", position: 0)
       end
 
       it "tracks the column renamed history" do
         result
 
-        expect(board.history.last).to have_attributes(
+        expect(board.history.find_by(action: :column_renamed)).to have_attributes(
           action: "column_renamed",
           acting_user_id: manager.id,
           board_id: board.id,
@@ -83,6 +87,7 @@ RSpec.describe DiscourseKanban::UpdateColumn do
             id: column.id,
             title: "Old",
             icon: "check",
+            color: "f0a",
             default_sort: "recency",
           }
         end
@@ -98,10 +103,12 @@ RSpec.describe DiscourseKanban::UpdateColumn do
             details: {
               "previous_values" => {
                 "icon" => nil,
+                "color" => nil,
                 "default_sort" => "priority",
               },
               "new_values" => {
                 "icon" => "check",
+                "color" => "f0a",
                 "default_sort" => "recency",
               },
             },

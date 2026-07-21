@@ -4,6 +4,8 @@ RSpec.describe DiscourseKanban::CreateColumn do
   describe described_class::Contract, type: :model do
     it { is_expected.to validate_presence_of(:board_id) }
     it { is_expected.to validate_presence_of(:title) }
+    it { is_expected.to allow_value(nil, "f0a", "1A2B3C").for(:color) }
+    it { is_expected.not_to allow_value("#1A2B3C", "purple").for(:color) }
   end
 
   describe ".call" do
@@ -17,7 +19,9 @@ RSpec.describe DiscourseKanban::CreateColumn do
       Fabricate(:kanban_board, created_by: admin, additional_manage_groups: [manage_group])
     end
 
-    let(:params) { { board_id: board.id, title: "Backlog", default_sort: "priority" } }
+    let(:params) do
+      { board_id: board.id, title: "Backlog", color: "1A2B3C", default_sort: "priority" }
+    end
     let(:dependencies) { { guardian: manager.guardian } }
 
     before do
@@ -51,7 +55,7 @@ RSpec.describe DiscourseKanban::CreateColumn do
         board.columns.create!(title: "Existing", position: 0)
 
         expect { result }.to change { board.columns.count }.by(1)
-        expect(result[:column]).to have_attributes(title: "Backlog", position: 1)
+        expect(result[:column]).to have_attributes(title: "Backlog", color: "1A2B3C", position: 1)
       end
 
       it "tracks the column added history" do
@@ -64,6 +68,7 @@ RSpec.describe DiscourseKanban::CreateColumn do
           column_id: result[:column].id,
           details: {
             "title" => "Backlog",
+            "color" => "1A2B3C",
             "tag_id" => nil,
             "move_to_category_id" => nil,
             "move_to_assigned" => nil,
