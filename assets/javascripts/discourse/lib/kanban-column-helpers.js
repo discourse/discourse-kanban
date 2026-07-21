@@ -53,26 +53,25 @@ function luminance(hex) {
 }
 
 // Mirrors core's categoryColorVariable: turns a stored hex into inline custom
-// properties — the fill plus contrasting text colors so the header stays
-// readable for any color, preset or custom. The title sits on a chip that
-// darkens the fill by ~30%, so it gets its own text color judged against that
-// darker background (and so trends lighter than the count on the bare fill).
-// The header text (count included) stays a tint of the fill's own hue:
-// --column-header-lightness holds a relative-color lightness expression that
-// darkens the hue on light fills and lightens it on dark fills, evaluated by
-// the oklch(from ...) rule in SCSS.
+// properties — the fill plus a contrasting title text color so the header
+// stays readable for any color, preset or custom. The title sits on a chip
+// that darkens the fill by ~30%, so its text color is judged against that
+// darker background. The header text (count included) stays a tint of the
+// fill's own hue, with its lightness handled scheme-side in SCSS.
 export function columnColorVariable(color) {
   if (!isValidHex(color)) {
-    return trustHTML("--column-color: transparent;");
+    // Colorless columns fill with the scheme's --primary-500; --secondary is
+    // core's text-on-filled-control color and tracks scheme switches live,
+    // so no contrast math is needed here.
+    return trustHTML(
+      "--column-color: var(--primary-500); --column-title-text-color: var(--secondary);"
+    );
   }
   const hex = normalizeHex(color);
   const lum = luminance(hex);
-  const text = lum > 0.5 ? "#000000" : "#ffffff";
   const titleText = lum * 0.7 > 0.5 ? "#000000" : "#ffffff";
-  const headerLightness =
-    lum > 0.5 ? "calc(l * 0.625)" : "calc(l + (1 - l) * 0.7)";
   return trustHTML(
-    `--column-color: #${hex}; --column-text-color: ${text}; --column-title-text-color: ${titleText}; --column-header-lightness: ${headerLightness};`
+    `--column-color: #${hex}; --column-title-text-color: ${titleText};`
   );
 }
 
