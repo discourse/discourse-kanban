@@ -287,13 +287,17 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     font-size: var(--font-down-1);
   }
 
-  // When a color is set, the filled header keeps the fill's hue but shifts its
-  // lightness for contrast — darker on light fills, lighter on dark fills
-  // (expression computed in columnColorVariable); the count inherits it.
+  // Header text (count included) and the menu icon keep the fill's hue, but
+  // they sit on the column body — a faint tint of the fill over the page
+  // background — so their lightness is capped against the scheme, not the
+  // fill: darkened on light schemes, lightened on dark.
+  --column-header-tint: light-dark(
+    oklch(from var(--column-color) min(l, 0.5) c h),
+    oklch(from var(--column-color) max(l, 0.75) c h)
+  );
+
   &.--has-color &__header {
-    color: oklch(
-      from var(--column-color) var(--column-header-lightness, l) c h
-    );
+    color: var(--column-header-tint);
   }
 
   // The title's chip darkens the fill, so it uses its own contrast color.
@@ -303,7 +307,7 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
 
   &__menu-trigger {
     --d-button-flat-bg-color: transparent;
-    --d-button-flat-icon-color: rgb(0, 0, 0, 0.2);
+    --d-button-flat-icon-color: var(--column-header-tint);
     --d-button-flat-bg-color--hover: transparent;
     --d-button-flat-icon-color--hover: var(--primary);
     opacity: 0;
