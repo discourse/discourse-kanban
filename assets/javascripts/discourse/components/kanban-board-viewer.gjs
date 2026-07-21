@@ -1296,6 +1296,7 @@ export default class KanbanBoardViewer extends Component {
           card,
           columnTitle: column?.title,
           columnIcon: column?.icon,
+          columnColor: column?.color,
           onNavigateAway: (url) => {
             navigatedAway = true;
             DiscourseURL.routeTo(url);

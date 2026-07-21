@@ -548,6 +548,7 @@ export default class KanbanColumn extends Component {
               @board={{@board}}
               @columnTitle={{@column.title}}
               @columnIcon={{@column.icon}}
+              @columnColor={{@column.color}}
               @canWrite={{@canWrite}}
               @allSameCategory={{@allSameCategory}}
               @isDropHighlighted={{eq @dropHighlightCardId card.id}}

@@ -16,6 +16,7 @@ import renderTags from "discourse/lib/render-tags";
 import Category from "discourse/models/category";
 import { or } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
+import { columnColorVariable } from "../../lib/kanban-column-helpers";
 
 export default class KanbanTopicCardDetail extends Component {
   @service currentUser;
@@ -69,11 +70,11 @@ export default class KanbanTopicCardDetail extends Component {
   }
 
   get columnData() {
-    const { columnTitle, columnIcon } = this.args.model;
+    const { columnTitle, columnIcon, columnColor } = this.args.model;
     if (!columnTitle) {
       return null;
     }
-    return { title: columnTitle, icon: columnIcon };
+    return { title: columnTitle, icon: columnIcon, color: columnColor };
   }
 
   get tagsHtml() {
@@ -156,7 +157,10 @@ export default class KanbanTopicCardDetail extends Component {
               </span>
             {{/if}}
             {{#if this.columnData}}
-              <span class="discourse-kanban-column__title">
+              <span
+                class="discourse-kanban-column__title"
+                style={{columnColorVariable this.columnData.color}}
+              >
                 {{#if this.columnData.icon}}{{icon this.columnData.icon}}{{/if}}
                 {{this.columnData.title}}
               </span>

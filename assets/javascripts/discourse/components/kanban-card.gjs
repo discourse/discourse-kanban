@@ -279,6 +279,7 @@ export default class KanbanCard extends Component {
           card: this.args.card,
           columnTitle: this.args.columnTitle,
           columnIcon: this.args.columnIcon,
+          columnColor: this.args.columnColor,
           onNavigateAway: (url) => {
             navigatedAway = true;
             DiscourseURL.routeTo(url);
