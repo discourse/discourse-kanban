@@ -16,6 +16,7 @@ module DiscourseKanban
         move_to_category_id: payload[:move_to_category_id],
         move_to_assigned: payload[:move_to_assigned],
         move_to_status: payload[:move_to_status],
+        color: payload[:color],
         position:,
       )
       column.save!

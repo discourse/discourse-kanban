@@ -8,6 +8,7 @@ module DiscourseKanban
       attribute :board_id, :integer
       attribute :title, :string
       attribute :icon, :string
+      attribute :color, :string
       attribute :default_sort, :string
       attribute :tag_name, :string
       attribute :move_to_category_id, :integer
