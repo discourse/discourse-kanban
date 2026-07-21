@@ -49,6 +49,11 @@ module PageObjects
       def click_delete
         menu.option(".discourse-kanban-column__menu-delete").click
       end
+
+      def has_color?(color)
+        color = color.delete_prefix("#")
+        find_column["style"].include?("--column-color: ##{color};")
+      end
     end
   end
 end
