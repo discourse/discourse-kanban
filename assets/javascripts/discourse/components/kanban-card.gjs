@@ -519,13 +519,14 @@ export default class KanbanCard extends Component {
       {{on "keydown" this.onCardKeydown}}
     >
       <div class="discourse-kanban-card__row discourse-kanban-card__title-row">
-        {{#if this.topicStatusModel}}
-          <TopicStatus @topic={{this.topicStatusModel}} />
-        {{/if}}
+
         {{#if this.isTopicCard}}
           <span
             class="discourse-kanban-card__title discourse-kanban-card__title--topic"
           >
+            {{#if this.topicStatusModel}}
+              <TopicStatus @topic={{this.topicStatusModel}} />
+            {{/if}}
             {{this.cardTitle}}
           </span>
         {{else}}
