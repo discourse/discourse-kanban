@@ -296,12 +296,12 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     oklch(from var(--column-color) max(l, 0.75) c h)
   );
 
-  &.--has-color &__header {
+  &.--has-color &__count {
     color: var(--column-header-tint);
   }
 
   // The title's chip darkens the fill, so it uses its own contrast color.
-  &.--has-color &__title {
+  &__title {
     color: var(--column-title-text-color);
   }
 
