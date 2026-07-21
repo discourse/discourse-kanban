@@ -12,6 +12,12 @@ module PageObjects
         PageObjects::Components::FormKit.new("#{board_settings_modal.full_body_selector} .form-kit")
       end
 
+      def column_settings_form
+        PageObjects::Components::FormKit.new(
+          "#{column_settings_modal.full_body_selector} .form-kit",
+        )
+      end
+
       def click_new_board
         find(".discourse-kanban-manage__new-board").click
         self
@@ -113,6 +119,10 @@ module PageObjects
         chooser.search(tag_name)
         chooser.select_row_by_name(tag_name)
         self
+      end
+
+      def fill_modal_column_color(color)
+        column_settings_form.field("color").fill_in(color)
       end
 
       def column_by_title(title)

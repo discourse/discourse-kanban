@@ -237,15 +237,14 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
 .discourse-kanban-column {
   width: 16.5rem;
   max-height: calc(100% - var(--space-8));
-  gap: var(--space-2);
   flex-shrink: 0;
-  background: var(--primary-50);
-  border: 1px solid var(--primary-100);
+  background: oklch(from var(--column-color, var(--primary-500)) l c h / 0.125);
   display: flex;
   flex-direction: column;
-  padding: var(--kanban-column-padding);
   transition: border-color 0.15s ease;
   border-radius: var(--d-border-radius);
+  border: 1px solid
+    oklch(from var(--column-color, var(--primary-500)) l c h / 0.125);
 
   &.drag-target {
     border-color: var(--tertiary);
@@ -256,6 +255,10 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     align-items: center;
     height: var(--kanban-column-header-height);
     justify-content: space-between;
+    border-top-right-radius: var(--d-border-radius-small);
+    border-top-left-radius: var(--d-border-radius-small);
+    color: var(--primary);
+    padding: var(--space-2);
   }
 
   &__header-content {
@@ -265,13 +268,15 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
   }
 
   &__title {
-    color: var(--primary);
     text-transform: uppercase;
     font-size: var(--font-down-2);
     font-weight: 500;
-    padding: var(--space-1);
-    background-color: var(--kanban-column-color, var(--primary-200));
-    border-radius: var(--d-border-radius-small);
+    padding: var(--space-1) var(--space-2);
+    background: var(--column-color, var(--primary-500));
+    border-radius: var(--d-border-radius);
+    max-width: 25ch;
+
+    @include ellipsis;
 
     .d-icon {
       margin-right: 0.25em;
@@ -280,11 +285,27 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
 
   &__count {
     font-size: var(--font-down-1);
-    font-weight: 600;
-    color: var(--primary-600);
+  }
+
+  // When a color is set, the filled header keeps the fill's hue but shifts its
+  // lightness for contrast — darker on light fills, lighter on dark fills
+  // (expression computed in columnColorVariable); the count inherits it.
+  &.--has-color &__header {
+    color: oklch(
+      from var(--column-color) var(--column-header-lightness, l) c h
+    );
+  }
+
+  // The title's chip darkens the fill, so it uses its own contrast color.
+  &.--has-color &__title {
+    color: var(--column-title-text-color);
   }
 
   &__menu-trigger {
+    --d-button-flat-bg-color: transparent;
+    --d-button-flat-icon-color: rgb(0, 0, 0, 0.2);
+    --d-button-flat-bg-color--hover: transparent;
+    --d-button-flat-icon-color--hover: var(--primary);
     opacity: 0;
     transition: opacity 0.15s ease;
     padding: 2px 4px;
@@ -306,6 +327,7 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     transform: translate3d(0, 0, 0);
     scrollbar-width: thin;
     scrollbar-color: var(--primary-low-mid) transparent;
+    padding: var(--kanban-column-padding);
   }
 
   &__drop-indicator {
@@ -357,9 +379,9 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
 
   &__add-btn {
     --d-button-default-bg-color: transparent;
-    --d-button-default-bg-color--hover: var(--primary-low);
-    --d-button-default-text-color--hover: var(--primary);
-    --d-button-default-icon-color--hover: var(--primary-high);
+    --d-button-default-bg-color--hover: var(--column-color, var(--primary-500));
+    --d-button-default-text-color--hover: var(--column-title-text-color);
+    --d-button-default-icon-color--hover: var(--column-title-text-color);
     --d-button-default-border--hover: 1px solid transparent;
     width: 100%;
     justify-content: flex-start;
@@ -418,6 +440,10 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
       margin-left: auto;
     }
   }
+
+  &__footer {
+    padding: var(--space-2);
+  }
 }
 
 .discourse-kanban-card {
@@ -425,13 +451,14 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
   position: relative;
   color: var(--primary);
   background: var(--secondary);
-  border: 1px solid var(--primary-low);
+  border: 1px solid
+    oklch(from var(--column-color, var(--primary-500)) l c h/0.25);
   padding: var(--space-2);
   border-radius: var(--d-border-radius-small);
   cursor: grab;
 
   &--floater {
-    border-left: 2px solid var(--tertiary);
+    border-left: 2px solid var(--column-color);
   }
 
   &[draggable="false"] {
@@ -502,6 +529,8 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     overflow-wrap: break-word;
     overflow: hidden;
     color: var(--primary);
+    font-weight: 500;
+    line-height: 1.2;
   }
 
   &__date {

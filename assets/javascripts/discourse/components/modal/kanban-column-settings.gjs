@@ -18,6 +18,7 @@ import {
   assignedMode,
   assignedUserValue,
   COLUMN_SORT_OPTIONS,
+  PRESET_COLUMN_COLORS,
   STATUS_OPTIONS,
   tagToArray,
 } from "../../lib/kanban-column-helpers";
@@ -37,6 +38,7 @@ export default class KanbanColumnSettings extends Component {
       return {
         title: column.title || "",
         icon: column.icon || null,
+        color: column.color || null,
         default_sort: column.default_sort || "priority",
         tag_name: column.tag_name || "",
         move_to_category_id: column.move_to_category_id || null,
@@ -47,6 +49,7 @@ export default class KanbanColumnSettings extends Component {
     return {
       title: "",
       icon: null,
+      color: null,
       default_sort: "priority",
       tag_name: "",
       move_to_category_id: null,
@@ -124,6 +127,7 @@ export default class KanbanColumnSettings extends Component {
     const columnData = {
       title: data.title.trim() || data.tag_name.trim(),
       icon: data.icon,
+      color: data.color || null,
       default_sort: data.default_sort || "priority",
       tag_name: data.tag_name || null,
       move_to_category_id: data.move_to_category_id,
@@ -176,6 +180,16 @@ export default class KanbanColumnSettings extends Component {
                 as |field|
               >
                 <field.Control />
+              </form.Field>
+
+              <form.Field
+                @name="color"
+                @title={{i18n "discourse_kanban.manage.columns.color"}}
+                @format="max"
+                @type="color"
+                as |field|
+              >
+                <field.Control @colors={{PRESET_COLUMN_COLORS}} />
               </form.Field>
 
               <form.Field

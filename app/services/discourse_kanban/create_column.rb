@@ -8,6 +8,7 @@ module DiscourseKanban
       attribute :board_id, :integer
       attribute :title, :string
       attribute :icon, :string
+      attribute :color, :string
       attribute :default_sort, :string
       attribute :tag_name, :string
       attribute :move_to_category_id, :integer
@@ -17,6 +18,7 @@ module DiscourseKanban
 
       validates :board_id, presence: true
       validates :title, presence: true
+      validates :color, format: { with: /\A(\h{3}|\h{6})\z/ }, allow_nil: true
     end
 
     model :board
@@ -66,6 +68,7 @@ module DiscourseKanban
     def column_details(column)
       {
         title: column.title,
+        color: column.color,
         tag_id: column.tag_id,
         move_to_category_id: column.move_to_category_id,
         move_to_assigned: column.move_to_assigned,

@@ -35,6 +35,7 @@ module DiscourseKanban
           column.assign_attributes(
             title: col_payload[:title],
             icon: col_payload[:icon],
+            color: col_payload[:color].presence,
             tag_id: resolved_tag_id,
             default_sort: normalize_default_sort(col_payload[:default_sort]),
             move_to_category_id: col_payload[:move_to_category_id],

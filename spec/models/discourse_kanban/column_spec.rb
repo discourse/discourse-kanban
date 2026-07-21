@@ -22,4 +22,14 @@ RSpec.describe DiscourseKanban::Column do
     expect(column.default_sort).to eq("recency")
     expect(column).to be_recency
   end
+
+  it "accepts a bare hex or no color, but rejects malformed values" do
+    expect(board.columns.build(title: "A", position: 0, color: "1A2B3C")).to be_valid
+    expect(board.columns.build(title: "B", position: 1, color: "f0a")).to be_valid
+    expect(board.columns.build(title: "C", position: 2, color: nil)).to be_valid
+
+    # Stored without a leading "#", and the old named keys are no longer valid.
+    expect(board.columns.build(title: "D", position: 3, color: "#1A2B3C")).not_to be_valid
+    expect(board.columns.build(title: "E", position: 4, color: "purple")).not_to be_valid
+  end
 end

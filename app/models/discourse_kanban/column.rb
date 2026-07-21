@@ -18,6 +18,9 @@ module DiscourseKanban
 
     validates :title, presence: true
     validates :position, presence: true
+    # Stored as a bare hex (no leading "#"), like core's category color. The
+    # palette presets live in JS; here we only validate the shape.
+    validates :color, format: { with: /\A(\h{3}|\h{6})\z/ }, allow_nil: true
 
     def matches_topic?(topic)
       tag_id.present? && topic.tag_ids.include?(tag_id)
@@ -30,6 +33,7 @@ end
 # Table name: discourse_kanban_columns
 #
 #  id                  :bigint           not null, primary key
+#  color               :string
 #  default_sort        :integer          default("priority"), not null
 #  icon                :string
 #  move_to_assigned    :string

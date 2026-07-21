@@ -86,6 +86,7 @@ describe "Manage Kanban Boards" do
       board_component.open_board_menu
       board_component.click_add_column_menu_item
       boards_page.fill_modal_column_title("To Do")
+      boards_page.fill_modal_column_color("C97CF4")
       boards_page.save_column_modal
 
       expect(toasts).to have_success(I18n.t("js.saved"))
@@ -104,6 +105,7 @@ describe "Manage Kanban Boards" do
 
       expect(boards_page).to have_column("To Do")
       expect(boards_page).to have_column("Done")
+      expect(boards_page.column_by_title("To Do")).to have_color("C97CF4")
     end
 
     it "can delete a column with no cards without confirmation" do

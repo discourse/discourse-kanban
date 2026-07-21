@@ -963,6 +963,7 @@ export default class KanbanBoardViewer extends Component {
       id: col.id,
       title: col.title,
       icon: col.icon,
+      color: col.color || null,
       default_sort: col.default_sort || "priority",
       tag_name: col.tag_name || null,
       move_to_category_id: col.move_to_category_id,

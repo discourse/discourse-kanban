@@ -12,7 +12,8 @@ module DiscourseKanban
                :move_to_category_id,
                :move_to_assigned,
                :move_to_status,
-               :cards
+               :cards,
+               :color
 
     def tag_id
       visible_tag_id
