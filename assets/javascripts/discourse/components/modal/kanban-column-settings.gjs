@@ -17,8 +17,8 @@ import {
   ASSIGNED_OPTIONS,
   assignedMode,
   assignedUserValue,
-  COLUMN_COLORS,
   COLUMN_SORT_OPTIONS,
+  PRESET_COLUMN_COLORS,
   STATUS_OPTIONS,
   tagToArray,
 } from "../../lib/kanban-column-helpers";
@@ -189,7 +189,7 @@ export default class KanbanColumnSettings extends Component {
                 @type="color"
                 as |field|
               >
-                <field.Control @colors={{COLUMN_COLORS}} />
+                <field.Control @colors={{PRESET_COLUMN_COLORS}} />
               </form.Field>
 
               <form.Field

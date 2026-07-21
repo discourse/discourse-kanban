@@ -26,8 +26,8 @@ export const STATUS_OPTIONS = [
 
 // Suggested palette fed to the FormKit color control as @colors. Values are
 // bare 6-digit hexes (no leading "#"), matching how core stores category colors.
-// These are only presets — the control also accepts any custom hex.
-export const COLUMN_COLORS = [
+// The control also accepts any custom hex.
+export const PRESET_COLUMN_COLORS = [
   "C97CF4",
   "FCA700",
   "669DF1",
