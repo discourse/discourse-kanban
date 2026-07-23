@@ -160,20 +160,6 @@
   background: var(--d-hover);
 }
 
-.d-header .categories-wrapper .kanban-topic-pill {
-  margin-left: 0.25em;
-}
-
-// Uncategorized topics have no categories row in the docked header, so the
-// pill renders in the tags row instead
-.d-header .topic-header-extra .kanban-topic-pill {
-  margin-left: 0.5em;
-
-  &:first-child {
-    margin-left: 0;
-  }
-}
-
 #topic-title .kanban-topic-pill {
   vertical-align: text-bottom;
 
