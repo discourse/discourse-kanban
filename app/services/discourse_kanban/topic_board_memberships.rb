@@ -4,13 +4,18 @@ module DiscourseKanban
   # Resolves which kanban boards a topic belongs to (via its topic cards) so
   # topic lists and topic pages can surface a link back to the board.
   module TopicBoardMemberships
-    def self.preload(topics)
+    def self.preload(topics, guardian)
       topics = Array(topics)
       return if topics.empty?
 
-      cards_by_topic_id = cards_query(topics.map(&:id)).group_by(&:topic_id)
+      cards = cards_query(topics.map(&:id)).to_a
+      cards_by_topic_id = cards.group_by(&:topic_id)
+      readable_board_ids = readable_board_ids(cards, guardian)
 
-      topics.each { |topic| topic.kanban_board_cards = cards_by_topic_id[topic.id] || [] }
+      topics.each do |topic|
+        topic.kanban_board_cards = cards_by_topic_id[topic.id] || []
+        topic.kanban_readable_board_ids = readable_board_ids
+      end
     end
 
     def self.cards_for(topic)
@@ -19,7 +24,7 @@ module DiscourseKanban
 
     def self.serialize(topic, guardian)
       cards = cards_for(topic)
-      readable_board_ids = readable_board_ids(cards, guardian)
+      readable_board_ids = topic.kanban_readable_board_ids || readable_board_ids(cards, guardian)
 
       cards
         .select { |card| readable_board_ids.include?(card.board_id) }

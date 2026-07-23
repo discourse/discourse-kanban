@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "Kanban Board Viewer" do
+RSpec.describe "Kanban Board Viewer" do # rubocop:disable RSpec/DescribeClass
   fab!(:user)
   fab!(:admin)
   fab!(:manager, :user)
@@ -34,7 +34,7 @@ describe "Kanban Board Viewer" do
     end
   end
 
-  def create_board(
+  def create_board( # rubocop:disable Discourse/Plugins/NamespaceMethods
     attrs = {},
     with_columns: [],
     read_groups: [write_group, manage_group],
@@ -82,7 +82,7 @@ describe "Kanban Board Viewer" do
     CreateBoardResult.new(board, columns)
   end
 
-  def add_topic_card(board, column, topic)
+  def add_topic_card(board, column, topic) # rubocop:disable Discourse/Plugins/NamespaceMethods
     card = board.cards.find_by(topic_id: topic.id)
     if card
       card.update!(column_id: column.id) if card.column_id != column.id
@@ -138,14 +138,19 @@ describe "Kanban Board Viewer" do
   end
 
   context "when visiting a board with the wrong slug" do
-    it "redirects to the correct slug" do
+    it "redirects to the correct slug without losing the linked card" do
       result = create_board(with_columns: [{ title: "To Do", position: 0 }])
+      topic = Fabricate(:topic, title: "Keep highlighted", category:)
+      card = add_topic_card(result.board, result.column("To Do"), topic)
 
       sign_in(user)
-      board_viewer.visit_board_with_slug("wrong-slug", result.board)
+      page.visit "/kanban/boards/wrong-slug/#{result.board.id}?card=#{card.id}"
 
       expect(board_viewer).to have_board_title("Sprint Board")
-      expect(page).to have_current_path("/kanban/boards/sprint-board/#{result.board.id}")
+      expect(page).to have_current_path(
+        "/kanban/boards/sprint-board/#{result.board.id}?card=#{card.id}",
+      )
+      expect(page).to have_css(".discourse-kanban-card--link-highlighted", text: "Keep highlighted")
     end
   end
 

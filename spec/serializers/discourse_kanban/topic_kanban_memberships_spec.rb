@@ -99,7 +99,7 @@ RSpec.describe DiscourseKanban::TopicBoardMemberships do
     end
 
     it "uses preloaded cards when present" do
-      DiscourseKanban::TopicBoardMemberships.preload([topic])
+      DiscourseKanban::TopicBoardMemberships.preload([topic], Guardian.new(reader))
       expect(topic.kanban_board_cards.map(&:id)).to eq([card.id])
 
       queries =
@@ -133,6 +133,26 @@ RSpec.describe DiscourseKanban::TopicBoardMemberships do
         end.select { |query| query.include?("access_control_lists") }
 
       expect(acl_queries.size).to be <= 2
+    end
+
+    it "batches ACL checks across every topic in a preloaded list" do
+      second_topic = Fabricate(:topic)
+      Fabricate(:kanban_topic_card, board:, column:, topic: second_topic)
+      guardian = Guardian.new(reader.reload)
+
+      preload_acl_queries =
+        track_sql_queries do
+          DiscourseKanban::TopicBoardMemberships.preload([topic, second_topic], guardian)
+        end.select { |query| query.include?("access_control_lists") }
+      serialization_acl_queries =
+        track_sql_queries do
+          [topic, second_topic].each do |list_topic|
+            DiscourseKanban::TopicBoardMemberships.serialize(list_topic, guardian)
+          end
+        end.select { |query| query.include?("access_control_lists") }
+
+      expect(preload_acl_queries.size).to be <= 2
+      expect(serialization_acl_queries).to be_empty
     end
   end
 

@@ -53,9 +53,15 @@ after_initialize do
 
   add_to_class(:topic, :kanban_board_cards) { @kanban_board_cards }
   add_to_class(:topic, :kanban_board_cards=) { |cards| @kanban_board_cards = cards }
+  add_to_class(:topic, :kanban_readable_board_ids) { @kanban_readable_board_ids }
+  add_to_class(:topic, :kanban_readable_board_ids=) do |board_ids|
+    @kanban_readable_board_ids = board_ids
+  end
 
-  TopicList.on_preload do |topics, _topic_list|
-    DiscourseKanban::TopicBoardMemberships.preload(topics) if SiteSetting.discourse_kanban_enabled
+  TopicList.on_preload do |topics, topic_list|
+    if SiteSetting.discourse_kanban_enabled
+      DiscourseKanban::TopicBoardMemberships.preload(topics, Guardian.new(topic_list.current_user))
+    end
   end
 
   add_to_serializer(

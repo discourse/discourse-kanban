@@ -6,6 +6,10 @@ import { sortCardsForColumn } from "../lib/kanban-card-ordering";
 export default class KanbanBoardRoute extends DiscourseRoute {
   @service router;
 
+  queryParams = {
+    card: { refreshModel: true },
+  };
+
   titleToken() {
     return this.controller?.model?.board?.name;
   }
@@ -20,7 +24,9 @@ export default class KanbanBoardRoute extends DiscourseRoute {
   afterModel(model, transition) {
     const board = model.board;
     if (board?.slug && transition.to.params.slug !== board.slug) {
-      this.router.replaceWith("kanbanBoard", board.slug, board.id);
+      this.router.replaceWith("kanbanBoard", board.slug, board.id, {
+        queryParams: { card: transition.to.queryParams.card },
+      });
     }
 
     model.board.columns = model.board.columns.map((col) => {
