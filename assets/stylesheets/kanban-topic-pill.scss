@@ -165,23 +165,12 @@
 }
 
 // Uncategorized topics have no categories row in the docked header, so the
-// pill renders in the title suffix instead. The topic link is a block
-// element, so flex the h1 to keep the pill inline after the truncated title.
-.d-header .header-title:has(.header-topic-title-suffix .kanban-topic-pill) {
-  display: flex;
-  align-items: center;
-  gap: 0 0.5em;
-  min-width: 0;
+// pill renders in the tags row instead
+.d-header .topic-header-extra .kanban-topic-pill {
+  margin-left: 0.5em;
 
-  .topic-link {
-    // keep the title's ellipsis working as a flex item
-    min-width: 0;
-  }
-
-  .kanban-topic-pill {
-    // the h1 font is larger; keep the pill the same size as everywhere else
-    font-size: var(--font-down-1-rem);
-    white-space: nowrap;
+  &:first-child {
+    margin-left: 0;
   }
 }
 
