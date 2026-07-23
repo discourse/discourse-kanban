@@ -66,7 +66,12 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
 
       this.model = { board, columns };
       await render(
-        <template><KanbanBoardViewer @model={{this.model}} /></template>
+        <template>
+          <KanbanBoardViewer
+            @model={{this.model}}
+            @highlightCardId={{this.highlightCardId}}
+          />
+        </template>
       );
     };
 
@@ -222,6 +227,42 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
       [101, 102],
       "it sorts the moved card to the top of the recency column"
     );
+  });
+
+  test("renders and highlights an old linked card in a recency column", async function (assert) {
+    const linkedCard = this.makeCard({
+      id: 101,
+      columnId: 10,
+      title: "Old linked card",
+      recencyAt: recentISO(8),
+    });
+    const recentCard = this.makeCard({
+      id: 102,
+      columnId: 10,
+      title: "Recent card",
+      recencyAt: recentISO(1),
+    });
+    this.highlightCardId = linkedCard.id;
+
+    await this.renderBoard([
+      this.makeColumn({
+        id: 10,
+        title: "Recent",
+        cards: [recentCard, linkedCard],
+        defaultSort: "recency",
+      }),
+    ]);
+    await settled();
+
+    assert
+      .dom(cardSelector(linkedCard.id))
+      .exists(
+        "the linked card is rendered despite falling outside the recency window"
+      )
+      .hasClass(
+        "discourse-kanban-card--link-highlighted",
+        "the linked card receives the deep-link highlight"
+      );
   });
 
   test("canceling the constraint fix while adding a topic card stops creation", async function (assert) {

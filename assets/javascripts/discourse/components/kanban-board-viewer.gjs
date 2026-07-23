@@ -1299,10 +1299,16 @@ export default class KanbanBoardViewer extends Component {
 
     this.linkHighlightCardId = cardId;
 
-    const cardElement = document.querySelector(
-      `.discourse-kanban-card[data-card-id="${cardId}"]`
-    );
-    cardElement?.scrollIntoView({ block: "center", inline: "center" });
+    schedule("afterRender", () => {
+      if (this.isDestroying || this.isDestroyed) {
+        return;
+      }
+
+      const cardElement = document.querySelector(
+        `.discourse-kanban-card[data-card-id="${cardId}"]`
+      );
+      cardElement?.scrollIntoView({ block: "center", inline: "center" });
+    });
   }
 
   #openInitialCardModal(card) {

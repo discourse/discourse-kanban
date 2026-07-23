@@ -28,6 +28,20 @@ export default class KanbanTopicPill extends Component {
     return this.#cardUrl(this.single);
   }
 
+  get singleTitle() {
+    if (this.single.cards.length > 1) {
+      return i18n("discourse_kanban.topic_pill.title_multiple_columns", {
+        board: this.single.board_name,
+        count: this.single.cards.length,
+      });
+    }
+
+    return i18n("discourse_kanban.topic_pill.title", {
+      board: this.single.board_name,
+      column: this.single.cards[0].column_title,
+    });
+  }
+
   @action
   goToBoard(membership, closeMenu) {
     closeMenu();
@@ -39,7 +53,7 @@ export default class KanbanTopicPill extends Component {
       slug: membership.board_slug,
       id: membership.board_id,
     });
-    return `${boardUrl}?card=${membership.card_id}`;
+    return `${boardUrl}?card=${membership.cards[0].card_id}`;
   }
 
   <template>
@@ -47,11 +61,7 @@ export default class KanbanTopicPill extends Component {
       <a
         class="kanban-topic-pill"
         href={{this.singleUrl}}
-        title={{i18n
-          "discourse_kanban.topic_pill.title"
-          board=this.single.board_name
-          column=this.single.column_title
-        }}
+        title={{this.singleTitle}}
       >
         {{icon "table-columns"}}
         <span class="kanban-topic-pill__label">{{this.single.board_name}}</span>
@@ -87,6 +97,7 @@ export default class KanbanTopicPill extends Component {
                             membership.board_created_by.avatar_template
                             "tiny"
                           }}
+                          {{membership.board_created_by.username}}
                         </span>
                       {{/if}}
                       <span class="kanban-topic-pill__fact">
@@ -96,15 +107,17 @@ export default class KanbanTopicPill extends Component {
                         }}
                       </span>
                     </span>
-                    <span
-                      class="kanban-topic-pill__column"
-                      style={{columnColorVariable membership.column_color}}
-                    >
-                      {{#if membership.column_icon}}
-                        {{icon membership.column_icon}}
-                      {{/if}}
-                      {{membership.column_title}}
-                    </span>
+                    {{#each membership.cards as |card|}}
+                      <span
+                        class="kanban-topic-pill__column"
+                        style={{columnColorVariable card.column_color}}
+                      >
+                        {{#if card.column_icon}}
+                          {{icon card.column_icon}}
+                        {{/if}}
+                        {{card.column_title}}
+                      </span>
+                    {{/each}}
                   </div>
                 </DButton>
               </dropdown.item>
