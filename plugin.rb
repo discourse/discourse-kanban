@@ -34,7 +34,7 @@ after_initialize do
         .pluck(:icon)
         .each { |icon| DiscoursePluginRegistry.register_svg_icon(icon) }
     end
-  rescue ActiveRecord::NoDatabaseError, ActiveRecord::StatementInvalid
+  rescue ActiveRecord::NoDatabaseError, ActiveRecord::StatementInvalid, PG::ConnectionBad
     # Database may not exist/may have pending migrations yet during db:create / db:migrate bootstrap.
   end
 
