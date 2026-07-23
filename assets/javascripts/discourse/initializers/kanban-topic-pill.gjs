@@ -25,6 +25,22 @@ class HeaderCategoriesPill extends Component {
   </template>
 }
 
+// Core only renders the header categories row when the topic has a visible
+// category badge, so uncategorized topics need the pill next to the title
+// instead. Mirrors the categories-wrapper guard in header/topic/info.
+class HeaderTitleSuffixPill extends Component {
+  static shouldRender(args, { siteSettings }) {
+    const category = args.topic?.category;
+    const categoriesRowVisible =
+      category &&
+      (!category.isUncategorizedCategory ||
+        !siteSettings.suppress_uncategorized_badge);
+    return !categoriesRowVisible;
+  }
+
+  <template><KanbanTopicPill @topic={{@outletArgs.topic}} /></template>
+}
+
 export default {
   name: "kanban-topic-pill",
 
@@ -46,6 +62,7 @@ export default {
       );
 
       api.renderInOutlet("header-categories-wrapper", HeaderCategoriesPill);
+      api.renderInOutlet("header-topic-title-suffix", HeaderTitleSuffixPill);
     });
   },
 };
