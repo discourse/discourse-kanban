@@ -8,7 +8,14 @@ RSpec.describe DiscourseKanban::TopicBoardMemberships do
 
   fab!(:board) { Fabricate(:kanban_board, name: "Sales", slug: "sales", created_by: admin) }
   fab!(:column) do
-    Fabricate(:kanban_column, board:, title: "In progress", color: "0088cc", icon: "angles-up")
+    Fabricate(
+      :kanban_column,
+      board:,
+      title: "In progress",
+      position: 0,
+      color: "0088cc",
+      icon: "angles-up",
+    )
   end
   fab!(:card) { Fabricate(:kanban_topic_card, board:, column:, topic:) }
 
