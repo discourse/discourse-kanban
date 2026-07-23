@@ -160,6 +160,11 @@
   background: var(--d-hover);
 }
 
+// multiple boards render as sibling pills in the docked header's tags row
+.discourse-tags .kanban-topic-pill + .kanban-topic-pill {
+  margin-left: 0.35em;
+}
+
 #topic-title .kanban-topic-pill {
   vertical-align: text-bottom;
 
