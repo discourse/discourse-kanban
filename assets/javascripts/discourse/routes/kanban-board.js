@@ -10,8 +10,11 @@ export default class KanbanBoardRoute extends DiscourseRoute {
     return this.controller?.model?.board?.name;
   }
 
-  model(params) {
-    return ajax(`/kanban/boards/${params.id}.json`);
+  model(params, transition) {
+    return ajax(`/kanban/boards/${params.id}.json`).then((data) => ({
+      ...data,
+      highlightCardId: parseInt(transition.to.queryParams.card, 10) || null,
+    }));
   }
 
   afterModel(model, transition) {

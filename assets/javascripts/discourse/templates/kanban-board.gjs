@@ -5,6 +5,9 @@ import KanbanBoardViewer from "../components/kanban-board-viewer";
 export default <template>
   {{bodyClass "discourse-kanban-board"}}
   {{#each (array @controller.model) as |model|}}
-    <KanbanBoardViewer @model={{model}} />
+    <KanbanBoardViewer
+      @model={{model}}
+      @highlightCardId={{model.highlightCardId}}
+    />
   {{/each}}
 </template>

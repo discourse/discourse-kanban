@@ -552,6 +552,7 @@ export default class KanbanColumn extends Component {
               @canWrite={{@canWrite}}
               @allSameCategory={{@allSameCategory}}
               @isDropHighlighted={{eq @dropHighlightCardId card.id}}
+              @isLinkHighlighted={{eq @linkHighlightCardId card.id}}
               @onDragStart={{@onDragStart}}
               @onDragEnd={{@onDragEnd}}
               @onUpdateCard={{@onUpdateCard}}

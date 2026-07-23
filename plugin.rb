@@ -13,6 +13,7 @@ enabled_site_setting :discourse_kanban_enabled
 register_asset "stylesheets/kanban-manage.scss"
 register_asset "stylesheets/kanban-board.scss"
 register_asset "stylesheets/kanban-oneboxes.scss"
+register_asset "stylesheets/kanban-topic-pill.scss"
 register_svg_icon "table-columns"
 
 module ::DiscourseKanban
@@ -48,6 +49,27 @@ after_initialize do
 
   add_to_serializer(:current_user, :can_manage_kanban_boards) do
     object.guardian.can_manage_kanban_boards?
+  end
+
+  add_to_class(:topic, :kanban_board_cards) { @kanban_board_cards }
+  add_to_class(:topic, :kanban_board_cards=) { |cards| @kanban_board_cards = cards }
+
+  TopicList.on_preload do |topics, _topic_list|
+    DiscourseKanban::TopicBoardMemberships.preload(topics) if SiteSetting.discourse_kanban_enabled
+  end
+
+  add_to_serializer(
+    :topic_list_item,
+    :kanban_memberships,
+    include_condition: -> { SiteSetting.discourse_kanban_enabled && kanban_memberships.present? },
+  ) { @kanban_memberships ||= DiscourseKanban::TopicBoardMemberships.serialize(object, scope) }
+
+  add_to_serializer(
+    :topic_view,
+    :kanban_memberships,
+    include_condition: -> { SiteSetting.discourse_kanban_enabled && kanban_memberships.present? },
+  ) do
+    @kanban_memberships ||= DiscourseKanban::TopicBoardMemberships.serialize(object.topic, scope)
   end
 
   DiscoursePluginRegistry.register_acl_target_class(DiscourseKanban::Board, self)

@@ -1,0 +1,177 @@
+// Mirrors core's .discourse-tag styling so the pill matches the site's tag
+// style (simple, box, or theme overrides).
+.kanban-topic-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  vertical-align: middle;
+  padding: 0 var(--d-tag-horizontal-padding);
+  border-radius: var(--d-tag-border-radius);
+  background-color: var(--d-tag-background-color);
+  color: var(--tag-text-color);
+  font-size: var(--font-down-1);
+  font-weight: var(--d-tag-font-weight);
+
+  .d-icon {
+    font-size: 0.9em;
+    color: currentcolor;
+  }
+
+  .kanban-topic-pill__label {
+    display: inline-block;
+
+    &::first-letter {
+      text-transform: uppercase;
+    }
+  }
+
+  &:visited,
+  &:hover,
+  &:focus-visible {
+    color: var(--tag-text-color);
+  }
+
+  // DMenu trigger variant for topics on multiple boards — undo button
+  // chrome so it reads like the single-board pill
+  &--multiple.btn,
+  &--multiple.btn:hover,
+  &--multiple.btn:focus,
+  &--multiple.btn:focus-visible,
+  &--multiple.btn:active {
+    min-height: unset;
+    border: none;
+    line-height: inherit;
+  }
+
+  &--multiple.btn {
+    .d-icon,
+    .d-button-label {
+      color: var(--tag-text-color);
+      font-size: inherit;
+    }
+
+    .d-icon {
+      font-size: 0.9em;
+
+      // the flex gap already provides the spacing
+      margin-right: 0;
+    }
+
+    &:hover,
+    &:focus-visible {
+      background-color: var(--d-tag-background-color);
+
+      .d-icon,
+      .d-button-label {
+        color: var(--tag-text-color);
+      }
+    }
+  }
+}
+
+// Dropdown items for the multi-board menu, matching core's
+// .notifications-tracking-btn / .composer-actions-btn pattern
+.kanban-topic-pill__menu-item.btn {
+  display: flex;
+  flex: 1 0 auto;
+  box-sizing: border-box;
+  align-items: center;
+
+  .kanban-topic-pill__menu-item-texts {
+    line-height: var(--line-height-medium);
+    flex: 1 1 0%;
+    align-items: flex-start;
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .kanban-topic-pill__menu-item-label {
+    flex: 1 1 auto;
+    font-weight: bold;
+    font-size: var(--font-0);
+    color: var(--primary);
+    max-width: 100%;
+
+    @include ellipsis;
+
+    &::first-letter {
+      text-transform: uppercase;
+    }
+  }
+
+  .kanban-topic-pill__menu-item-description {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.35em;
+    font-size: var(--font-down-1);
+    color: var(--primary-medium);
+    white-space: normal;
+    text-align: left;
+  }
+
+  .kanban-topic-pill__fact {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+
+    &:not(:last-child)::after {
+      content: ",";
+
+      // cancel the flex gap so the comma hugs the preceding fact
+      margin-left: -0.35em;
+    }
+
+    img.avatar {
+      width: 1em;
+      height: 1em;
+    }
+  }
+
+  // mirrors the board's column chip (.discourse-kanban-column__title),
+  // on its own line below the facts
+  .kanban-topic-pill__column {
+    text-transform: uppercase;
+    font-size: var(--font-down-2);
+    font-weight: 500;
+    padding: var(--space-half) var(--space-1);
+    background: var(--column-color, var(--primary-500));
+    border-radius: var(--d-border-radius);
+    color: var(--column-title-text-color);
+    max-width: 25ch;
+
+    .d-icon {
+      color: currentcolor;
+      font-size: 0.9em;
+
+      // core's menu-item mixin gives dropdown icons a fixed sidebar
+      // prefix width; let the chip icon size naturally
+      width: auto;
+    }
+  }
+}
+
+// core's .btn-transparent.no-text:hover resets the menu-item hover
+// background, so reapply it for these custom-content items
+.discourse-no-touch .kanban-topic-pill__menu-item.btn:hover,
+.kanban-topic-pill__menu-item.btn:focus-visible {
+  background: var(--d-hover);
+}
+
+.d-header .categories-wrapper .kanban-topic-pill {
+  margin-left: 0.25em;
+}
+
+#topic-title .kanban-topic-pill {
+  vertical-align: text-bottom;
+
+  // beat core's #topic-title link color
+  &,
+  &:visited,
+  &:hover,
+  &:focus-visible {
+    color: var(--tag-text-color);
+  }
+}

@@ -111,6 +111,7 @@ export default class KanbanBoardViewer extends Component {
   @tracked dragData = null;
   @tracked dropHighlightCardId = null;
   @tracked fullscreen = false;
+  @tracked linkHighlightCardId = null;
 
   horizontalAutoScrollFrame = null;
   horizontalAutoScrollSpeed = 0;
@@ -163,6 +164,15 @@ export default class KanbanBoardViewer extends Component {
         } else {
           DiscourseURL.routeTo(kanbanBoardUrl(this.board));
         }
+      });
+    }
+
+    if (this.args.highlightCardId) {
+      schedule("afterRender", () => {
+        if (this.isDestroying || this.isDestroyed) {
+          return;
+        }
+        this.#focusHighlightCard(this.args.highlightCardId);
       });
     }
 
@@ -1282,6 +1292,19 @@ export default class KanbanBoardViewer extends Component {
     return null;
   }
 
+  #focusHighlightCard(cardId) {
+    if (!this.#findCard(cardId)) {
+      return;
+    }
+
+    this.linkHighlightCardId = cardId;
+
+    const cardElement = document.querySelector(
+      `.discourse-kanban-card[data-card-id="${cardId}"]`
+    );
+    cardElement?.scrollIntoView({ block: "center", inline: "center" });
+  }
+
   #openInitialCardModal(card) {
     const boardUrl = kanbanBoardUrl(this.board);
     const isTopicCard = card.card_type === "topic" && card.topic;
@@ -1469,6 +1492,7 @@ export default class KanbanBoardViewer extends Component {
               @canManage={{this.canManage}}
               @allSameCategory={{this.allSameCategory}}
               @dropHighlightCardId={{this.dropHighlightCardId}}
+              @linkHighlightCardId={{this.linkHighlightCardId}}
               @dragData={{this.dragData}}
               @onDragStart={{this.onDragStart}}
               @onDragEnd={{this.onDragEnd}}
