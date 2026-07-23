@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe "topic kanban_memberships serialization" do
+RSpec.describe DiscourseKanban::TopicBoardMemberships do
   fab!(:admin)
   fab!(:reader, :user)
   fab!(:read_group, :group)
@@ -28,8 +28,11 @@ RSpec.describe "topic kanban_memberships serialization" do
   end
 
   def topic_view_json(user)
-    TopicViewSerializer.new(TopicView.new(topic, user), scope: Guardian.new(user), root: false)
-      .as_json
+    TopicViewSerializer.new(
+      TopicView.new(topic, user),
+      scope: Guardian.new(user),
+      root: false,
+    ).as_json
   end
 
   describe "topic list item serializer" do

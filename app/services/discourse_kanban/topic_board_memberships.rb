@@ -30,10 +30,8 @@ module DiscourseKanban
             board_slug: card.board.slug,
             board_column_count: card.board.columns.size,
             board_created_by:
-              created_by && {
-                username: created_by.username,
-                avatar_template: created_by.avatar_template,
-              },
+              created_by &&
+                { username: created_by.username, avatar_template: created_by.avatar_template },
             column_id: card.column.id,
             column_title: card.column.title,
             column_color: card.column.color,

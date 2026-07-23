@@ -3,3 +3,5 @@ node_modules
 /auto_generated
 .eslintcache
 .claude/settings.local.json
+
+.playwright-mcp/
