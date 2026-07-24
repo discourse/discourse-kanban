@@ -97,7 +97,7 @@ export default class KanbanTopicPill extends Component {
                             membership.board_created_by.avatar_template
                             "tiny"
                           }}
-                          {{membership.board_created_by.username}}
+                          {{membership.board_created_by.display_name}}
                         </span>
                       {{/if}}
                       <span class="kanban-topic-pill__fact">

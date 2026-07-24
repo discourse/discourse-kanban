@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe DiscourseKanban::TopicBoardMemberships do
+RSpec.describe DiscourseKanban::TopicBoardMembershipSerializer do
   fab!(:admin)
   fab!(:reader, :user)
   fab!(:read_group, :group)
@@ -83,7 +83,7 @@ RSpec.describe DiscourseKanban::TopicBoardMemberships do
 
     it "omits the attribute for topics without cards" do
       card.destroy!
-      topic.kanban_board_cards = nil
+      topic.kanban_board_cards_map = nil
       expect(list_item_json.call(reader)).not_to have_key(:kanban_memberships)
     end
 
@@ -99,40 +99,75 @@ RSpec.describe DiscourseKanban::TopicBoardMemberships do
     end
 
     it "uses preloaded cards when present" do
-      DiscourseKanban::TopicBoardMemberships.preload([topic])
-      expect(topic.kanban_board_cards.map(&:id)).to eq([card.id])
+      result =
+        DiscourseKanban::TopicBoardMemberships.call(
+          guardian: reader.guardian,
+          options: {
+            topics: [topic],
+          },
+        )
+      topic.kanban_board_cards_map = result[:cards_map].fetch(topic.id)
+      expect(topic.kanban_board_cards_map.fetch(board.id).map(&:id)).to eq([card.id])
 
       queries =
         track_sql_queries { list_item_json.call(reader) }.select { |q| q.include?("kanban_cards") }
       expect(queries).to be_empty
     end
 
-    it "batches board ACL checks" do
-      2.times do |index|
-        extra_board =
+    it "batches board ACL checks across topics" do
+      topics =
+        2.times.map do |index|
+          extra_topic = Fabricate(:topic)
+          extra_board = Fabricate(:kanban_board, name: "Board #{index}", created_by: admin)
+          extra_column = Fabricate(:kanban_column, board: extra_board, position: 0)
           Fabricate(
-            :kanban_board,
-            name: "Board #{index}",
-            slug: "board-#{index}",
-            created_by: admin,
+            :kanban_topic_card,
+            board: extra_board,
+            column: extra_column,
+            topic: extra_topic,
           )
-        extra_column = Fabricate(:kanban_column, board: extra_board, position: 0)
-        Fabricate(:kanban_topic_card, board: extra_board, column: extra_column, topic:)
-        Fabricate(
-          :access_control_list_with_groups,
-          target: extra_board,
-          permission: "view",
-          groups: [read_group],
-        )
-      end
-      topic.kanban_board_cards = nil
+          Fabricate(
+            :access_control_list_with_groups,
+            target: extra_board,
+            permission: "view",
+            groups: [read_group],
+          )
+          extra_topic
+        end
+      topics.unshift(topic)
+      topic_list = TopicList.new("latest", reader, topics)
+
+      acl_queries =
+        track_sql_queries { TopicList.preload(topics, topic_list) }.select do |query|
+          query.include?("access_control_lists")
+        end
+
+      expect(acl_queries.size).to eq(1)
+      expect(topics).to all(satisfy { |listed_topic| listed_topic.kanban_board_cards_map.present? })
+    end
+
+    it "does not run ACL queries while serializing a preloaded topic list" do
+      topics =
+        2.times.map do
+          extra_topic = Fabricate(:topic)
+          Fabricate(:kanban_topic_card, board:, column:, topic: extra_topic)
+          extra_topic
+        end
+      topics.unshift(topic)
+      TopicList.preload(topics, TopicList.new("latest", reader, topics))
 
       acl_queries =
         track_sql_queries do
-          DiscourseKanban::TopicBoardMemberships.serialize(topic, Guardian.new(reader.reload))
+          topics.each do |listed_topic|
+            TopicListItemSerializer.new(
+              listed_topic,
+              scope: Guardian.new(reader),
+              root: false,
+            ).as_json
+          end
         end.select { |query| query.include?("access_control_lists") }
 
-      expect(acl_queries.size).to be <= 2
+      expect(acl_queries).to be_empty
     end
   end
 

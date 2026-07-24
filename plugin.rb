@@ -51,25 +51,67 @@ after_initialize do
     object.guardian.can_manage_kanban_boards?
   end
 
-  add_to_class(:topic, :kanban_board_cards) { @kanban_board_cards }
-  add_to_class(:topic, :kanban_board_cards=) { |cards| @kanban_board_cards = cards }
+  add_to_class(:topic, :kanban_board_cards_map) { @kanban_board_cards_map }
+  add_to_class(:topic, :kanban_board_cards_map=) { |cards| @kanban_board_cards_map = cards }
 
-  TopicList.on_preload do |topics, _topic_list|
-    DiscourseKanban::TopicBoardMemberships.preload(topics) if SiteSetting.discourse_kanban_enabled
+  TopicList.on_preload do |topics, topic_list|
+    next unless SiteSetting.discourse_kanban_enabled
+
+    result =
+      DiscourseKanban::TopicBoardMemberships.call(
+        guardian: Guardian.new(topic_list.current_user),
+        options: {
+          topics:,
+        },
+      )
+    cards_map = result[:cards_map]
+    topics.each { |topic| topic.kanban_board_cards_map = cards_map.fetch(topic.id, {}) }
   end
 
   add_to_serializer(
     :topic_list_item,
     :kanban_memberships,
     include_condition: -> { SiteSetting.discourse_kanban_enabled && kanban_memberships.present? },
-  ) { @kanban_memberships ||= DiscourseKanban::TopicBoardMemberships.serialize(object, scope) }
+  ) do
+    @kanban_memberships ||=
+      begin
+        cards_map = object.kanban_board_cards_map
+        if cards_map.nil?
+          result =
+            DiscourseKanban::TopicBoardMemberships.call(
+              guardian: scope,
+              options: {
+                topics: [object],
+              },
+            )
+          cards_map = result[:cards_map].fetch(object.id, {})
+        end
+
+        ActiveModel::ArraySerializer.new(
+          cards_map.values,
+          each_serializer: DiscourseKanban::TopicBoardMembershipSerializer,
+          scope:,
+        ).as_json
+      end
+  end
 
   add_to_serializer(
     :topic_view,
     :kanban_memberships,
     include_condition: -> { SiteSetting.discourse_kanban_enabled && kanban_memberships.present? },
   ) do
-    @kanban_memberships ||= DiscourseKanban::TopicBoardMemberships.serialize(object.topic, scope)
+    @kanban_memberships ||=
+      begin
+        topic = object.topic
+        result =
+          DiscourseKanban::TopicBoardMemberships.call(guardian: scope, options: { topics: [topic] })
+        cards_map = result[:cards_map].fetch(topic.id, {})
+        ActiveModel::ArraySerializer.new(
+          cards_map.values,
+          each_serializer: DiscourseKanban::TopicBoardMembershipSerializer,
+          scope:,
+        ).as_json
+      end
   end
 
   DiscoursePluginRegistry.register_acl_target_class(DiscourseKanban::Board, self)
