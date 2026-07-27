@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe "Kanban Board Viewer" do # rubocop:disable RSpec/DescribeClass
+RSpec.describe "Kanban Board Viewer" do
   fab!(:user)
   fab!(:admin)
   fab!(:manager, :user)
@@ -34,7 +34,7 @@ RSpec.describe "Kanban Board Viewer" do # rubocop:disable RSpec/DescribeClass
     end
   end
 
-  def create_board( # rubocop:disable Discourse/Plugins/NamespaceMethods
+  def create_board(
     attrs = {},
     with_columns: [],
     read_groups: [write_group, manage_group],
@@ -82,7 +82,7 @@ RSpec.describe "Kanban Board Viewer" do # rubocop:disable RSpec/DescribeClass
     CreateBoardResult.new(board, columns)
   end
 
-  def add_topic_card(board, column, topic) # rubocop:disable Discourse/Plugins/NamespaceMethods
+  def add_topic_card(board, column, topic)
     card = board.cards.find_by(topic_id: topic.id)
     if card
       card.update!(column_id: column.id) if card.column_id != column.id
@@ -435,6 +435,14 @@ RSpec.describe "Kanban Board Viewer" do # rubocop:disable RSpec/DescribeClass
       find(".discourse-kanban-card-detail-modal .discourse-kanban-editable-title__input").send_keys(
         :tab,
       )
+      expect(page.active_element).to eq(
+        first(
+          ".discourse-kanban-card-detail-modal .form-kit__field[data-name='notes'] .d-editor-button-bar button[tabindex='0']",
+          minimum: 1,
+        ),
+      )
+
+      page.active_element.send_keys(:tab)
       expect(page.active_element).to eq(
         first(
           ".discourse-kanban-card-detail-modal .form-kit__field[data-name='notes'] .ProseMirror.d-editor-input",

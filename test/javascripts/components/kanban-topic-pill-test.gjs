@@ -61,7 +61,7 @@ module("Integration | Component | KanbanTopicPill", function (hooks) {
     assert.dom(".kanban-topic-pill--multiple").doesNotExist();
   });
 
-  test("identifies board creators by username in the multi-board menu", async function (assert) {
+  test("identifies board creators by display name in the multi-board menu", async function (assert) {
     this.topic = {
       kanban_memberships: [
         membership({
@@ -72,6 +72,7 @@ module("Integration | Component | KanbanTopicPill", function (hooks) {
           columnTitle: "In progress",
           createdBy: {
             username: "jordan",
+            display_name: "jordan",
             avatar_template: "/letter_avatar_proxy/v4/letter/j/{size}.png",
           },
         }),
