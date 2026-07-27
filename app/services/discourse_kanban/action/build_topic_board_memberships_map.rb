@@ -28,7 +28,7 @@ module DiscourseKanban
           .topic
           .with_column
           .where(topic_id: Array(topics).map(&:id), board_id: readable_board_ids)
-          .includes(:column, board: %i[created_by columns])
+          .includes(:column, :board)
       end
 
       def readable_board_ids

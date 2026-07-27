@@ -6,7 +6,6 @@ import DropdownMenu from "discourse/components/dropdown-menu";
 import DMenu from "discourse/float-kit/components/d-menu";
 import icon from "discourse/helpers/d-icon";
 import DiscourseURL from "discourse/lib/url";
-import dBoundAvatarTemplate from "discourse/ui-kit/helpers/d-bound-avatar-template";
 import { i18n } from "discourse-i18n";
 import { columnColorVariable } from "../lib/kanban-column-helpers";
 import { kanbanBoardUrl } from "../lib/kanban-urls";
@@ -89,24 +88,6 @@ export default class KanbanTopicPill extends Component {
                     <span
                       class="kanban-topic-pill__menu-item-label"
                     >{{membership.board_name}}</span>
-                    <span class="kanban-topic-pill__menu-item-description">
-                      {{#if membership.board_created_by}}
-                        <span class="kanban-topic-pill__fact">
-                          {{i18n "discourse_kanban.topic_pill.created_by"}}
-                          {{dBoundAvatarTemplate
-                            membership.board_created_by.avatar_template
-                            "tiny"
-                          }}
-                          {{membership.board_created_by.display_name}}
-                        </span>
-                      {{/if}}
-                      <span class="kanban-topic-pill__fact">
-                        {{i18n
-                          "discourse_kanban.topic_pill.column_count"
-                          count=membership.board_column_count
-                        }}
-                      </span>
-                    </span>
                     {{#each membership.cards as |card|}}
                       <span
                         class="kanban-topic-pill__column"

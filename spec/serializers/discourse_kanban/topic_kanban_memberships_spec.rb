@@ -52,12 +52,6 @@ RSpec.describe DiscourseKanban::TopicBoardMembershipSerializer do
             board_id: board.id,
             board_name: "Sales",
             board_slug: "sales",
-            board_column_count: 1,
-            board_created_by: {
-              username: board.created_by.username,
-              display_name: board.created_by.display_name,
-              avatar_template: board.created_by.avatar_template,
-            },
             cards: [
               {
                 card_id: card.id,
@@ -95,7 +89,6 @@ RSpec.describe DiscourseKanban::TopicBoardMembershipSerializer do
       membership = list_item_json.call(reader)[:kanban_memberships].sole
 
       expect(membership[:board_id]).to eq(board.id)
-      expect(membership[:board_column_count]).to eq(2)
       expect(membership[:cards].pluck(:card_id)).to eq([card.id, second_card.id])
     end
 

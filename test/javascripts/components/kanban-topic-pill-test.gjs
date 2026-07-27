@@ -3,20 +3,11 @@ import { module, test } from "qunit";
 import { setupRenderingTest } from "discourse/tests/helpers/component-test";
 import KanbanTopicPill from "discourse/plugins/discourse-kanban/discourse/components/kanban-topic-pill";
 
-function membership({
-  boardId,
-  boardName,
-  cardId,
-  columnId,
-  columnTitle,
-  createdBy,
-}) {
+function membership({ boardId, boardName, cardId, columnId, columnTitle }) {
   return {
     board_id: boardId,
     board_name: boardName,
     board_slug: boardName.toLowerCase(),
-    board_column_count: 2,
-    board_created_by: createdBy,
     cards: [
       {
         card_id: cardId,
@@ -61,7 +52,7 @@ module("Integration | Component | KanbanTopicPill", function (hooks) {
     assert.dom(".kanban-topic-pill--multiple").doesNotExist();
   });
 
-  test("identifies board creators by display name in the multi-board menu", async function (assert) {
+  test("lists each board with its column chips in the multi-board menu", async function (assert) {
     this.topic = {
       kanban_memberships: [
         membership({
@@ -70,11 +61,6 @@ module("Integration | Component | KanbanTopicPill", function (hooks) {
           cardId: 101,
           columnId: 11,
           columnTitle: "In progress",
-          createdBy: {
-            username: "jordan",
-            display_name: "jordan",
-            avatar_template: "/letter_avatar_proxy/v4/letter/j/{size}.png",
-          },
         }),
         membership({
           boardId: 2,
@@ -91,11 +77,12 @@ module("Integration | Component | KanbanTopicPill", function (hooks) {
     );
     await click(".kanban-topic-pill--multiple");
 
+    const labels = [
+      ...document.querySelectorAll(".kanban-topic-pill__menu-item-label"),
+    ].map((el) => el.textContent.trim());
+    assert.deepEqual(labels, ["Sales", "Support"]);
     assert
-      .dom(".kanban-topic-pill__fact")
-      .hasText(
-        "Created by jordan",
-        "the avatar is accompanied by creator text"
-      );
+      .dom(".kanban-topic-pill__menu-item .kanban-topic-pill__column")
+      .exists({ count: 2 });
   });
 });

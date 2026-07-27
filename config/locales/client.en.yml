@@ -12,10 +12,6 @@ en:
           one: "%{count} board"
           other: "%{count} boards"
         multiple_title: "This topic is on multiple kanban boards"
-        created_by: "Created by"
-        column_count:
-          one: "%{count} column"
-          other: "%{count} columns"
       board:
         empty_board: "This board has no columns yet"
         empty_board_cta: "Add your first column to get started"
