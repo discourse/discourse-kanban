@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-describe "Kanban Board Viewer" do
+RSpec.describe "Kanban Board Viewer" do
   fab!(:user)
   fab!(:admin)
   fab!(:manager, :user)
@@ -138,14 +138,19 @@ describe "Kanban Board Viewer" do
   end
 
   context "when visiting a board with the wrong slug" do
-    it "redirects to the correct slug" do
+    it "redirects to the correct slug without losing the linked card" do
       result = create_board(with_columns: [{ title: "To Do", position: 0 }])
+      topic = Fabricate(:topic, title: "Keep highlighted", category:)
+      card = add_topic_card(result.board, result.column("To Do"), topic)
 
       sign_in(user)
-      board_viewer.visit_board_with_slug("wrong-slug", result.board)
+      page.visit "/kanban/boards/wrong-slug/#{result.board.id}?card=#{card.id}"
 
       expect(board_viewer).to have_board_title("Sprint Board")
-      expect(page).to have_current_path("/kanban/boards/sprint-board/#{result.board.id}")
+      expect(page).to have_current_path(
+        "/kanban/boards/sprint-board/#{result.board.id}?card=#{card.id}",
+      )
+      expect(page).to have_css(".discourse-kanban-card--link-highlighted", text: "Keep highlighted")
     end
   end
 
@@ -430,6 +435,14 @@ describe "Kanban Board Viewer" do
       find(".discourse-kanban-card-detail-modal .discourse-kanban-editable-title__input").send_keys(
         :tab,
       )
+      expect(page.active_element).to eq(
+        first(
+          ".discourse-kanban-card-detail-modal .form-kit__field[data-name='notes'] .d-editor-button-bar button[tabindex='0']",
+          minimum: 1,
+        ),
+      )
+
+      page.active_element.send_keys(:tab)
       expect(page.active_element).to eq(
         first(
           ".discourse-kanban-card-detail-modal .form-kit__field[data-name='notes'] .ProseMirror.d-editor-input",
