@@ -69,6 +69,7 @@ en:
           acl_update_failed: "Failed to update board permissions."
           acl_create_failed: "Failed to create board permissions."
       manage:
+        board: "board"
         title: "Kanban boards"
         description: "Create and manage kanban boards with columns."
         new: "New board"

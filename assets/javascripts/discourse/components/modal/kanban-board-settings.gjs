@@ -1,6 +1,6 @@
 import Component from "@glimmer/component";
 import { cached, tracked } from "@glimmer/tracking";
-import { fn } from "@ember/helper";
+import { array, fn } from "@ember/helper";
 import { action } from "@ember/object";
 import { cancel } from "@ember/runloop";
 import { service } from "@ember/service";
@@ -15,7 +15,7 @@ import discourseDebounce from "discourse/lib/debounce";
 import { slugify } from "discourse/lib/utilities";
 import CategorySelector from "discourse/select-kit/components/category-selector";
 import { eq, or } from "discourse/truth-helpers";
-import DAccessControl from "discourse/ui-kit/d-access-control";
+import DAccessControlField from "discourse/ui-kit/d-access-control-field";
 import { i18n } from "discourse-i18n";
 import KanbanEditableTitle from "../kanban-editable-title";
 
@@ -165,20 +165,6 @@ export default class KanbanBoardSettings extends Component {
     const names = tags.map((t) => (typeof t === "string" ? t : t.name));
     set("tag_names", names);
     this._checkConstraints(null, names);
-  }
-
-  @action
-  validateAccess(name, value, { addError }) {
-    const hasManager = (value || []).some(
-      (entry) => entry.permission === "manage"
-    );
-
-    if (!hasManager) {
-      addError(name, {
-        title: i18n("discourse_kanban.manage.board_access"),
-        message: i18n("discourse_kanban.manage.board_access_requires_manager"),
-      });
-    }
   }
 
   _checkConstraints(categoryIds, tagNames) {
@@ -349,27 +335,18 @@ export default class KanbanBoardSettings extends Component {
             </form.Section>
 
             <form.Section>
-              <form.Field
-                @name="acl"
+              <DAccessControlField
+                @form={{form}}
                 @title={{i18n "discourse_kanban.manage.board_access"}}
+                @aclTargetType={{"DiscourseKanban::Board"}}
+                @aclTargetId={{this.args.model.board?.id}}
                 @description={{i18n
                   "discourse_kanban.manage.board_access_description"
                 }}
-                @format="max"
-                @type="custom"
-                @validate={{this.validateAccess}}
-                as |field|
-              >
-                <field.Control>
-                  <DAccessControl
-                    @groups={{this.site.groups}}
-                    @acl={{field.value}}
-                    @aclTarget="DiscourseKanban::Board"
-                    @onChange={{this.aclChanged}}
-                    @transformPermissionOptions={{this.transformPermissionOptions}}
-                  />
-                </field.Control>
-              </form.Field>
+                @transformPermissionOptions={{this.transformPermissionOptions}}
+                @onChange={{this.aclChanged}}
+                @mustHavePermissions={{array "manage"}}
+              />
             </form.Section>
 
             <form.Section>
