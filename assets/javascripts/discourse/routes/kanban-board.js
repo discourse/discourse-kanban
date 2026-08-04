@@ -1,6 +1,7 @@
 import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
 import DiscourseRoute from "discourse/routes/discourse";
+import { kanbanBoardTitle } from "../lib/kanban-board-title";
 import { sortCardsForColumn } from "../lib/kanban-card-ordering";
 
 export default class KanbanBoardRoute extends DiscourseRoute {
@@ -11,7 +12,7 @@ export default class KanbanBoardRoute extends DiscourseRoute {
   };
 
   titleToken() {
-    return this.controller?.model?.board?.name;
+    return kanbanBoardTitle(this.controller?.model?.board);
   }
 
   model(params, transition) {

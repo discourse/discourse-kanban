@@ -6,6 +6,7 @@ import { action } from "@ember/object";
 import didInsert from "@ember/render-modifiers/modifiers/did-insert";
 import { cancel, next, schedule } from "@ember/runloop";
 import { service } from "@ember/service";
+import { trustHTML } from "@ember/template";
 import { modifier } from "ember-modifier";
 import DButton from "discourse/components/d-button";
 import DropdownMenu from "discourse/components/dropdown-menu";
@@ -21,6 +22,7 @@ import { popupAjaxError } from "discourse/lib/ajax-error";
 import { bind } from "discourse/lib/decorators";
 import { isTesting } from "discourse/lib/environment";
 import discourseLater from "discourse/lib/later";
+import { emojiUnescape } from "discourse/lib/text";
 import DiscourseURL from "discourse/lib/url";
 import Category from "discourse/models/category";
 import { i18n } from "discourse-i18n";
@@ -32,6 +34,7 @@ import {
   isRecencyColumn,
   sortCardsForColumn,
 } from "../lib/kanban-card-ordering";
+import { kanbanTitle } from "../lib/kanban-title";
 import { kanbanBoardConfigureUrl, kanbanBoardUrl } from "../lib/kanban-urls";
 import KanbanColumn from "./kanban-column";
 import KanbanBoardSettings from "./modal/kanban-board-settings";
@@ -690,11 +693,11 @@ export default class KanbanBoardViewer extends Component {
 
   _confirmMove(card, toColumn) {
     return new Promise((resolve) => {
-      const cardTitle = card.topic?.title || card.title || "";
+      const cardTitle = kanbanTitle(card.topic || card) || "";
       this.dialog.yesNoConfirm({
         message: i18n("discourse_kanban.board.move_confirm", {
           topic_title: cardTitle,
-          column_title: toColumn.title,
+          column_title: kanbanTitle(toColumn),
         }),
         didConfirm: () => resolve(true),
         didCancel: () => resolve(false),
@@ -1096,7 +1099,7 @@ export default class KanbanBoardViewer extends Component {
     this.dialog.confirm({
       message: i18n("discourse_kanban.board.confirm_clear_column", {
         count: cardCount,
-        column_title: column.title,
+        column_title: kanbanTitle(column),
       }),
       didConfirm: async () => {
         const snapshot = this.columns.map((col) => ({
@@ -1323,7 +1326,7 @@ export default class KanbanBoardViewer extends Component {
     const model = isTopicCard
       ? {
           card,
-          columnTitle: column?.title,
+          columnTitle: kanbanTitle(column),
           columnIcon: column?.icon,
           columnColor: column?.color,
           onNavigateAway: (url) => {
@@ -1388,9 +1391,9 @@ export default class KanbanBoardViewer extends Component {
     >
       <div class="discourse-kanban-board-viewer__header">
         <div class="discourse-kanban-board-viewer__title-wrapper">
-          <h2
-            class="discourse-kanban-board-viewer__title"
-          >{{this.board.name}}</h2>
+          <h2 class="discourse-kanban-board-viewer__title">{{trustHTML
+              (emojiUnescape this.board.name)
+            }}</h2>
 
           <div class="discourse-kanban-board-viewer__metadata">
             {{#if this.hasBoardFilters}}

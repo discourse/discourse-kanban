@@ -36,6 +36,22 @@ RSpec.describe DiscourseKanban::CardSerializer do
     expect(payload[:topic]).to include(title: private_topic.title, slug: private_topic.slug)
   end
 
+  it "serializes Unicode titles for floater cards" do
+    floater_card =
+      Fabricate(
+        :kanban_card,
+        board:,
+        column:,
+        card_type: :floater,
+        title: "Launch :rocket:",
+        created_by: admin,
+      )
+
+    payload = described_class.new(floater_card, root: false, scope: Guardian.new(viewer)).as_json
+
+    expect(payload).to include(title: "Launch :rocket:", unicode_title: "Launch 🚀")
+  end
+
   it "omits floater tag metadata the scoped user cannot see" do
     visible_tag = Fabricate(:tag, name: "visible-kanban")
     hidden_tag = Fabricate(:tag, name: "staff-kanban")

@@ -4,6 +4,7 @@ module DiscourseKanban
   class ColumnSerializer < ApplicationSerializer
     attributes :id,
                :title,
+               :unicode_title,
                :icon,
                :position,
                :default_sort,
@@ -14,6 +15,14 @@ module DiscourseKanban
                :move_to_status,
                :cards,
                :color
+
+    def include_unicode_title?
+      object.title.match?(/:[\w\-+]+:/)
+    end
+
+    def unicode_title
+      Emoji.gsub_emoji_to_unicode(object.title)
+    end
 
     def tag_id
       visible_tag_id

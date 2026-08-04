@@ -29,8 +29,8 @@ module DiscourseKanban
       title =
         I18n.t(
           "discourse_kanban.onebox.inline_to_card",
-          card_name: card.resolved_title,
-          board_name: board.name,
+          card_name: Emoji.gsub_emoji_to_unicode(card.resolved_title),
+          board_name: Emoji.gsub_emoji_to_unicode(board.name),
         )
 
       { url: url, title: title }
@@ -40,7 +40,11 @@ module DiscourseKanban
       board = DiscourseKanban::Board.find_by(id: board_id)
       return if !board || !board.anonymous_can_read?
 
-      title = I18n.t("discourse_kanban.onebox.inline_to_board", board_name: board.name)
+      title =
+        I18n.t(
+          "discourse_kanban.onebox.inline_to_board",
+          board_name: Emoji.gsub_emoji_to_unicode(board.name),
+        )
 
       { url: url, title: title }
     end

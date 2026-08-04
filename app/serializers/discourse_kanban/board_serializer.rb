@@ -4,6 +4,7 @@ module DiscourseKanban
   class BoardSerializer < ApplicationSerializer
     attributes :id,
                :name,
+               :unicode_name,
                :slug,
                :category_ids,
                :tag_ids,
@@ -18,6 +19,14 @@ module DiscourseKanban
                :created_by,
                :columns,
                :acl
+
+    def include_unicode_name?
+      object.name.match?(/:[\w\-+]+:/)
+    end
+
+    def unicode_name
+      Emoji.gsub_emoji_to_unicode(object.name)
+    end
 
     def tag_ids
       visible_tag_ids

@@ -66,6 +66,25 @@ RSpec.describe DiscourseKanban::TopicBoardMembershipSerializer do
       )
     end
 
+    it "includes a Unicode column title" do
+      column.update!(title: "In progress :rocket:")
+
+      membership = list_item_json.call(reader)[:kanban_memberships].sole
+
+      expect(membership[:cards].sole).to include(
+        column_title: "In progress :rocket:",
+        unicode_column_title: "In progress 🚀",
+      )
+    end
+
+    it "includes a Unicode board name" do
+      board.update!(name: "Sales :fire:")
+
+      membership = list_item_json.call(reader)[:kanban_memberships].sole
+
+      expect(membership).to include(board_name: "Sales :fire:", unicode_board_name: "Sales 🔥")
+    end
+
     it "omits memberships for users who cannot read the board" do
       other_user = Fabricate(:user)
       expect(list_item_json.call(other_user)).not_to have_key(:kanban_memberships)

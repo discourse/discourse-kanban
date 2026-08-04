@@ -18,6 +18,7 @@ import { eq, or } from "discourse/truth-helpers";
 import DFilterControls from "discourse/ui-kit/d-filter-controls";
 import DPageHeader from "discourse/ui-kit/d-page-header";
 import { i18n } from "discourse-i18n";
+import { kanbanTitle } from "../lib/kanban-title";
 import KanbanBoardSettings from "./modal/kanban-board-settings";
 
 function boardCategories(board) {
@@ -129,7 +130,7 @@ export default class KanbanBoardsPage extends Component {
                         {{#if column.icon}}
                           {{icon column.icon}}
                         {{/if}}
-                        {{column.title}}
+                        {{kanbanTitle column}}
                       </span>
                     {{/each}}
                   {{else}}

@@ -18,6 +18,14 @@ RSpec.describe DiscourseKanban::CardTopicSerializer do
     assign_group.add(assigner)
   end
 
+  it "serializes a Unicode topic title" do
+    topic.update!(title: "Launch :rocket:")
+
+    payload = described_class.new(topic, root: false, scope: Guardian.new(viewer)).as_json
+
+    expect(payload).to include(title: "Launch :rocket:", unicode_title: "Launch 🚀")
+  end
+
   it "hides assignment metadata from unauthorized users" do
     Fabricate(:topic_assignment, topic:, assigned_to: assignee)
 

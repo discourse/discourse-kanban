@@ -2,6 +2,7 @@ import { iconHTML } from "discourse/lib/icon-library";
 import { applyValueTransformer } from "discourse/lib/transformer";
 import { escapeExpression } from "discourse/lib/utilities";
 import { i18n } from "discourse-i18n";
+import { kanbanColumnTitle, kanbanMembershipBoardName } from "./kanban-title";
 import { kanbanBoardUrl } from "./kanban-urls";
 
 export const MULTI_BOARD_TRIGGER_SELECTOR = ".kanban-topic-pill--multiple";
@@ -26,16 +27,18 @@ export function membershipCardUrl(membership) {
 }
 
 export function membershipTitle(membership) {
+  const boardName = kanbanMembershipBoardName(membership);
+
   if (membership.cards.length > 1) {
     return i18n("discourse_kanban.topic_pill.title_multiple_columns", {
-      board: membership.board_name,
+      board: boardName,
       count: membership.cards.length,
     });
   }
 
   return i18n("discourse_kanban.topic_pill.title", {
-    board: membership.board_name,
-    column: membership.cards[0].column_title,
+    board: boardName,
+    column: kanbanColumnTitle(membership.cards[0]),
   });
 }
 
@@ -101,7 +104,7 @@ function boardPill(membership, tagName) {
       : {};
 
   return pill(tagName, {
-    label: membership.board_name,
+    label: kanbanMembershipBoardName(membership),
     title: membershipTitle(membership),
     ...link,
   });
@@ -114,10 +117,10 @@ function boardData(memberships) {
   const cards = memberships.flatMap((membership) =>
     membership.cards.map((card) => ({
       "board-id": membership.board_id,
-      "board-name": membership.board_name,
+      "board-name": kanbanMembershipBoardName(membership),
       "board-slug": membership.board_slug,
       "card-id": card.card_id,
-      "column-title": card.column_title,
+      "column-title": kanbanColumnTitle(card),
       "column-color": card.column_color,
       "column-icon": card.column_icon,
     }))

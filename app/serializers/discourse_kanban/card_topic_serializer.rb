@@ -4,6 +4,7 @@ module DiscourseKanban
   class CardTopicSerializer < ApplicationSerializer
     attributes :id,
                :title,
+               :unicode_title,
                :slug,
                :category_id,
                :tags,
@@ -17,6 +18,14 @@ module DiscourseKanban
     attribute :assigned_to_group
     attribute :all_assigned_users
     attribute :assignments
+
+    def include_unicode_title?
+      object.title.match?(/:[\w\-+]+:/)
+    end
+
+    def unicode_title
+      Emoji.gsub_emoji_to_unicode(object.title)
+    end
 
     def tags
       object.tags.map(&:name)

@@ -23,6 +23,8 @@ export default class KanbanFabricators {
     return {
       id: args.id || incrementSequence(),
       title: args.title || "Test Card",
+      unicode_title: args.unicode_title,
+      card_type: args.card_type || (args.topic ? "topic" : "floater"),
       notes: args.notes || "This is a test card",
       created_at: args.created_at || moment(),
       created_by: args.created_by || this.coreFabricators.user(),
@@ -52,6 +54,7 @@ export default class KanbanFabricators {
     return {
       id: args.id || incrementSequence(),
       title: args.title || "Test Column",
+      unicode_title: args.unicode_title,
       position: args.position || 0,
     };
   }

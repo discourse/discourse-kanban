@@ -17,6 +17,7 @@ import {
   hasColumnColor,
 } from "../lib/kanban-column-helpers";
 import { animateCardReorder, captureCardRects } from "../lib/kanban-motion";
+import { kanbanTitle } from "../lib/kanban-title";
 import KanbanCard from "./kanban-card";
 import KanbanAddTopicAsCardModal from "./modal/kanban-add-topic-as-card";
 import KanbanCardDetailModal from "./modal/kanban-card-detail";
@@ -480,7 +481,7 @@ export default class KanbanColumn extends Component {
         <span class="discourse-kanban-column__header-content">
           <span class="discourse-kanban-column__title">
             {{#if @column.icon}}{{icon @column.icon}}{{/if}}
-            {{@column.title}}
+            {{kanbanTitle @column}}
           </span>
           <span class="discourse-kanban-column__count">
             {{this.cardCount}}
@@ -550,7 +551,7 @@ export default class KanbanColumn extends Component {
             <KanbanCard
               @card={{card}}
               @board={{@board}}
-              @columnTitle={{@column.title}}
+              @columnTitle={{kanbanTitle @column}}
               @columnIcon={{@column.icon}}
               @columnColor={{@column.color}}
               @canWrite={{@canWrite}}

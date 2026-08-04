@@ -25,6 +25,39 @@ module("Integration | Component | KanbanCard", function (hooks) {
     assert.dom(".discourse-kanban-card__title").hasText(this.card.title);
   });
 
+  test("renders a floater card's Unicode title", async function (assert) {
+    this.card.title = "Launch :rocket:";
+    this.card.unicode_title = "Launch 🚀";
+
+    await render(
+      <template>
+        <KanbanCard @card={{this.card}} @board={{this.board}} />
+      </template>
+    );
+
+    assert.dom(".discourse-kanban-card__title").hasText("Launch 🚀");
+  });
+
+  test("renders a topic card's Unicode title", async function (assert) {
+    this.card = this.fabricators.card({
+      topic: {
+        id: 42,
+        title: "Topic :rocket:",
+        unicode_title: "Topic 🚀",
+      },
+    });
+
+    await render(
+      <template>
+        <KanbanCard @card={{this.card}} @board={{this.board}} />
+      </template>
+    );
+
+    assert
+      .dom(".discourse-kanban-card__title.discourse-kanban-card__title--topic")
+      .hasText("Topic 🚀");
+  });
+
   test("suppresses column tags on floater cards", async function (assert) {
     this.card.tags = [
       { id: 1, name: "todo", slug: "todo" },

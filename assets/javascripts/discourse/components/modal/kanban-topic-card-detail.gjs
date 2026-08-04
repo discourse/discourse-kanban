@@ -17,6 +17,7 @@ import Category from "discourse/models/category";
 import { or } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
 import { columnColorVariable } from "../../lib/kanban-column-helpers";
+import { kanbanTitle } from "../../lib/kanban-title";
 
 export default class KanbanTopicCardDetail extends Component {
   @service currentUser;
@@ -37,6 +38,10 @@ export default class KanbanTopicCardDetail extends Component {
   get topicUrl() {
     const t = this.topic;
     return `/t/${t.slug}/${t.id}`;
+  }
+
+  get topicTitle() {
+    return kanbanTitle(this.topic);
   }
 
   get category() {
@@ -114,7 +119,7 @@ export default class KanbanTopicCardDetail extends Component {
 
   <template>
     <DModal
-      @title={{this.topic.title}}
+      @title={{this.topicTitle}}
       @closeModal={{@closeModal}}
       class="discourse-kanban-topic-card-detail-modal"
       {{didInsert this.viewCard}}

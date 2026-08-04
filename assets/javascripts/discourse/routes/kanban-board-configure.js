@@ -1,12 +1,13 @@
 import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
 import DiscourseRoute from "discourse/routes/discourse";
+import { kanbanBoardTitle } from "../lib/kanban-board-title";
 
 export default class KanbanBoardConfigureRoute extends DiscourseRoute {
   @service router;
 
   titleToken() {
-    return this.controller?.model?.board?.name;
+    return kanbanBoardTitle(this.controller?.model?.board);
   }
 
   model(params) {

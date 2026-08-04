@@ -128,6 +128,32 @@ RSpec.describe DiscourseKanban::OneboxHandler do
       ).not_to eq("")
     end
 
+    it "renders emoji codes in the column title as Unicode" do
+      column.update!(title: "Todo :rocket:")
+
+      onebox_html =
+        DiscourseKanban::OneboxHandler.handle(
+          floater_card.url,
+          { id: board.id, card_id: floater_card.id },
+        )
+
+      expect(onebox_html).to include("Todo 🚀")
+      expect(onebox_html).not_to include(":rocket:")
+    end
+
+    it "renders emoji codes in the card title as Unicode" do
+      floater_card.update!(title: "Launch :rocket:")
+
+      onebox_html =
+        DiscourseKanban::OneboxHandler.handle(
+          floater_card.url,
+          { id: board.id, card_id: floater_card.id },
+        )
+
+      expect(onebox_html).to include("Launch 🚀")
+      expect(onebox_html).not_to include(":rocket:")
+    end
+
     it "has the correct HTML structure" do
       onebox_html =
         DiscourseKanban::OneboxHandler.handle(
@@ -224,6 +250,24 @@ RSpec.describe DiscourseKanban::OneboxHandler do
 
     it "does not return empty string if the onebox renders successfully" do
       expect(DiscourseKanban::OneboxHandler.handle(board.url, { id: board.id })).not_to eq("")
+    end
+
+    it "renders emoji codes in the board name as Unicode" do
+      board.update!(name: "Roadmap :rocket:")
+
+      onebox_html = DiscourseKanban::OneboxHandler.handle(board.url, { id: board.id })
+
+      expect(onebox_html).to include("Roadmap 🚀")
+      expect(onebox_html).not_to include(":rocket:")
+    end
+
+    it "renders emoji codes in column titles as Unicode" do
+      column.update!(title: "Todo :rocket:")
+
+      onebox_html = DiscourseKanban::OneboxHandler.handle(board.url, { id: board.id })
+
+      expect(onebox_html).to include("Todo 🚀")
+      expect(onebox_html).not_to include(":rocket:")
     end
 
     it "has the correct HTML structure" do
