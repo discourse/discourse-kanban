@@ -14,7 +14,7 @@ module DiscourseKanban
 
     def self.build_card_onebox(url, card_id, board_id, opts)
       card = DiscourseKanban::Card.find_by(id: card_id, board_id: board_id)
-      return "" if !card || !card.board.anonymous_can_read?
+      return "" if !card || !card.board.can_be_oneboxed?
       if card.topic? &&
            (
              card.topic.blank? ||
@@ -67,7 +67,7 @@ module DiscourseKanban
 
     def self.build_board_onebox(url, board_id)
       board = DiscourseKanban::Board.find_by(id: board_id)
-      return "" if !board || !board.anonymous_can_read?
+      return "" if !board || !board.can_be_oneboxed?
 
       tag_html = ""
       if board.tags.any?
