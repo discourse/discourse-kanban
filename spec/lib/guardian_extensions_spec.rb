@@ -71,7 +71,7 @@ RSpec.describe DiscourseKanban::GuardianExtensions do
         permission: "view",
         allowed_group_ids: [
           Group::AUTO_GROUPS[:anonymous_users],
-          Group::AUTO_GROUPS[:trust_level_0],
+          Group::AUTO_GROUPS[:logged_in_users],
         ],
       )
 
@@ -79,13 +79,13 @@ RSpec.describe DiscourseKanban::GuardianExtensions do
       expect(member.guardian.can_read_board?(board)).to be_truthy
     end
 
-    it "grants members-only read via trust level 0 while excluding anonymous users" do
+    it "grants members-only read via logged in users while excluding anonymous users" do
       board = DiscourseKanban::Board.create!(name: "Members", slug: "members")
       Fabricate(
         :access_control_list,
         target: board,
         permission: "view",
-        allowed_group_ids: [Group::AUTO_GROUPS[:trust_level_0]],
+        allowed_group_ids: [Group::AUTO_GROUPS[:logged_in_users]],
       )
 
       expect(member.guardian.can_read_board?(board)).to be_truthy
