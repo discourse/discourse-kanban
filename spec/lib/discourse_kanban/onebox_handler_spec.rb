@@ -225,6 +225,17 @@ RSpec.describe DiscourseKanban::OneboxHandler do
       )
       expect(onebox_html).to have_tag("aside", with: { class: "onebox" })
     end
+
+    it "handles nil opts gracefully for a topic card" do
+      onebox_html =
+        DiscourseKanban::OneboxHandler.handle(
+          topic_card.url,
+          { id: board.id, card_id: topic_card.id },
+          nil,
+        )
+
+      expect(onebox_html).to include(topic_card.resolved_title)
+    end
   end
 
   describe "board onebox" do

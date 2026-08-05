@@ -55,6 +55,14 @@ RSpec.describe DiscourseKanban::InlineOneboxHandler do
 
   describe ".handle" do
     context "when the route has no card id" do
+      it "handles nil opts gracefully" do
+        result = described_class.handle("#{base_url}/boards/x/#{board.id}", route_board_only, nil)
+        expect(result).to eq(
+          url: "#{base_url}/boards/x/#{board.id}",
+          title: I18n.t("discourse_kanban.onebox.inline_to_board", board_name: board.name),
+        )
+      end
+
       it "returns url and a board title when the board exists and is readable" do
         result = described_class.handle("#{base_url}/boards/x/#{board.id}", route_board_only)
 
@@ -131,6 +139,25 @@ RSpec.describe DiscourseKanban::InlineOneboxHandler do
           described_class.handle(
             "#{base_url}/boards/x/#{board.id}/card/#{topic_card.id}",
             topic_card_route,
+          )
+
+        expect(result).to eq(
+          url: "#{base_url}/boards/x/#{board.id}/card/#{topic_card.id}",
+          title:
+            I18n.t(
+              "discourse_kanban.onebox.inline_to_card",
+              card_name: "Topic card headline",
+              board_name: board.name,
+            ),
+        )
+      end
+
+      it "handles nil opts gracefully for topic backed cards" do
+        result =
+          described_class.handle(
+            "#{base_url}/boards/x/#{board.id}/card/#{topic_card.id}",
+            topic_card_route,
+            nil,
           )
 
         expect(result).to eq(
