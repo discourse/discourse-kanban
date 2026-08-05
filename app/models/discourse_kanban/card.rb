@@ -114,6 +114,10 @@ module DiscourseKanban
       topic&.title
     end
 
+    def unicode_resolved_title
+      Emoji.gsub_emoji_to_unicode(resolved_title)
+    end
+
     def unicode_title
       Emoji.gsub_emoji_to_unicode(title)
     end

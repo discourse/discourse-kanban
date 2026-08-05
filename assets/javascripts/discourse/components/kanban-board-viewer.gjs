@@ -238,8 +238,7 @@ export default class KanbanBoardViewer extends Component {
     card = Card.create(card);
     this.columns = this.columns.map((col) => {
       if (col.id === card.column_id) {
-        return Column.create({
-          ...col,
+        return col.copy({
           cards: sortCardsForColumn(col, [
             ...col.cards.filter((c) => c.id !== card.id),
             card,
@@ -252,10 +251,8 @@ export default class KanbanBoardViewer extends Component {
 
   #handleCardUpdated(card) {
     this.columns = this.columns.map((col) => {
-      const cards = col.cards.map((c) =>
-        c.id === card.id ? Card.create({ ...c, ...card }) : c
-      );
-      return Column.create({ ...col, cards: sortCardsForColumn(col, cards) });
+      const cards = col.cards.map((c) => (c.id === card.id ? c.copy(card) : c));
+      return col.copy({ cards: sortCardsForColumn(col, cards) });
     });
   }
 
@@ -266,19 +263,17 @@ export default class KanbanBoardViewer extends Component {
       return;
     }
 
-    const mergedCard = Card.create(existing ? { ...existing, ...card } : card);
+    const mergedCard = existing ? existing.copy(card) : Card.create(card);
 
     const withoutCard = this.columns.map((col) =>
-      Column.create({
-        ...col,
+      col.copy({
         cards: col.cards.filter((c) => c.id !== card.id),
       })
     );
 
     this.columns = withoutCard.map((col) => {
       if (col.id === mergedCard.column_id) {
-        return Column.create({
-          ...col,
+        return col.copy({
           cards: sortCardsForColumn(col, [...col.cards, mergedCard]),
         });
       }
@@ -288,8 +283,7 @@ export default class KanbanBoardViewer extends Component {
 
   #handleCardDeleted(cardId) {
     this.columns = this.columns.map((col) =>
-      Column.create({
-        ...col,
+      col.copy({
         cards: col.cards.filter((c) => c.id !== cardId),
       })
     );
@@ -298,7 +292,7 @@ export default class KanbanBoardViewer extends Component {
   #handleColumnCleared(columnId) {
     this.columns = this.columns.map((col) => {
       if (col.id === columnId) {
-        return Column.create({ ...col, cards: [] });
+        return col.copy({ cards: [] });
       }
       return col;
     });
@@ -475,10 +469,7 @@ export default class KanbanBoardViewer extends Component {
     }
 
     const snapshot = this.columns.map((col) =>
-      Column.create({
-        ...col,
-        cards: col.cards.map((c) => Card.create({ ...c })),
-      })
+      col.copy({ cards: col.cards.map((c) => c.copy()) })
     );
 
     fromColumn.cards.splice(cardIndex, 1);
@@ -497,7 +488,7 @@ export default class KanbanBoardViewer extends Component {
 
     this.columns = this.columns.map((col) => {
       if (col.id === fromColumnId || col.id === toColumnId) {
-        return Column.create({ ...col, cards: [...col.cards] });
+        return col.copy({ cards: [...col.cards] });
       }
       return col;
     });
@@ -523,20 +514,18 @@ export default class KanbanBoardViewer extends Component {
         const existingCard = this.columns
           .flatMap((col) => col.cards)
           .find((c) => c.id === result.card.id);
-        const mergedCard = Card.create(
-          existingCard ? { ...existingCard, ...result.card } : result.card
-        );
+        const mergedCard = existingCard
+          ? existingCard.copy(result.card)
+          : Card.create(result.card);
         const withoutCard = this.columns.map((col) =>
-          Column.create({
-            ...col,
+          col.copy({
             cards: col.cards.filter((c) => c.id !== result.card.id),
           })
         );
 
         this.columns = withoutCard.map((col) => {
           if (col.id === mergedCard.column_id) {
-            return Column.create({
-              ...col,
+            return col.copy({
               cards: sortCardsForColumn(col, [...col.cards, mergedCard]),
             });
           }
@@ -721,15 +710,11 @@ export default class KanbanBoardViewer extends Component {
   @action
   async onDeleteCard(cardId) {
     const snapshot = this.columns.map((col) =>
-      Column.create({
-        ...col,
-        cards: [...col.cards],
-      })
+      col.copy({ cards: [...col.cards] })
     );
 
     this.columns = this.columns.map((col) =>
-      Column.create({
-        ...col,
+      col.copy({
         cards: col.cards.filter((c) => c.id !== cardId),
       })
     );
@@ -759,8 +744,7 @@ export default class KanbanBoardViewer extends Component {
       if (result.card) {
         if (result.adopted_floater_id) {
           this.columns = this.columns.map((col) =>
-            Column.create({
-              ...col,
+            col.copy({
               cards: col.cards.filter((c) => c.id !== cardId),
             })
           );
@@ -887,8 +871,7 @@ export default class KanbanBoardViewer extends Component {
     card = Card.create(card);
     this.columns = this.columns.map((col) => {
       if (col.id === columnId) {
-        return Column.create({
-          ...col,
+        return col.copy({
           cards: sortCardsForColumn(col, [
             ...col.cards.filter((c) => c.id !== card.id),
             card,
@@ -1023,7 +1006,7 @@ export default class KanbanBoardViewer extends Component {
     await this._saveColumn(
       "PUT",
       `/kanban/boards/${this.board.id}/columns/${columnId}`,
-      { column: this._serializeColumn({ ...column, ...columnData }) }
+      { column: this._serializeColumn(column.copy(columnData)) }
     );
   }
 
@@ -1123,15 +1106,12 @@ export default class KanbanBoardViewer extends Component {
       }),
       didConfirm: async () => {
         const snapshot = this.columns.map((col) =>
-          Column.create({
-            ...col,
-            cards: [...col.cards],
-          })
+          col.copy({ cards: [...col.cards] })
         );
 
         this.columns = this.columns.map((col) => {
           if (col.id === columnId) {
-            return Column.create({ ...col, cards: [] });
+            return col.copy({ cards: [] });
           }
           return col;
         });

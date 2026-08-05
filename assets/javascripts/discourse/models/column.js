@@ -28,6 +28,25 @@ export default class Column {
     this.cards = (args.cards || []).map((card) => Card.create(card));
   }
 
+  copy(overrides = {}) {
+    return new Column({
+      cards: this.cards,
+      color: this.color,
+      default_sort: this.default_sort,
+      icon: this.icon,
+      id: this.id,
+      move_to_assigned: this.move_to_assigned,
+      move_to_category_id: this.move_to_category_id,
+      move_to_status: this.move_to_status,
+      position: this.position,
+      tag_id: this.tag_id,
+      tag_name: this.tag_name,
+      title: this.title,
+      unicode_title: this.unicode_title,
+      ...overrides,
+    });
+  }
+
   get fancyTitle() {
     return this.unicode_title || this.title;
   }

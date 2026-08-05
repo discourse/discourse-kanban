@@ -45,4 +45,16 @@ module("Unit | Models | Kanban titles", function () {
     assert.strictEqual(column.fancyTitle, "Doing 🚀");
     assert.strictEqual(Column.create({ title: "Doing" }).fancyTitle, "Doing");
   });
+
+  test("copying models preserves their titles", function (assert) {
+    const column = Column.create({
+      title: "To Do :rocket:",
+      unicode_title: "To Do 🚀",
+      cards: [],
+    }).copy({ cards: [{ id: 1, title: "Ship it" }] });
+    const card = column.cards[0].copy({ notes: "Ready" });
+
+    assert.strictEqual(column.fancyTitle, "To Do 🚀");
+    assert.strictEqual(card.fancyTitle, "Ship it");
+  });
 });
