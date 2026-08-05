@@ -382,7 +382,7 @@ RSpec.describe "Kanban Board Viewer" do
 
     it "creates a new tag from the card detail modal" do
       SiteSetting.tagging_enabled = true
-      SiteSetting.create_tag_allowed_groups = Group::AUTO_GROUPS[:trust_level_0]
+      SiteSetting.create_tag_allowed_groups = Group::AUTO_GROUPS[:logged_in_users]
 
       result =
         create_board(
