@@ -3,16 +3,26 @@ import { module, test } from "qunit";
 import { setupRenderingTest } from "discourse/tests/helpers/component-test";
 import KanbanBoardsMenu from "discourse/plugins/discourse-kanban/discourse/components/kanban-boards-menu";
 
-function membership({ boardId, boardName, cardId, columnId, columnTitle }) {
+function membership({
+  boardId,
+  boardName,
+  cardId,
+  columnId,
+  columnTitle,
+  unicodeColumnTitle,
+  unicodeBoardName,
+}) {
   return {
     board_id: boardId,
     board_name: boardName,
+    unicode_board_name: unicodeBoardName,
     board_slug: boardName.toLowerCase(),
     cards: [
       {
         card_id: cardId,
         column_id: columnId,
         column_title: columnTitle,
+        unicode_column_title: unicodeColumnTitle,
         column_color: "0088cc",
         column_icon: "list",
       },
@@ -89,5 +99,53 @@ module("Integration | Component | KanbanBoardsMenu", function (hooks) {
 
     assert.dom(".kanban-boards-menu__item-label").exists({ count: 1 });
     assert.dom(".kanban-boards-menu__column").exists({ count: 2 });
+  });
+
+  test("renders Unicode column titles", async function (assert) {
+    this.data = {
+      memberships: [
+        membership({
+          boardId: 1,
+          boardName: "Sales",
+          cardId: 101,
+          columnId: 11,
+          columnTitle: "Doing :rocket:",
+          unicodeColumnTitle: "Doing 🚀",
+        }),
+      ],
+    };
+    this.close = () => {};
+
+    await render(
+      <template>
+        <KanbanBoardsMenu @data={{this.data}} @close={{this.close}} />
+      </template>
+    );
+
+    assert.dom(".kanban-boards-menu__column").hasText("Doing 🚀");
+  });
+
+  test("renders Unicode board names", async function (assert) {
+    this.data = {
+      memberships: [
+        membership({
+          boardId: 1,
+          boardName: "Sales :fire:",
+          unicodeBoardName: "Sales 🔥",
+          cardId: 101,
+          columnId: 11,
+          columnTitle: "Doing",
+        }),
+      ],
+    };
+    this.close = () => {};
+
+    await render(
+      <template>
+        <KanbanBoardsMenu @data={{this.data}} @close={{this.close}} />
+      </template>
+    );
+
+    assert.dom(".kanban-boards-menu__item-label").hasText("Sales 🔥");
   });
 });

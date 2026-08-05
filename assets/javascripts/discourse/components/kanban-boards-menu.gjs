@@ -10,7 +10,14 @@ import { membershipCardUrl } from "../lib/kanban-topic-pill";
 
 export default class KanbanBoardsMenu extends Component {
   get memberships() {
-    return this.args.data.memberships;
+    return this.args.data.memberships.map((membership) => ({
+      ...membership,
+      fancyTitle: membership.unicode_board_name || membership.board_name,
+      cards: membership.cards.map((card) => ({
+        ...card,
+        fancyTitle: card.unicode_column_title || card.column_title,
+      })),
+    }));
   }
 
   @action
@@ -30,7 +37,7 @@ export default class KanbanBoardsMenu extends Component {
             <div class="kanban-boards-menu__item-texts">
               <span
                 class="kanban-boards-menu__item-label"
-              >{{membership.board_name}}</span>
+              >{{membership.fancyTitle}}</span>
               {{#each membership.cards as |card|}}
                 <span
                   class="kanban-boards-menu__column"
@@ -39,7 +46,7 @@ export default class KanbanBoardsMenu extends Component {
                   {{#if card.column_icon}}
                     {{icon card.column_icon}}
                   {{/if}}
-                  {{card.column_title}}
+                  {{card.fancyTitle}}
                 </span>
               {{/each}}
             </div>

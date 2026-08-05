@@ -34,11 +34,11 @@ module DiscourseKanban
 
       args = {
         board_url: card.board.url,
-        board_name: card.board.name,
+        board_name: card.board.unicode_name,
         card_url: url,
-        card_name: card.resolved_title,
+        card_name: card.unicode_resolved_title,
         card_tags: tag_html,
-        card_column_title: card.column.title,
+        card_column_title: card.column.unicode_title,
         card_column_icon: card.column.icon,
         creator_username: card.created_by.username,
         creator_avatar_url: card.created_by.small_avatar_url,
@@ -89,14 +89,14 @@ module DiscourseKanban
 
       args = {
         board_url: url,
-        board_name: board.name,
+        board_name: board.unicode_name,
         board_tags: tag_html,
         board_categories: category_html,
         board_columns:
           board
             .columns
             .select(:title, :icon)
-            .map { |column| { name: column.title, icon: column.icon } },
+            .map { |column| { name: column.unicode_title, icon: column.icon } },
         creator_username: board.created_by.username,
         creator_avatar_url: board.created_by.small_avatar_url,
         created_by:

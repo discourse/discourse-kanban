@@ -26,16 +26,20 @@ export function membershipCardUrl(membership) {
 }
 
 export function membershipTitle(membership) {
+  const boardName = membership.unicode_board_name || membership.board_name;
+
   if (membership.cards.length > 1) {
     return i18n("discourse_kanban.topic_pill.title_multiple_columns", {
-      board: membership.board_name,
+      board: boardName,
       count: membership.cards.length,
     });
   }
 
   return i18n("discourse_kanban.topic_pill.title", {
-    board: membership.board_name,
-    column: membership.cards[0].column_title,
+    board: boardName,
+    column:
+      membership.cards[0].unicode_column_title ||
+      membership.cards[0].column_title,
   });
 }
 
@@ -101,7 +105,7 @@ function boardPill(membership, tagName) {
       : {};
 
   return pill(tagName, {
-    label: membership.board_name,
+    label: membership.unicode_board_name || membership.board_name,
     title: membershipTitle(membership),
     ...link,
   });
@@ -114,10 +118,10 @@ function boardData(memberships) {
   const cards = memberships.flatMap((membership) =>
     membership.cards.map((card) => ({
       "board-id": membership.board_id,
-      "board-name": membership.board_name,
+      "board-name": membership.unicode_board_name || membership.board_name,
       "board-slug": membership.board_slug,
       "card-id": card.card_id,
-      "column-title": card.column_title,
+      "column-title": card.unicode_column_title || card.column_title,
       "column-color": card.column_color,
       "column-icon": card.column_icon,
     }))

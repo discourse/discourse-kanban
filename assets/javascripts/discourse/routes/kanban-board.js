@@ -2,6 +2,7 @@ import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
 import DiscourseRoute from "discourse/routes/discourse";
 import { sortCardsForColumn } from "../lib/kanban-card-ordering";
+import Board from "../models/board";
 
 export default class KanbanBoardRoute extends DiscourseRoute {
   @service router;
@@ -11,14 +12,16 @@ export default class KanbanBoardRoute extends DiscourseRoute {
   };
 
   titleToken() {
-    return this.controller?.model?.board?.name;
+    return this.controller?.model?.board?.fancyTitle;
   }
 
   model(params, transition) {
-    return ajax(`/kanban/boards/${params.id}.json`).then((data) => ({
-      ...data,
-      highlightCardId: parseInt(transition.to.queryParams.card, 10) || null,
-    }));
+    return ajax(`/kanban/boards/${params.id}.json`).then((data) =>
+      Board.createPayload({
+        ...data,
+        highlightCardId: parseInt(transition.to.queryParams.card, 10) || null,
+      })
+    );
   }
 
   afterModel(model, transition) {

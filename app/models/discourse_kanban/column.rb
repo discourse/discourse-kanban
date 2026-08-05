@@ -25,6 +25,10 @@ module DiscourseKanban
     def matches_topic?(topic)
       tag_id.present? && topic.tag_ids.include?(tag_id)
     end
+
+    def unicode_title
+      Emoji.gsub_emoji_to_unicode(title)
+    end
   end
 end
 

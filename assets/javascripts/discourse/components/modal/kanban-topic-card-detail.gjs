@@ -39,6 +39,10 @@ export default class KanbanTopicCardDetail extends Component {
     return `/t/${t.slug}/${t.id}`;
   }
 
+  get topicTitle() {
+    return this.args.model.card.fancyTitle;
+  }
+
   get category() {
     if (!this.topic?.category_id) {
       return null;
@@ -114,7 +118,7 @@ export default class KanbanTopicCardDetail extends Component {
 
   <template>
     <DModal
-      @title={{this.topic.title}}
+      @title={{this.topicTitle}}
       @closeModal={{@closeModal}}
       class="discourse-kanban-topic-card-detail-modal"
       {{didInsert this.viewCard}}

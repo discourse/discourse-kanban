@@ -64,7 +64,7 @@ export default class KanbanCard extends Component {
   }
 
   get cardTitle() {
-    return this.isTopicCard ? this.topic.title : this.args.card.title;
+    return this.args.card.fancyTitle;
   }
 
   get columnTagNames() {

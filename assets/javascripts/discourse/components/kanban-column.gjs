@@ -480,7 +480,7 @@ export default class KanbanColumn extends Component {
         <span class="discourse-kanban-column__header-content">
           <span class="discourse-kanban-column__title">
             {{#if @column.icon}}{{icon @column.icon}}{{/if}}
-            {{@column.title}}
+            {{@column.fancyTitle}}
           </span>
           <span class="discourse-kanban-column__count">
             {{this.cardCount}}
@@ -550,7 +550,7 @@ export default class KanbanColumn extends Component {
             <KanbanCard
               @card={{card}}
               @board={{@board}}
-              @columnTitle={{@column.title}}
+              @columnTitle={{@column.fancyTitle}}
               @columnIcon={{@column.icon}}
               @columnColor={{@column.color}}
               @canWrite={{@canWrite}}

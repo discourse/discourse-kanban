@@ -2,7 +2,7 @@
 
 module DiscourseKanban
   class TopicBoardMembershipSerializer < ApplicationSerializer
-    attributes :board_id, :board_name, :board_slug, :cards
+    attributes :board_id, :board_name, :unicode_board_name, :board_slug, :cards
 
     def board_id
       board.id
@@ -10,6 +10,10 @@ module DiscourseKanban
 
     def board_name
       board.name
+    end
+
+    def unicode_board_name
+      board.unicode_name
     end
 
     def board_slug

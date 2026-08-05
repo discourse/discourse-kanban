@@ -2,7 +2,12 @@
 
 module DiscourseKanban
   class TopicBoardMembershipCardSerializer < ApplicationSerializer
-    attributes :card_id, :column_id, :column_title, :column_color, :column_icon
+    attributes :card_id,
+               :column_id,
+               :column_title,
+               :unicode_column_title,
+               :column_color,
+               :column_icon
 
     def card_id
       object.id
@@ -18,6 +23,10 @@ module DiscourseKanban
 
     def column_title
       column.title
+    end
+
+    def unicode_column_title
+      column.unicode_title
     end
 
     def column_color

@@ -61,6 +61,15 @@ RSpec.describe DiscourseKanban::BoardSerializer do
     expect(payload[:columns].first).to include(title: "Backlog", tag_id: visible_tag.id)
   end
 
+  it "serializes a Unicode board name when the name contains emoji codes" do
+    board = Fabricate(:kanban_board, name: "Launch :rocket:", created_by: admin)
+
+    payload =
+      described_class.new(board, root: false, scope: Guardian.new(admin), tag_name_map: {}).as_json
+
+    expect(payload).to include(name: "Launch :rocket:", unicode_name: "Launch 🚀")
+  end
+
   it "serializes permission booleans from the scoped guardian" do
     managed_board =
       Fabricate(:kanban_board, created_by: admin, additional_manage_groups: [manage_group])

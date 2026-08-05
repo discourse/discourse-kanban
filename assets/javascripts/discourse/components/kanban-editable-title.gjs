@@ -2,9 +2,11 @@ import Component from "@glimmer/component";
 import { tracked } from "@glimmer/tracking";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
+import { trustHTML } from "@ember/template";
 import { isEmpty } from "@ember/utils";
 import DButton from "discourse/components/d-button";
 import concatClass from "discourse/helpers/concat-class";
+import { emojiUnescape } from "discourse/lib/text";
 import autoFocus from "discourse/modifiers/auto-focus";
 
 class KanbanEditableTitleUi extends Component {
@@ -15,7 +17,9 @@ class KanbanEditableTitleUi extends Component {
   }
 
   get displayText() {
-    return this.args.field.value || this.args.placeholder;
+    return trustHTML(
+      emojiUnescape(this.args.field.value || this.args.placeholder)
+    );
   }
 
   @action

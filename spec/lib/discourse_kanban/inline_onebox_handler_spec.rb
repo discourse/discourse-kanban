@@ -49,13 +49,9 @@ RSpec.describe DiscourseKanban::InlineOneboxHandler do
 
   let(:base_url) { "https://example.com/kanban-plugin-path" }
 
-  def route_board_only
-    { id: board.id.to_s, card_id: nil }
-  end
-
-  def route_with_card(card)
-    { id: board.id.to_s, card_id: card.id.to_s }
-  end
+  let(:route_board_only) { { id: board.id.to_s, card_id: nil } }
+  let(:floater_card_route) { { id: board.id.to_s, card_id: floater_card.id.to_s } }
+  let(:topic_card_route) { { id: board.id.to_s, card_id: topic_card.id.to_s } }
 
   describe ".handle" do
     context "when the route has no card id" do
@@ -66,6 +62,14 @@ RSpec.describe DiscourseKanban::InlineOneboxHandler do
           url: "#{base_url}/boards/x/#{board.id}",
           title: I18n.t("discourse_kanban.onebox.inline_to_board", board_name: board.name),
         )
+      end
+
+      it "renders emoji codes in the board title as Unicode" do
+        board.update!(name: "Roadmap :rocket:")
+
+        result = described_class.handle("#{base_url}/boards/x/#{board.id}", route_board_only)
+
+        expect(result[:title]).to eq("Board 'Roadmap 🚀'")
       end
 
       it "returns nil when the board does not exist" do
@@ -95,7 +99,7 @@ RSpec.describe DiscourseKanban::InlineOneboxHandler do
         result =
           described_class.handle(
             "#{base_url}/boards/x/#{board.id}/card/#{floater_card.id}",
-            route_with_card(floater_card),
+            floater_card_route,
           )
 
         expect(result).to eq(
@@ -109,11 +113,24 @@ RSpec.describe DiscourseKanban::InlineOneboxHandler do
         )
       end
 
+      it "renders emoji codes in card and board titles as Unicode" do
+        board.update!(name: "Roadmap :rocket:")
+        floater_card.update!(title: "Launch :tada:")
+
+        result =
+          described_class.handle(
+            "#{base_url}/boards/x/#{board.id}/card/#{floater_card.id}",
+            floater_card_route,
+          )
+
+        expect(result[:title]).to eq("Card 'Launch 🎉' on board 'Roadmap 🚀'")
+      end
+
       it "uses the topic title for topic-backed cards" do
         result =
           described_class.handle(
             "#{base_url}/boards/x/#{board.id}/card/#{topic_card.id}",
-            route_with_card(topic_card),
+            topic_card_route,
           )
 
         expect(result).to eq(
@@ -137,7 +154,7 @@ RSpec.describe DiscourseKanban::InlineOneboxHandler do
         expect(
           described_class.handle(
             "#{base_url}/boards/x/#{board.id}/card/#{topic_card.id}",
-            route_with_card(topic_card),
+            topic_card_route,
           ),
         ).to be_nil
       end
@@ -154,7 +171,7 @@ RSpec.describe DiscourseKanban::InlineOneboxHandler do
         result =
           described_class.handle(
             "#{base_url}/boards/x/#{board.id}/card/#{topic_card.id}",
-            route_with_card(topic_card),
+            topic_card_route,
             { user_id: private_user.id, category_id: private_category.id },
           )
 
@@ -193,7 +210,7 @@ RSpec.describe DiscourseKanban::InlineOneboxHandler do
         expect(
           described_class.handle(
             "#{base_url}/boards/x/#{board.id}/card/#{floater_card.id}",
-            route_with_card(floater_card),
+            floater_card_route,
           ),
         ).to be_nil
       end

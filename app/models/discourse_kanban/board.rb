@@ -71,6 +71,10 @@ module DiscourseKanban
       end
     end
 
+    def unicode_name
+      Emoji.gsub_emoji_to_unicode(name)
+    end
+
     def reload(options = nil)
       @tags = nil
       @categories = nil

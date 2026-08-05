@@ -4,6 +4,7 @@ module DiscourseKanban
   class ColumnSerializer < ApplicationSerializer
     attributes :id,
                :title,
+               :unicode_title,
                :icon,
                :position,
                :default_sort,

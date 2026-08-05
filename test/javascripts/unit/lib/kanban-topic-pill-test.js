@@ -4,10 +4,17 @@ import { module, test } from "qunit";
 import renderTags from "discourse/lib/render-tags";
 import { membershipsFor } from "discourse/plugins/discourse-kanban/discourse/lib/kanban-topic-pill";
 
-function membership({ boardId, boardName, cardId, columnTitle }) {
+function membership({
+  boardId,
+  boardName,
+  unicodeBoardName,
+  cardId,
+  columnTitle,
+}) {
   return {
     board_id: boardId,
     board_name: boardName,
+    unicode_board_name: unicodeBoardName,
     board_slug: boardName.toLowerCase(),
     cards: [
       {
@@ -87,6 +94,41 @@ module("Discourse Kanban | Unit | Lib | kanban-topic-pill", function (hooks) {
       .hasAttribute("title", "This topic is in 2 columns of the Sales board");
   });
 
+  test("uses the Unicode column title", function (assert) {
+    const board = sales();
+    board.cards[0].column_title = "In progress :rocket:";
+    board.cards[0].unicode_column_title = "In progress 🚀";
+
+    const el = parse(renderTags(topic([board]), { mode: "list" }));
+
+    assert
+      .dom("a.kanban-topic-pill", el)
+      .hasAttribute(
+        "title",
+        "This topic is in the In progress 🚀 column of the Sales board"
+      );
+  });
+
+  test("uses the Unicode board name for the pill label and title", function (assert) {
+    const board = membership({
+      boardId: 1,
+      boardName: "Sales :fire:",
+      unicodeBoardName: "Sales 🔥",
+      cardId: 101,
+      columnTitle: "In progress",
+    });
+
+    const el = parse(renderTags(topic([board]), { mode: "list" }));
+
+    assert
+      .dom("a.kanban-topic-pill", el)
+      .hasText("Sales 🔥")
+      .hasAttribute(
+        "title",
+        "This topic is in the In progress column of the Sales 🔥 board"
+      );
+  });
+
   test("renders a single menu trigger carrying its boards when a topic is on several", function (assert) {
     const memberships = [sales(), support()];
     const el = parse(renderTags(topic(memberships)));
@@ -142,6 +184,22 @@ module("Discourse Kanban | Unit | Lib | kanban-topic-pill", function (hooks) {
     assert.deepEqual(
       first.cards.map((card) => card.column_title),
       ["In progress", "Done"]
+    );
+  });
+
+  test("carries Unicode column titles for the multiple-board menu", function (assert) {
+    const board = sales();
+    board.cards[0].column_title = "In progress :rocket:";
+    board.cards[0].unicode_column_title = "In progress 🚀";
+    const el = parse(renderTags(topic([board, support()])));
+    const trigger = el.querySelector("a.kanban-topic-pill--multiple");
+
+    assert
+      .dom(trigger)
+      .hasAttribute("data-card-0-column-title", "In progress 🚀");
+    assert.strictEqual(
+      membershipsFor(trigger)[0].cards[0].column_title,
+      "In progress 🚀"
     );
   });
 

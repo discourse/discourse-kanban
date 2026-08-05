@@ -39,6 +39,15 @@ RSpec.describe DiscourseKanban::ColumnSerializer do
     )
   end
 
+  it "serializes a Unicode column title" do
+    column = Fabricate(:kanban_column, board:, title: "Doing :rocket:")
+
+    payload =
+      described_class.new(column, root: false, scope: Guardian.new(admin), tag_name_map: {}).as_json
+
+    expect(payload).to include(title: "Doing :rocket:", unicode_title: "Doing 🚀")
+  end
+
   it "includes visible tag metadata from the tag name map" do
     column = Fabricate(:kanban_column, board:, tag_id: visible_tag.id)
 
