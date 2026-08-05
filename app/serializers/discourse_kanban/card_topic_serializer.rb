@@ -19,10 +19,6 @@ module DiscourseKanban
     attribute :all_assigned_users
     attribute :assignments
 
-    def include_unicode_title?
-      object.title.match?(/:[\w\-+]+:/)
-    end
-
     def unicode_title
       Emoji.gsub_emoji_to_unicode(object.title)
     end

@@ -16,14 +16,6 @@ module DiscourseKanban
                :cards,
                :color
 
-    def include_unicode_title?
-      object.title.match?(/:[\w\-+]+:/)
-    end
-
-    def unicode_title
-      Emoji.gsub_emoji_to_unicode(object.title)
-    end
-
     def tag_id
       visible_tag_id
     end

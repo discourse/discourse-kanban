@@ -2,6 +2,9 @@ import { tracked } from "@glimmer/tracking";
 
 export default class Card {
   static create(args = {}) {
+    if (args instanceof Card) {
+      return args;
+    }
     return new Card(args);
   }
 
@@ -19,9 +22,17 @@ export default class Card {
   @tracked tag_ids;
   @tracked tags;
   @tracked title;
+  @tracked topic;
+  @tracked unicode_title;
   @tracked updated_at;
 
   constructor(args = {}) {
     Object.assign(this, args);
+  }
+
+  get fancyTitle() {
+    const titleSource =
+      this.card_type === "topic" && this.topic ? this.topic : this;
+    return titleSource.unicode_title || titleSource.title;
   }
 }

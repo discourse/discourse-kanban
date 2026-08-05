@@ -12,12 +12,8 @@ module DiscourseKanban
       board.name
     end
 
-    def include_unicode_board_name?
-      board.name.match?(/:[\w\-+]+:/)
-    end
-
     def unicode_board_name
-      Emoji.gsub_emoji_to_unicode(board.name)
+      board.unicode_name
     end
 
     def board_slug

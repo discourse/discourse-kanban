@@ -25,12 +25,8 @@ module DiscourseKanban
       column.title
     end
 
-    def include_unicode_column_title?
-      column.title.match?(/:[\w\-+]+:/)
-    end
-
     def unicode_column_title
-      Emoji.gsub_emoji_to_unicode(column.title)
+      column.unicode_title
     end
 
     def column_color

@@ -20,14 +20,6 @@ module DiscourseKanban
                :columns,
                :acl
 
-    def include_unicode_name?
-      object.name.match?(/:[\w\-+]+:/)
-    end
-
-    def unicode_name
-      Emoji.gsub_emoji_to_unicode(object.name)
-    end
-
     def tag_ids
       visible_tag_ids
     end

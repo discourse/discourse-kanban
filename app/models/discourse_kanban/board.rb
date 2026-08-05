@@ -56,6 +56,10 @@ module DiscourseKanban
       permission_acl.group_has_permission?(Group::AUTO_GROUPS[:anonymous_users], "view")
     end
 
+    def unicode_name
+      Emoji.gsub_emoji_to_unicode(name)
+    end
+
     def reload(options = nil)
       @tags = nil
       @categories = nil

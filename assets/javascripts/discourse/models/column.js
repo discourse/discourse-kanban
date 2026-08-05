@@ -1,7 +1,11 @@
 import { tracked } from "@glimmer/tracking";
+import Card from "./card";
 
 export default class Column {
   static create(args = {}) {
+    if (args instanceof Column) {
+      return args;
+    }
     return new Column(args);
   }
 
@@ -17,8 +21,14 @@ export default class Column {
   @tracked tag_id;
   @tracked tag_name;
   @tracked title;
+  @tracked unicode_title;
 
   constructor(args = {}) {
     Object.assign(this, args);
+    this.cards = (args.cards || []).map((card) => Card.create(card));
+  }
+
+  get fancyTitle() {
+    return this.unicode_title || this.title;
   }
 }

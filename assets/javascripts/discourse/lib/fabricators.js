@@ -7,6 +7,9 @@ in a placeholder component. It should not be used for any other case.
 import ApplicationInstance from "@ember/application/instance";
 import { setOwner } from "@ember/owner";
 import CoreFabricators, { incrementSequence } from "discourse/lib/fabricators";
+import Board from "../models/board";
+import Card from "../models/card";
+import Column from "../models/column";
 
 export default class KanbanFabricators {
   constructor(owner) {
@@ -20,7 +23,7 @@ export default class KanbanFabricators {
   }
 
   card(args = {}) {
-    return {
+    return Card.create({
       id: args.id || incrementSequence(),
       title: args.title || "Test Card",
       unicode_title: args.unicode_title,
@@ -36,26 +39,27 @@ export default class KanbanFabricators {
       tag_ids: args.tag_ids || [],
       topic_id: args.topic?.id || null,
       topic: args.topic || null,
-    };
+    });
   }
 
   board(args = {}) {
-    return {
+    return Board.create({
       id: args.id || incrementSequence(),
       name: args.name || "Test Board",
+      unicode_name: args.unicode_name,
       slug: args.slug || "test-board",
       columns: args.columns || [],
       can_write: args.can_write ?? true,
       can_manage: args.can_manage ?? true,
-    };
+    });
   }
 
   column(args = {}) {
-    return {
+    return Column.create({
       id: args.id || incrementSequence(),
       title: args.title || "Test Column",
       unicode_title: args.unicode_title,
       position: args.position || 0,
-    };
+    });
   }
 }

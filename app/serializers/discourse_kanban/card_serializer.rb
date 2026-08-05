@@ -23,14 +23,6 @@ module DiscourseKanban
     has_one :topic, serializer: CardTopicSerializer, embed: :objects
     has_many :tags, embed: :object, serializer: CardTagSerializer
 
-    def include_unicode_title?
-      object.title&.match?(/:[\w\-+]+:/)
-    end
-
-    def unicode_title
-      Emoji.gsub_emoji_to_unicode(object.title)
-    end
-
     def include_topic_id?
       object.topic?
     end

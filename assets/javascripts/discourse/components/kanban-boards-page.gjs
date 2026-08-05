@@ -3,7 +3,6 @@ import { array } from "@ember/helper";
 import { action } from "@ember/object";
 import { LinkTo } from "@ember/routing";
 import { service } from "@ember/service";
-import { trustHTML } from "@ember/template";
 import DButton from "discourse/components/d-button";
 import UserLink from "discourse/components/user-link";
 import avatar from "discourse/helpers/avatar";
@@ -11,14 +10,11 @@ import boundCategoryLink from "discourse/helpers/bound-category-link";
 import icon from "discourse/helpers/d-icon";
 import discourseTags from "discourse/helpers/discourse-tags";
 import { ajax } from "discourse/lib/ajax";
-import { emojiUnescape } from "discourse/lib/text";
-import { escapeExpression } from "discourse/lib/utilities";
 import Category from "discourse/models/category";
 import { eq, or } from "discourse/truth-helpers";
 import DFilterControls from "discourse/ui-kit/d-filter-controls";
 import DPageHeader from "discourse/ui-kit/d-page-header";
 import { i18n } from "discourse-i18n";
-import { kanbanTitle } from "../lib/kanban-title";
 import KanbanBoardSettings from "./modal/kanban-board-settings";
 
 function boardCategories(board) {
@@ -106,7 +102,7 @@ export default class KanbanBoardsPage extends Component {
                     @models={{array board.slug board.id}}
                     class="discourse-kanban-board-card__name"
                   >
-                    {{trustHTML (emojiUnescape (escapeExpression board.name))}}
+                    {{board.fancyTitle}}
                   </LinkTo>
                 </div>
 
@@ -130,7 +126,7 @@ export default class KanbanBoardsPage extends Component {
                         {{#if column.icon}}
                           {{icon column.icon}}
                         {{/if}}
-                        {{kanbanTitle column}}
+                        {{column.fancyTitle}}
                       </span>
                     {{/each}}
                   {{else}}

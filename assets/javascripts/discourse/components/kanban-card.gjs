@@ -21,7 +21,6 @@ import renderTags from "discourse/lib/render-tags";
 import DiscourseURL from "discourse/lib/url";
 import Category from "discourse/models/category";
 import { i18n } from "discourse-i18n";
-import { kanbanTitle } from "../lib/kanban-title";
 import { kanbanBoardUrl, kanbanCardUrl } from "../lib/kanban-urls";
 import AutoLinkedText from "./auto-linked-text";
 import KanbanCardDetailModal from "./modal/kanban-card-detail";
@@ -65,7 +64,7 @@ export default class KanbanCard extends Component {
   }
 
   get cardTitle() {
-    return kanbanTitle(this.isTopicCard ? this.topic : this.args.card);
+    return this.args.card.fancyTitle;
   }
 
   get columnTagNames() {

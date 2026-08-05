@@ -1,20 +1,22 @@
 import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
 import DiscourseRoute from "discourse/routes/discourse";
-import { kanbanBoardTitle } from "../lib/kanban-board-title";
+import Board from "../models/board";
 
 export default class KanbanBoardCardRoute extends DiscourseRoute {
   @service router;
 
   titleToken() {
-    return kanbanBoardTitle(this.controller?.model?.board);
+    return this.controller?.model?.board?.fancyTitle;
   }
 
   model(params) {
-    return ajax(`/kanban/boards/${params.id}.json`).then((data) => ({
-      ...data,
-      initialCardId: parseInt(params.card_id, 10),
-    }));
+    return ajax(`/kanban/boards/${params.id}.json`).then((data) =>
+      Board.createPayload({
+        ...data,
+        initialCardId: parseInt(params.card_id, 10),
+      })
+    );
   }
 
   afterModel(model, transition) {
