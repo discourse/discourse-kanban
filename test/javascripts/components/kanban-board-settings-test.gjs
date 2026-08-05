@@ -13,9 +13,8 @@ module(
 
     hooks.beforeEach(function () {
       this.fabricators = new KanbanFabricators(getOwner(this));
-      this.board = this.fabricators.board();
       this.model = {
-        board: this.board,
+        board: null,
         isNew: true,
         onSave: () => {},
         onDelete: () => {},
@@ -38,6 +37,37 @@ module(
         formKit().field("slug").inputElement.placeholder,
         "apollo-program"
       );
+    });
+
+    test("default ACL is created using manage board allowed groups and logged in users", async function (assert) {
+      await render(
+        <template>
+          <KanbanBoardSettings @model={{this.model}} @inline={{true}} />
+        </template>
+      );
+
+      assert.dom(".discourse-kanban-board-settings-modal").exists();
+
+      assert.dom(".d-access-control__row.--group[data-row-id='1']").exists();
+      assert.dom(".d-access-control__row.--group[data-row-id='2']").exists();
+      assert.dom(".d-access-control__row.--group[data-row-id='5']").exists();
+    });
+
+    test("default ACL does not include logged_in_users twice if they are in discourse_kanban_manage_board_allowed_groups", async function (assert) {
+      this.siteSettings.discourse_kanban_manage_board_allowed_groups = "1|2|5";
+      await render(
+        <template>
+          <KanbanBoardSettings @model={{this.model}} @inline={{true}} />
+        </template>
+      );
+
+      assert.dom(".discourse-kanban-board-settings-modal").exists();
+
+      assert.dom(".d-access-control__row.--group[data-row-id='1']").exists();
+      assert.dom(".d-access-control__row.--group[data-row-id='2']").exists();
+      assert
+        .dom(".d-access-control__row.--group[data-row-id='5']")
+        .exists({ count: 1 });
     });
   }
 );
