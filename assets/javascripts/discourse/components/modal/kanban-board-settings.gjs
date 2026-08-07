@@ -114,6 +114,14 @@ export default class KanbanBoardSettings extends Component {
     );
   }
 
+  get aclTarget() {
+    return {
+      type: "DiscourseKanban::Board",
+      id: this.args.model.board?.id,
+      name: i18n("discourse_kanban.manage.board"),
+    };
+  }
+
   get slugPlaceholder() {
     const boardName = this.formApi.get("name");
 
@@ -338,8 +346,7 @@ export default class KanbanBoardSettings extends Component {
               <DAccessControlField
                 @form={{form}}
                 @title={{i18n "discourse_kanban.manage.board_access"}}
-                @aclTargetType={{"DiscourseKanban::Board"}}
-                @aclTargetId={{this.args.model.board?.id}}
+                @aclTarget={{this.aclTarget}}
                 @description={{i18n
                   "discourse_kanban.manage.board_access_description"
                 }}

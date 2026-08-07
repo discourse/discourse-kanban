@@ -51,11 +51,6 @@ module DiscourseKanban
           context[:histories][:permissions_changed] = { previous_permissions:, new_permissions: }
         end
 
-        on_failed_policy(:user_will_have_permission) do
-          context[:user_will_not_have_permission] = true
-          fail!(I18n.t("access_control_list.errors.user_will_not_have_permission"))
-        end
-
         on_failure do
           Rails.logger.warn(
             "Failed to update ACL for board #{board.id} (#{flattened_acl.to_json}): #{result.inspect_steps}",
