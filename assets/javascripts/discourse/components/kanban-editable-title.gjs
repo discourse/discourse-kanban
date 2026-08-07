@@ -7,6 +7,7 @@ import { isEmpty } from "@ember/utils";
 import DButton from "discourse/components/d-button";
 import concatClass from "discourse/helpers/concat-class";
 import { emojiUnescape } from "discourse/lib/text";
+import { escapeExpression } from "discourse/lib/utilities";
 import autoFocus from "discourse/modifiers/auto-focus";
 
 class KanbanEditableTitleUi extends Component {
@@ -18,7 +19,9 @@ class KanbanEditableTitleUi extends Component {
 
   get displayText() {
     return trustHTML(
-      emojiUnescape(this.args.field.value || this.args.placeholder)
+      emojiUnescape(
+        escapeExpression(this.args.field.value || this.args.placeholder)
+      )
     );
   }
 
