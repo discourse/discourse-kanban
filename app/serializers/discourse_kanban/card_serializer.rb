@@ -8,6 +8,7 @@ module DiscourseKanban
                :card_type,
                :position,
                :title,
+               :unicode_title,
                :notes,
                :tag_ids,
                :tags,

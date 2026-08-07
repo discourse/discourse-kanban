@@ -70,7 +70,7 @@ body.discourse-kanban-board {
     margin: 0;
     display: flex;
     align-items: center;
-    gap: var(--space-4);
+    gap: var(--space-2);
   }
 
   &__metadata {
@@ -493,6 +493,14 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
     animation: discourse-kanban-card-drop-highlight 1s ease-out;
   }
 
+  &--link-highlighted {
+    border: 1px solid var(--column-color, var(--primary-500));
+    box-shadow: 0 0 0 3px
+      oklch(from var(--column-color, var(--primary-500)) l c h / 0.25);
+    animation: discourse-kanban-card-link-highlight-pulse 1.5s ease-in-out
+      infinite alternate;
+  }
+
   &--kb-selected {
     outline: 2px solid var(--tertiary);
     outline-offset: -2px;
@@ -696,10 +704,26 @@ body.discourse-kanban-fullscreen .fk-d-menu[data-identifier^="kanban-"] {
   }
 }
 
+@keyframes discourse-kanban-card-link-highlight-pulse {
+  from {
+    box-shadow: 0 0 0 2px
+      oklch(from var(--column-color, var(--primary-500)) l c h / 0.25);
+  }
+
+  to {
+    box-shadow: 0 0 0 4px
+      oklch(from var(--column-color, var(--primary-500)) l c h / 0.25);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .discourse-kanban-card--drop-highlighted {
     animation: none;
     border-color: var(--tertiary);
+  }
+
+  .discourse-kanban-card--link-highlighted {
+    animation: none;
   }
 
   .discourse-kanban-column__drop-indicator {

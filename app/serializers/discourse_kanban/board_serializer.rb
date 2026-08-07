@@ -4,6 +4,7 @@ module DiscourseKanban
   class BoardSerializer < ApplicationSerializer
     attributes :id,
                :name,
+               :unicode_name,
                :slug,
                :category_ids,
                :tag_ids,

@@ -56,6 +56,25 @@ module DiscourseKanban
       permission_acl.group_has_permission?(Group::AUTO_GROUPS[:anonymous_users], "view")
     end
 
+    def logged_in_user_can_read?
+      permission_acl.group_has_any_permission?(
+        Group::AUTO_GROUPS[:logged_in_users],
+        %w[view edit manage],
+      )
+    end
+
+    def can_be_oneboxed?
+      if SiteSetting.login_required
+        logged_in_user_can_read?
+      else
+        anonymous_can_read?
+      end
+    end
+
+    def unicode_name
+      Emoji.gsub_emoji_to_unicode(name)
+    end
+
     def reload(options = nil)
       @tags = nil
       @categories = nil

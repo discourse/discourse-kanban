@@ -64,7 +64,7 @@ export default class KanbanCard extends Component {
   }
 
   get cardTitle() {
-    return this.isTopicCard ? this.topic.title : this.args.card.title;
+    return this.args.card.fancyTitle;
   }
 
   get columnTagNames() {
@@ -507,6 +507,7 @@ export default class KanbanCard extends Component {
         (if this.dragging "discourse-kanban-card--dragging")
         (unless this.isTopicCard "discourse-kanban-card--floater")
         (if @isDropHighlighted "discourse-kanban-card--drop-highlighted")
+        (if @isLinkHighlighted "discourse-kanban-card--link-highlighted")
       }}
       draggable={{if @canWrite "true" "false"}}
       role="button"

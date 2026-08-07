@@ -1,6 +1,7 @@
 import { ajax } from "discourse/lib/ajax";
 import DiscourseRoute from "discourse/routes/discourse";
 import { i18n } from "discourse-i18n";
+import Board from "../models/board";
 
 export default class KanbanBoardsRoute extends DiscourseRoute {
   titleToken() {
@@ -9,6 +10,6 @@ export default class KanbanBoardsRoute extends DiscourseRoute {
 
   async model() {
     const data = await ajax("/kanban/boards.json");
-    return data.boards;
+    return data.boards.map((board) => Board.create(board));
   }
 }

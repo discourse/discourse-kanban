@@ -3,6 +3,8 @@
 module DiscourseKanban
   class OneboxHandler
     def self.handle(url, route, opts = {})
+      opts ||= {}
+
       if route[:card_id].present?
         build_card_onebox(url, route[:card_id], route[:id], opts)
       else
@@ -14,13 +16,13 @@ module DiscourseKanban
 
     def self.build_card_onebox(url, card_id, board_id, opts)
       card = DiscourseKanban::Card.find_by(id: card_id, board_id: board_id)
-      return "" if !card || !card.board.anonymous_can_read?
-      if card.topic? &&
-           (
-             card.topic.blank? ||
-               Oneboxer.local_topic(card.topic.url, { id: card.topic_id }, opts).blank?
-           )
-        return ""
+      return "" if !card || !card.board.can_be_oneboxed?
+
+      if card.topic?
+        if card.topic.blank? ||
+             Oneboxer.local_topic(card.topic.url, { id: card.topic_id }, opts).blank?
+          return ""
+        end
       end
 
       tag_html = ""
@@ -34,11 +36,11 @@ module DiscourseKanban
 
       args = {
         board_url: card.board.url,
-        board_name: card.board.name,
+        board_name: card.board.unicode_name,
         card_url: url,
-        card_name: card.resolved_title,
+        card_name: card.unicode_resolved_title,
         card_tags: tag_html,
-        card_column_title: card.column.title,
+        card_column_title: card.column.unicode_title,
         card_column_icon: card.column.icon,
         creator_username: card.created_by.username,
         creator_avatar_url: card.created_by.small_avatar_url,
@@ -67,7 +69,7 @@ module DiscourseKanban
 
     def self.build_board_onebox(url, board_id)
       board = DiscourseKanban::Board.find_by(id: board_id)
-      return "" if !board || !board.anonymous_can_read?
+      return "" if !board || !board.can_be_oneboxed?
 
       tag_html = ""
       if board.tags.any?
@@ -89,14 +91,14 @@ module DiscourseKanban
 
       args = {
         board_url: url,
-        board_name: board.name,
+        board_name: board.unicode_name,
         board_tags: tag_html,
         board_categories: category_html,
         board_columns:
           board
             .columns
             .select(:title, :icon)
-            .map { |column| { name: column.title, icon: column.icon } },
+            .map { |column| { name: column.unicode_title, icon: column.icon } },
         creator_username: board.created_by.username,
         creator_avatar_url: board.created_by.small_avatar_url,
         created_by:

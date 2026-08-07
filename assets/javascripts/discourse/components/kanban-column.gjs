@@ -77,7 +77,11 @@ export default class KanbanColumn extends Component {
     }
 
     const cutoff = Date.now() - RECENCY_WINDOW_MS;
-    return cards.filter((card) => recencyTimestamp(card) >= cutoff);
+    return cards.filter(
+      (card) =>
+        card.id === this.args.linkHighlightCardId ||
+        recencyTimestamp(card) >= cutoff
+    );
   }
 
   get hiddenCardCount() {
@@ -476,7 +480,7 @@ export default class KanbanColumn extends Component {
         <span class="discourse-kanban-column__header-content">
           <span class="discourse-kanban-column__title">
             {{#if @column.icon}}{{icon @column.icon}}{{/if}}
-            {{@column.title}}
+            {{@column.fancyTitle}}
           </span>
           <span class="discourse-kanban-column__count">
             {{this.cardCount}}
@@ -546,12 +550,13 @@ export default class KanbanColumn extends Component {
             <KanbanCard
               @card={{card}}
               @board={{@board}}
-              @columnTitle={{@column.title}}
+              @columnTitle={{@column.fancyTitle}}
               @columnIcon={{@column.icon}}
               @columnColor={{@column.color}}
               @canWrite={{@canWrite}}
               @allSameCategory={{@allSameCategory}}
               @isDropHighlighted={{eq @dropHighlightCardId card.id}}
+              @isLinkHighlighted={{eq @linkHighlightCardId card.id}}
               @onDragStart={{@onDragStart}}
               @onDragEnd={{@onDragEnd}}
               @onUpdateCard={{@onUpdateCard}}

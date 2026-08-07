@@ -3,6 +3,15 @@ en:
     discourse_kanban:
       filter_boards: "Filter boards"
       filter_boards_no_results: "No boards match your search"
+      topic_pill:
+        title: "This topic is in the %{column} column of the %{board} board"
+        title_multiple_columns:
+          one: "This topic is in %{count} column of the %{board} board"
+          other: "This topic is in %{count} columns of the %{board} board"
+        multiple:
+          one: "%{count} board"
+          other: "%{count} boards"
+        multiple_title: "This topic is on multiple kanban boards"
       board:
         empty_board: "This board has no columns yet"
         empty_board_cta: "Add your first column to get started"

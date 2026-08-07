@@ -179,4 +179,48 @@ RSpec.describe DiscourseKanban::Board do
       expect(board.all_matching_columns(topic2)).to eq([])
     end
   end
+
+  describe "can_be_oneboxed?" do
+    fab!(:kanban_board)
+
+    context "when the site is login_required" do
+      before { SiteSetting.login_required = true }
+
+      it "returns true for boards viewable by logged in users" do
+        Fabricate(
+          :access_control_list_with_groups,
+          target: kanban_board,
+          permission: "view",
+          group_ids: [Group::AUTO_GROUPS[:logged_in_users]],
+        )
+        kanban_board.reload
+
+        expect(kanban_board.can_be_oneboxed?).to eq(true)
+      end
+
+      it "returns false for boards not viewable by anonymous users" do
+        expect(kanban_board.can_be_oneboxed?).to eq(false)
+      end
+    end
+
+    context "when the site is not login_required" do
+      before { SiteSetting.login_required = false }
+
+      it "returns true for boards viewable by anonymous users" do
+        Fabricate(
+          :access_control_list_with_groups,
+          target: kanban_board,
+          permission: "view",
+          group_ids: [Group::AUTO_GROUPS[:anonymous_users]],
+        )
+        kanban_board.reload
+
+        expect(kanban_board.can_be_oneboxed?).to eq(true)
+      end
+
+      it "returns false for boards not viewable by anonymous users" do
+        expect(kanban_board.can_be_oneboxed?).to eq(false)
+      end
+    end
+  end
 end
