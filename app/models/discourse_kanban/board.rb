@@ -52,7 +52,7 @@ module DiscourseKanban
       ]
     end
 
-    def self.warn_of_loss
+    def self.loss_warning_permissions
       ["manage"]
     end
 

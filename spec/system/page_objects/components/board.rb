@@ -30,6 +30,11 @@ module PageObjects
         board_menu.option("[data-identifier='delete-board']").click
         self
       end
+
+      def has_no_menu_item?(identifier)
+        board_menu.has_no_option?("[data-identifier='#{identifier}']")
+        self
+      end
     end
   end
 end
