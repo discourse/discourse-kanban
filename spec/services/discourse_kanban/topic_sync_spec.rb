@@ -11,6 +11,22 @@ RSpec.describe DiscourseKanban::TopicSync do
 
   before { enable_current_plugin }
 
+  it "ignores topics before they are persisted" do
+    board =
+      DiscourseKanban::Board.create!(
+        name: "Unsaved Topic Board",
+        slug: "unsaved-topic-board",
+        category_ids: [category.id],
+        created_by_id: admin.id,
+      )
+    board.columns.create!(title: "Alpha", position: 0, tag_id: tag_a.id)
+    unsaved_topic = Topic.new(category: category, tags: [tag_a])
+
+    expect { described_class.sync_topic(unsaved_topic) }.not_to change {
+      DiscourseKanban::Card.count
+    }
+  end
+
   it "does not auto-create cards in unconstrained columns" do
     board =
       DiscourseKanban::Board.create!(
