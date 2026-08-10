@@ -292,6 +292,40 @@ RSpec.describe "Kanban Board Viewer" do
       expect(DiscourseKanban::Card.find_by!(title: "Tagged task").tag_ids).to eq([tag1.id])
     end
 
+    it "renders stored floater-card titles as text for read-only users" do
+      payload =
+        'Read this <img src="data:image/png;base64,invalid" onerror="document.body.dataset.kanbanXss=\'executed\'">'
+      result =
+        create_board(
+          {},
+          write_groups: [write_group],
+          with_columns: [{ title: "To Do", position: 0 }],
+        )
+      board = result.board
+
+      sign_in(user)
+      board_viewer.visit_board(board)
+      board_viewer.click_add_card("To Do")
+      board_viewer.fill_card_title(payload)
+      board_viewer.submit_card
+
+      expect(DiscourseKanban::Card.find_by!(title: payload)).to be_present
+
+      sign_in(manager)
+      board_viewer.visit_board(board)
+      board_viewer.click_floater_card(payload)
+
+      expect(board_viewer).to have_card_detail_modal
+      expect(page).to have_css(
+        ".discourse-kanban-card-detail-modal .discourse-kanban-editable-title__text",
+        text: "Read this",
+      )
+      expect(page).to have_text(payload)
+      sleep 2
+      expect(page).to have_no_css(".discourse-kanban-card-detail-modal img[onerror]")
+      expect(page).to have_no_css("body[data-kanban-xss='executed']")
+    end
+
     it "opens the card detail modal when clicking a floater card" do
       result =
         create_board(

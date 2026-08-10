@@ -290,7 +290,7 @@ export default class KanbanBoardSettings extends Component {
     const defaultAcl = [];
 
     this.discourseKanbanManageBoardAllowedGroupIds.forEach((groupId) => {
-      const group = this.site.groups?.find((g) => g.id === groupId);
+      const group = this.site.groupsById[groupId];
       if (group) {
         defaultAcl.push({
           type: "group",
@@ -301,14 +301,19 @@ export default class KanbanBoardSettings extends Component {
       }
     });
 
-    defaultAcl.push({
-      type: "group",
-      id: AUTO_GROUPS.logged_in_users.id,
-      permission: "view",
-      display_name: this.site.groups.find(
-        (g) => g.id === AUTO_GROUPS.logged_in_users.id
-      )?.full_name,
-    });
+    if (
+      !this.discourseKanbanManageBoardAllowedGroupIds.includes(
+        AUTO_GROUPS.logged_in_users.id
+      )
+    ) {
+      defaultAcl.push({
+        type: "group",
+        id: AUTO_GROUPS.logged_in_users.id,
+        permission: "view",
+        display_name: this.site.groupFullName(AUTO_GROUPS.logged_in_users.id),
+      });
+    }
+
     return defaultAcl;
   }
 

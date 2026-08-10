@@ -1,5 +1,5 @@
 import { getOwner } from "@ember/owner";
-import { click, fillIn, render } from "@ember/test-helpers";
+import { fillIn, render } from "@ember/test-helpers";
 import { module, test } from "qunit";
 import sinon from "sinon";
 import { setupRenderingTest } from "discourse/tests/helpers/component-test";
@@ -15,7 +15,6 @@ module(
 
     hooks.beforeEach(function () {
       this.fabricators = new KanbanFabricators(getOwner(this));
-      this.board = this.fabricators.board();
       const group = this.site.groups[0];
       this.board.acl = [
         {
@@ -26,7 +25,7 @@ module(
         },
       ];
       this.model = {
-        board: this.board,
+        board: null,
         isNew: true,
         onSave: sinon.spy(),
         onDelete: () => {},
@@ -42,7 +41,6 @@ module(
       );
 
       assert.dom(".discourse-kanban-board-settings-modal").exists();
-      await click(".discourse-kanban-editable-title__text");
       await fillIn(".discourse-kanban-editable-title__input", "Apollo Program");
 
       assert.strictEqual(
@@ -83,6 +81,37 @@ module(
         [{ reloadAfterSave: true }],
         "the modal requests a reload after it closes"
       );
+    });
+
+    test("default ACL is created using manage board allowed groups and logged in users", async function (assert) {
+      await render(
+        <template>
+          <KanbanBoardSettings @model={{this.model}} @inline={{true}} />
+        </template>
+      );
+
+      assert.dom(".discourse-kanban-board-settings-modal").exists();
+
+      assert.dom(".d-access-control__row.--group[data-row-id='1']").exists();
+      assert.dom(".d-access-control__row.--group[data-row-id='2']").exists();
+      assert.dom(".d-access-control__row.--group[data-row-id='5']").exists();
+    });
+
+    test("default ACL does not include logged_in_users twice if they are in discourse_kanban_manage_board_allowed_groups", async function (assert) {
+      this.siteSettings.discourse_kanban_manage_board_allowed_groups = "1|2|5";
+      await render(
+        <template>
+          <KanbanBoardSettings @model={{this.model}} @inline={{true}} />
+        </template>
+      );
+
+      assert.dom(".discourse-kanban-board-settings-modal").exists();
+
+      assert.dom(".d-access-control__row.--group[data-row-id='1']").exists();
+      assert.dom(".d-access-control__row.--group[data-row-id='2']").exists();
+      assert
+        .dom(".d-access-control__row.--group[data-row-id='5']")
+        .exists({ count: 1 });
     });
   }
 );
