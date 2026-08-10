@@ -60,6 +60,7 @@ export default class KanbanBoardSettings extends Component {
   @tracked showAdvanced = false;
 
   constraintWarning = null;
+  reloadAfterSave = false;
 
   willDestroy() {
     super.willDestroy(...arguments);
@@ -238,7 +239,7 @@ export default class KanbanBoardSettings extends Component {
   async _performSave(data) {
     try {
       await this.args.model.onSave(data);
-      this.args.closeModal();
+      this.args.closeModal({ reloadAfterSave: this.reloadAfterSave });
     } catch (error) {
       popupAjaxError(error);
     }
@@ -276,7 +277,13 @@ export default class KanbanBoardSettings extends Component {
 
   @action
   aclChanged(acl) {
+    this.reloadAfterSave = false;
     this.formApi.set("acl", acl);
+  }
+
+  @action
+  accessLossConfirmed() {
+    this.reloadAfterSave = true;
   }
 
   #buildDefaultAcl() {
@@ -352,6 +359,7 @@ export default class KanbanBoardSettings extends Component {
                 }}
                 @transformPermissionOptions={{this.transformPermissionOptions}}
                 @onChange={{this.aclChanged}}
+                @onAccessLossConfirmed={{this.accessLossConfirmed}}
                 @mustHavePermissions={{array "manage"}}
               />
             </form.Section>

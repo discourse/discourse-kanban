@@ -70,6 +70,7 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
           <KanbanBoardViewer
             @model={{this.model}}
             @highlightCardId={{this.highlightCardId}}
+            @openBoardSettings={{this.openBoardSettings}}
           />
         </template>
       );
@@ -111,6 +112,17 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
         dataTransfer: this.dragDataTransfer,
       });
     };
+  });
+
+  test("does not open board settings without manage permission", async function (assert) {
+    const modal = getOwner(this).lookup("service:modal");
+    const show = sinon.stub(modal, "show");
+    this.openBoardSettings = true;
+
+    await this.renderBoard([], { can_manage: false });
+    await settled();
+
+    assert.false(show.called, "the settings modal remains closed");
   });
 
   hooks.afterEach(function () {

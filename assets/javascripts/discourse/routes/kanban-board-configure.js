@@ -18,6 +18,12 @@ export default class KanbanBoardConfigureRoute extends DiscourseRoute {
 
   afterModel(model, transition) {
     const board = model.board;
+
+    if (board && !board.can_manage) {
+      this.router.replaceWith("kanbanBoard", board.slug, board.id);
+      return;
+    }
+
     if (board?.slug && transition.to.params.slug !== board.slug) {
       this.router.replaceWith("kanbanBoardConfigure", board.slug, board.id);
     }
