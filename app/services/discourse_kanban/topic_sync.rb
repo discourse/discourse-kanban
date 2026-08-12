@@ -67,7 +67,7 @@ module DiscourseKanban
 
     def self.sync_topic(topic)
       return unless SiteSetting.discourse_kanban_enabled?
-      return if topic.blank? || topic.deleted_at.present?
+      return if topic.blank? || !topic.persisted? || topic.deleted_at.present?
 
       with_topic_sync_retry do
         Card.transaction do
