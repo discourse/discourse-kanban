@@ -238,9 +238,7 @@ describe "Manage Kanban Boards" do
         )
         access_control.confirm_loss_warning
         expect(boards_page.board_settings_modal).to be_closed
-        board_component.open_board_menu
-        board_component.click_board_settings_menu_item
-        expect(board_component).to have_no_menu_item("board-settings")
+        expect(page).to have_content(I18n.t("js.errors.reasons.forbidden"))
       end
     end
   end

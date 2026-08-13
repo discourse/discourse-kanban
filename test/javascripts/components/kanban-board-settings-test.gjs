@@ -9,21 +9,12 @@ import KanbanBoardSettings from "discourse/plugins/discourse-kanban/discourse/co
 import KanbanFabricators from "discourse/plugins/discourse-kanban/discourse/lib/fabricators";
 
 module(
-  "Integration | Component | KanbanBoardSettings | New board",
+  "Integration | Component | KanbanBoardSettings | New and existing boards",
   function (hooks) {
     setupRenderingTest(hooks);
 
     hooks.beforeEach(function () {
       this.fabricators = new KanbanFabricators(getOwner(this));
-      const group = this.site.groups[0];
-      this.board.acl = [
-        {
-          type: "group",
-          id: group.id,
-          permission: "manage",
-          display_name: group.name,
-        },
-      ];
       this.model = {
         board: null,
         isNew: true,
@@ -50,6 +41,18 @@ module(
     });
 
     test("reports confirmed access loss when the saved modal closes", async function (assert) {
+      const group = this.site.groups[0];
+      const board = this.fabricators.board();
+      board.acl = [
+        {
+          type: "group",
+          id: group.id,
+          permission: "manage",
+          display_name: group.name,
+        },
+      ];
+      this.model = { ...this.model, board, isNew: false };
+
       const dialog = getOwner(this).lookup("service:dialog");
       sinon.stub(dialog, "confirm").resolves(true);
 
