@@ -3,6 +3,10 @@
 module PageObjects
   module Components
     class Board < PageObjects::Components::Base
+      def has_name?(name)
+        has_css?(".discourse-kanban-board-viewer__title", text: name)
+      end
+
       def board_menu
         PageObjects::Components::DMenu.new(
           find(
