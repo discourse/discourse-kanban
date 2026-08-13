@@ -9,6 +9,7 @@ module DiscourseKanban
                :position,
                :title,
                :unicode_title,
+               :inline_onebox_data,
                :notes,
                :tag_ids,
                :tags,

@@ -38,6 +38,28 @@ module("Integration | Component | KanbanCard", function (hooks) {
     assert.dom(".discourse-kanban-card__title").hasText("Launch 🚀");
   });
 
+  test("renders stored inline onebox data for a floater card", async function (assert) {
+    this.card.title = "https://github.com/discourse/discourse/pull/42462";
+    this.card.inline_onebox_data = {
+      url: this.card.title,
+      title: "FEATURE: Add ProseMirror tab support",
+      css_class: "--gh-status-approved",
+    };
+
+    await render(
+      <template>
+        <KanbanCard @card={{this.card}} @board={{this.board}} />
+      </template>
+    );
+
+    assert
+      .dom(".discourse-kanban-card__title a.inline-onebox")
+      .hasAttribute("href", this.card.title)
+      .hasAttribute("target", "_blank")
+      .hasClass("--gh-status-approved")
+      .hasText("FEATURE: Add ProseMirror tab support");
+  });
+
   test("renders a topic card's Unicode title", async function (assert) {
     this.card = this.fabricators.card({
       topic: {

@@ -65,6 +65,24 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(card["recency_at"]).to be_present
     end
 
+    it "enqueues post-processing for a URL-only floater title" do
+      url = "https://github.com/discourse/discourse/pull/42462"
+      sign_in(writer)
+
+      expect_enqueued_with(job: Jobs::DiscourseKanban::CardPostProcess, args: { title: url }) do
+        post "/kanban/boards/#{board.id}/cards.json",
+             params: {
+               card: {
+                 column_id: col_todo.id,
+                 title: url,
+               },
+             }
+      end
+
+      expect(response.status).to eq(201)
+      expect(response.parsed_body.dig("card", "inline_onebox_data")).to be_nil
+    end
+
     it "creates a floater card with tag ids" do
       sign_in(writer)
 
@@ -507,6 +525,35 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(response.status).to eq(200)
       expect(card.reload.title).to eq("New title")
       expect(response.parsed_body["card"]["title"]).to eq("New title")
+    end
+
+    it "clears stale data and enqueues post-processing for a URL-only title update" do
+      url = "https://github.com/discourse/discourse/pull/42462"
+      card =
+        board.cards.create!(
+          card_type: :floater,
+          title: "https://example.com/old",
+          inline_onebox_data: {
+            "url" => "https://example.com/old",
+            "title" => "Old title",
+          },
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      sign_in(writer)
+
+      expect_enqueued_with(
+        job: Jobs::DiscourseKanban::CardPostProcess,
+        args: {
+          card_id: card.id,
+          title: url,
+        },
+      ) { put "/kanban/boards/#{board.id}/cards/#{card.id}.json", params: { card: { title: url } } }
+
+      expect(response.status).to eq(200)
+      expect(card.reload.inline_onebox_data).to be_nil
+      expect(response.parsed_body.dig("card", "inline_onebox_data")).to be_nil
     end
 
     it "updates floater card tag ids" do

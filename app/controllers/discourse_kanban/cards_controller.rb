@@ -17,6 +17,7 @@ module DiscourseKanban
           payload = CardSerializer.new(card, root: false, scope: guardian).as_json
           publish_payload = CardSerializer.new(card, root: false).as_json
           Publisher.publish_card_created!(board, publish_payload, client_id: message_bus_client_id)
+          Jobs.enqueue(Jobs::DiscourseKanban::CardPostProcess, card_id: card.id, title: card.title)
           render json: { card: payload }, status: :created
         end
         on_model_not_found(:board) { raise Discourse::NotFound }
@@ -67,6 +68,14 @@ module DiscourseKanban
               board,
               publish_response,
               client_id: message_bus_client_id,
+            )
+          end
+
+          if raw_params.key?("title")
+            Jobs.enqueue(
+              Jobs::DiscourseKanban::CardPostProcess,
+              card_id: card.id,
+              title: card.title,
             )
           end
 

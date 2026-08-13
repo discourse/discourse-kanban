@@ -157,23 +157,24 @@ end
 #
 # Table name: discourse_kanban_cards
 #
-#  id                :bigint           not null, primary key
-#  assigned_to_type  :string
-#  card_type         :integer          default("floater"), not null
-#  column_changed_at :datetime         not null
-#  due_at            :datetime
-#  notes             :text
-#  position          :bigint           default(0), not null
-#  tag_ids           :integer          default([]), not null, is an Array
-#  title             :string
-#  created_at        :datetime         not null
-#  updated_at        :datetime         not null
-#  assigned_to_id    :bigint
-#  board_id          :bigint           not null
-#  column_id         :bigint
-#  created_by_id     :bigint
-#  topic_id          :bigint
-#  updated_by_id     :bigint
+#  id                 :bigint           not null, primary key
+#  assigned_to_type   :string
+#  card_type          :integer          default("floater"), not null
+#  column_changed_at  :datetime         not null
+#  due_at             :datetime
+#  inline_onebox_data :jsonb
+#  notes              :text
+#  position           :bigint           default(0), not null
+#  tag_ids            :integer          default([]), not null, is an Array
+#  title              :string
+#  created_at         :datetime         not null
+#  updated_at         :datetime         not null
+#  assigned_to_id     :bigint
+#  board_id           :bigint           not null
+#  column_id          :bigint
+#  created_by_id      :bigint
+#  topic_id           :bigint
+#  updated_by_id      :bigint
 #
 # Indexes
 #

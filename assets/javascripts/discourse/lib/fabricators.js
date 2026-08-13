@@ -35,6 +35,7 @@ export default class KanbanFabricators {
       column_id: args.column_id,
       // TODO: Add assign fabricator with avatar_template, type, and username
       assigned_to: args.assigned_to,
+      inline_onebox_data: args.inline_onebox_data,
       tags: args.tags || [],
       tag_ids: args.tag_ids || [],
       topic_id: args.topic?.id || null,
