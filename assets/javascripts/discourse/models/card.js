@@ -16,6 +16,7 @@ export default class Card {
   @tracked column_changed_at;
   @tracked created_by;
   @tracked id;
+  @tracked inline_onebox_data;
   @tracked notes;
   @tracked position;
   @tracked recency_at;
@@ -41,6 +42,7 @@ export default class Card {
       created_at: this.created_at,
       created_by: this.created_by,
       id: this.id,
+      inline_onebox_data: this.inline_onebox_data,
       notes: this.notes,
       position: this.position,
       recency_at: this.recency_at,

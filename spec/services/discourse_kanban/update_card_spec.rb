@@ -57,6 +57,10 @@ RSpec.describe DiscourseKanban::UpdateCard do
         board.cards.create!(
           card_type: :floater,
           title: "Old",
+          inline_onebox_data: {
+            "url" => "https://example.com/old",
+            "title" => "Old page title",
+          },
           column_id: col_todo.id,
           position: 0,
           created_by_id: admin.id,
@@ -71,6 +75,7 @@ RSpec.describe DiscourseKanban::UpdateCard do
       it "updates the title" do
         result
         expect(card.reload.title).to eq("New")
+        expect(card.inline_onebox_data).to be_nil
       end
 
       it "does not change column_changed_at" do
@@ -87,6 +92,67 @@ RSpec.describe DiscourseKanban::UpdateCard do
             action: DiscourseKanban::CardHistory.actions[:card_edited],
           ).count
         }.by(1)
+      end
+    end
+
+    context "when updating a floater card title to a URL" do
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :floater,
+          title: "Old",
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      end
+
+      let(:url) { "https://github.com/discourse/discourse/pull/42462" }
+      let(:raw_card_params) { { "title" => url } }
+      let(:params) { { board_id: board.id, id: card.id, title: url } }
+      let(:onebox_data) do
+        {
+          "url" => url,
+          "title" => "FEATURE: Add ProseMirror tab support",
+          "css_class" => "--gh-status-approved",
+        }
+      end
+
+      it "clears stale data without resolving inline" do
+        card.update!(inline_onebox_data: onebox_data)
+        DiscourseKanban::Action::CardInlineOnebox.expects(:call).never
+
+        result
+
+        expect(card.reload.inline_onebox_data).to be_nil
+      end
+    end
+
+    context "when updating a floater card without changing its title" do
+      fab!(:card) do
+        board.cards.create!(
+          card_type: :floater,
+          title: "https://example.com",
+          inline_onebox_data: {
+            "url" => "https://example.com",
+            "title" => "Example Domain",
+          },
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+      end
+
+      let(:raw_card_params) { { "notes" => "Updated notes" } }
+      let(:params) { { board_id: board.id, id: card.id, notes: "Updated notes" } }
+
+      it "preserves the existing inline onebox data without resolving it again" do
+        DiscourseKanban::Action::CardInlineOnebox.expects(:call).never
+        result
+
+        expect(card.reload.inline_onebox_data).to eq(
+          "url" => "https://example.com",
+          "title" => "Example Domain",
+        )
       end
     end
 

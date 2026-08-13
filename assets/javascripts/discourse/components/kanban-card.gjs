@@ -67,6 +67,11 @@ export default class KanbanCard extends Component {
     return this.args.card.fancyTitle;
   }
 
+  get inlineOneboxData() {
+    const data = this.args.card.inline_onebox_data;
+    return data?.url && data?.title ? data : null;
+  }
+
   get columnTagNames() {
     return new Set(
       (this.args.columnTags || []).map((tag) => tag.toLowerCase())
@@ -500,7 +505,7 @@ export default class KanbanCard extends Component {
   }
 
   <template>
-    {{! template-lint-disable no-invalid-interactive }}
+    {{! template-lint-disable no-invalid-interactive no-nested-interactive }}
     <div
       class={{concatClass
         "discourse-kanban-card"
@@ -531,9 +536,21 @@ export default class KanbanCard extends Component {
             {{this.cardTitle}}
           </span>
         {{else}}
-          <span class="discourse-kanban-card__title"><AutoLinkedText
-              @text={{this.cardTitle}}
-            /></span>
+          <span class="discourse-kanban-card__title">
+            {{#if this.inlineOneboxData}}
+              <a
+                href={{this.inlineOneboxData.url}}
+                class={{concatClass
+                  "inline-onebox"
+                  this.inlineOneboxData.css_class
+                }}
+                target="_blank"
+                rel="noopener noreferrer"
+              >{{this.inlineOneboxData.title}}</a>
+            {{else}}
+              <AutoLinkedText @text={{this.cardTitle}} />
+            {{/if}}
+          </span>
         {{/if}}
         {{#if this.canShowActions}}
           <DMenu

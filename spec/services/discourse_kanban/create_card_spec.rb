@@ -72,6 +72,17 @@ RSpec.describe DiscourseKanban::CreateCard do
       end
     end
 
+    context "when creating a floater card with a URL-only title" do
+      let(:url) { "https://github.com/discourse/discourse/pull/42462" }
+      let(:params) { { board_id: board.id, column_id: column.id, title: url } }
+
+      it "creates the card without resolving the onebox inline" do
+        DiscourseKanban::Action::CardInlineOnebox.expects(:call).never
+
+        expect(result[:card].inline_onebox_data).to be_nil
+      end
+    end
+
     context "when creating a floater card in a column sorted by recency" do
       let(:params) { { board_id: board.id, column_id: recency_column.id, title: "Recent Task" } }
 

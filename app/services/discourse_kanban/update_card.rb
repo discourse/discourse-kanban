@@ -112,6 +112,7 @@ module DiscourseKanban
 
       card.topic_id = topic.id
       card.title = nil
+      card.inline_onebox_data = nil
       card.notes = nil
       card.tag_ids = []
       card.assigned_to_id = nil
@@ -126,6 +127,7 @@ module DiscourseKanban
       raw = options.raw_card_params.presence || context[:raw_card_params] || {}
       if card.floater? && !context[:promoted]
         card.title = params.title || card.title
+        card.inline_onebox_data = nil if param_provided?(raw, "title")
         card.notes = raw.key?("notes") ? raw["notes"] : card.notes
         if raw.key?("tag_ids") || raw.key?("tag_names")
           card.tag_ids = resolve_all_tag_ids(params.tag_ids, params.tag_names, guardian)
@@ -156,6 +158,10 @@ module DiscourseKanban
       raise Discourse::InvalidParameters.new(
               I18n.t("discourse_kanban.errors.invalid_assignee", name: name),
             )
+    end
+
+    def param_provided?(raw, key)
+      raw.key?(key) || raw.key?(key.to_sym)
     end
 
     def place_and_save(card:, column:, params:, guardian:, options:, board:, original_column_id:)
