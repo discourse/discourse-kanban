@@ -10,6 +10,7 @@ describe "Manage Kanban Boards" do
   let(:boards_page) { PageObjects::Pages::KanbanManageBoards.new }
   let(:dialog) { PageObjects::Components::Dialog.new }
   let(:permanently_delete_confirm) { PageObjects::Modals::PermanentlyDeleteConfirm.new }
+  let(:access_control) { PageObjects::Components::DAccessControl.new }
   let(:toasts) { PageObjects::Components::Toasts.new }
 
   before do
@@ -223,6 +224,21 @@ describe "Manage Kanban Boards" do
             tag_name: todo_tag.name,
           ),
         )
+      end
+
+      it "warns the user when they are removing Manage permissions from themselves" do
+        visit board.url
+        board_component = PageObjects::Components::Board.new
+        board_component.open_board_menu
+        board_component.click_board_settings_menu_item
+        access_control.remove_permission_row(type: "group", id: manage_group.id)
+        boards_page.save_board_modal
+        expect(access_control).to have_loss_warning(
+          I18n.t("access_control_list.errors.kanban_board_user_will_lose_permission"),
+        )
+        access_control.confirm_loss_warning
+        expect(boards_page.board_settings_modal).to be_closed
+        expect(page).to have_content(I18n.t("js.errors.reasons.forbidden"))
       end
     end
   end

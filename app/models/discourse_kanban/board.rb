@@ -35,6 +35,10 @@ module DiscourseKanban
 
     before_validation :normalize_slug
 
+    def self.acl_target_key
+      "kanban_board"
+    end
+
     def self.mandatory_acl
       [{ type: :group, id: Group::AUTO_GROUPS[:admins], permission: "manage" }]
     end
@@ -46,6 +50,10 @@ module DiscourseKanban
         { type: :group, id: Group::AUTO_GROUPS[:everyone], permission: "manage" },
         { type: :group, id: Group::AUTO_GROUPS[:everyone], permission: "edit" },
       ]
+    end
+
+    def self.loss_warning_permissions
+      ["manage"]
     end
 
     def url

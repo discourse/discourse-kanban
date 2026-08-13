@@ -16,6 +16,7 @@ import bodyClass from "discourse/helpers/body-class";
 import boundCategoryLink from "discourse/helpers/bound-category-link";
 import icon from "discourse/helpers/d-icon";
 import discourseTags from "discourse/helpers/discourse-tags";
+import { reload } from "discourse/helpers/page-reloader";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
 import { bind } from "discourse/lib/decorators";
@@ -181,7 +182,7 @@ export default class KanbanBoardViewer extends Component {
       });
     }
 
-    if (this.args.openBoardSettings) {
+    if (this.args.openBoardSettings && this.canManage) {
       schedule("afterRender", () => {
         if (this.isDestroying || this.isDestroyed) {
           return;
@@ -1156,9 +1157,13 @@ export default class KanbanBoardViewer extends Component {
           onDelete: () => this.deleteBoard(),
         },
       })
-      .finally(() => {
+      .then((result) => {
         if (!this.isDestroying && !this.isDestroyed) {
           DiscourseURL.replaceState(boardUrl);
+
+          if (result?.reloadAfterSave) {
+            reload();
+          }
         }
       });
   }
