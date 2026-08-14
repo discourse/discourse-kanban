@@ -164,8 +164,8 @@ after_initialize do
         tid = self.topic_id
         next if tid.blank?
 
-        Jobs.cancel_scheduled_job(:sync_topic_for_kanban, topic_id: tid)
-        Jobs.enqueue_in(5.seconds, :sync_topic_for_kanban, topic_id: tid)
+        Jobs.cancel_scheduled_job("DiscourseKanban::SyncTopicForKanban", topic_id: tid)
+        Jobs.enqueue_in(5.seconds, Jobs::DiscourseKanban::SyncTopicForKanban, topic_id: tid)
       rescue StandardError => e
         Rails.logger.warn(
           "DiscourseKanban: failed to enqueue sync after assignment change for topic #{tid}: #{e.message}",
