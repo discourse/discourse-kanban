@@ -47,8 +47,10 @@ module DiscourseKanban
       [
         { type: :group, id: Group::AUTO_GROUPS[:anonymous_users], permission: "manage" },
         { type: :group, id: Group::AUTO_GROUPS[:anonymous_users], permission: "edit" },
+        # Essentially a legacy group ID, don't want anyone to use it.
         { type: :group, id: Group::AUTO_GROUPS[:everyone], permission: "manage" },
         { type: :group, id: Group::AUTO_GROUPS[:everyone], permission: "edit" },
+        { type: :group, id: Group::AUTO_GROUPS[:everyone], permission: "view" },
       ]
     end
 
