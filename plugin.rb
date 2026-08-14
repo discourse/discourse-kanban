@@ -14,7 +14,9 @@ register_asset "stylesheets/kanban-manage.scss"
 register_asset "stylesheets/kanban-board.scss"
 register_asset "stylesheets/kanban-oneboxes.scss"
 register_asset "stylesheets/kanban-topic-pill.scss"
+register_asset "stylesheets/kanban-add-from-topic-menu.scss"
 register_svg_icon "table-columns"
+register_svg_icon "discourse-kanban"
 
 module ::DiscourseKanban
   PLUGIN_NAME = "discourse-kanban"

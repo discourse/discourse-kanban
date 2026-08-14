@@ -11,10 +11,17 @@ module DiscourseKanban
     end
 
     def index
+      permissions =
+        if params[:edit_only].present?
+          %w[edit]
+        else
+          %w[view edit manage]
+        end
+
       boards =
         DiscourseKanban::Board
           .includes(:columns, :created_by)
-          .with_any_acl_permissions(guardian, %w[view edit manage])
+          .with_any_acl_permissions(guardian, permissions)
           .order(:name)
           .to_a
       tag_name_map = build_tag_name_map(*boards)

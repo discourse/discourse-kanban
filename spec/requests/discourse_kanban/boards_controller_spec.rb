@@ -65,6 +65,32 @@ RSpec.describe DiscourseKanban::BoardsController do
       expect(response.status).to eq(200)
       expect(response.parsed_body["boards"].length).to eq(1)
     end
+
+    it "limits to boards where the user has edit permission when edit_only=true" do
+      board_editable =
+        Fabricate(:kanban_board, name: "Editable", slug: "editable", created_by: admin)
+      Fabricate(
+        :access_control_list_with_groups,
+        target: board_editable,
+        permission: "edit",
+        groups: [write_group],
+      )
+      board_view_only =
+        Fabricate(:kanban_board, name: "View Only", slug: "view-only", created_by: admin)
+      Fabricate(
+        :access_control_list_with_groups,
+        target: board_view_only,
+        permission: "view",
+        groups: [write_group],
+      )
+
+      sign_in(writer)
+      get "/kanban/boards.json", params: { edit_only: true }
+
+      expect(response.status).to eq(200)
+      slugs = response.parsed_body["boards"].map { |b| b["slug"] }
+      expect(slugs).to contain_exactly("editable")
+    end
   end
 
   describe "GET /kanban/boards/:id" do

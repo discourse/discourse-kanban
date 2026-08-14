@@ -3,6 +3,9 @@ en:
     discourse_kanban:
       filter_boards: "Filter boards"
       filter_boards_no_results: "No boards match your search"
+      topic_footer:
+        add_to_board: "Add to board"
+        no_boards: "No boards available"
       topic_pill:
         title: "This topic is in the %{column} column of the %{board} board"
         title_multiple_columns:
