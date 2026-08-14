@@ -23,6 +23,23 @@ describe "Manage Kanban Boards" do
   context "when user is in the manage group" do
     before { sign_in(manager) }
 
+    it "warns the user when they create a board they will not be able to manage" do
+      boards_page.visit_page
+      boards_page.click_new_board
+      boards_page.fill_modal_board_name("Self-lockout Board")
+      access_control.remove_permission_row(type: "group", id: manage_group.id)
+      boards_page.save_board_modal
+
+      expect(access_control).to have_loss_warning(
+        I18n.t("access_control_list.errors.kanban_board_user_will_lose_permission_on_create"),
+      )
+
+      access_control.confirm_loss_warning
+
+      expect(boards_page.board_settings_modal).to be_closed
+      expect(PageObjects::Components::Board.new).to have_name("Self-lockout Board")
+    end
+
     it "supports the full board lifecycle" do
       boards_page.visit_page
       expect(boards_page).to have_empty_state

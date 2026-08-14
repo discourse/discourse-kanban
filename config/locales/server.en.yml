@@ -5,6 +5,7 @@ en:
   access_control_list:
     errors:
       kanban_board_user_will_lose_permission: "You will lose permissions to manage this kanban board if you make this change. Continue?"
+      kanban_board_user_will_lose_permission_on_create: "If you create this kanban board with these permissions, you will not be able to manage it. Continue?"
   discourse_kanban:
     errors:
       board_not_found: "Kanban board not found"
