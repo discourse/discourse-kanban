@@ -19,10 +19,12 @@ import discourseTags from "discourse/helpers/discourse-tags";
 import { reload } from "discourse/helpers/page-reloader";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
+import { waitForAnimationEnd } from "discourse/lib/animation-utils";
 import { bind } from "discourse/lib/decorators";
 import { isTesting } from "discourse/lib/environment";
 import discourseLater from "discourse/lib/later";
 import DiscourseURL from "discourse/lib/url";
+import { prefersReducedMotion } from "discourse/lib/utilities";
 import Category from "discourse/models/category";
 import { i18n } from "discourse-i18n";
 import {
@@ -1309,7 +1311,10 @@ export default class KanbanBoardViewer extends Component {
 
     this.linkHighlightCardId = cardId;
 
-    schedule("afterRender", () => {
+    // next() rather than afterRender: this can be called mid-afterRender
+    // flush, before the highlight class renders, and waitForAnimationEnd
+    // would then see no animation and fall back to resolving immediately.
+    next(this, async () => {
       if (this.isDestroying || this.isDestroyed) {
         return;
       }
@@ -1318,6 +1323,22 @@ export default class KanbanBoardViewer extends Component {
         `.discourse-kanban-card[data-card-id="${cardId}"]`
       );
       cardElement?.scrollIntoView({ block: "center", inline: "center" });
+
+      // With reduced motion there is no animation to wait for; the static
+      // highlight stays as a persistent indicator instead.
+      if (!cardElement || isTesting() || prefersReducedMotion()) {
+        return;
+      }
+
+      await waitForAnimationEnd(cardElement);
+
+      if (
+        !this.isDestroying &&
+        !this.isDestroyed &&
+        this.linkHighlightCardId === cardId
+      ) {
+        this.linkHighlightCardId = null;
+      }
     });
   }
 
