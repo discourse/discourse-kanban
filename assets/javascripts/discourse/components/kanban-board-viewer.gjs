@@ -118,6 +118,7 @@ export default class KanbanBoardViewer extends Component {
   @tracked dropHighlightCardId = null;
   @tracked fullscreen = false;
   @tracked linkHighlightCardId = null;
+  @tracked linkedCardId = null;
 
   horizontalAutoScrollFrame = null;
   horizontalAutoScrollSpeed = 0;
@@ -1309,6 +1310,10 @@ export default class KanbanBoardViewer extends Component {
       return;
     }
 
+    // The deep-linked card stays flagged for the lifetime of the board so a
+    // card outside its column's recency window keeps rendering; only the pulse
+    // highlight below is transient.
+    this.linkedCardId = cardId;
     this.linkHighlightCardId = cardId;
 
     // next() rather than afterRender: this can be called mid-afterRender
@@ -1530,6 +1535,7 @@ export default class KanbanBoardViewer extends Component {
               @allSameCategory={{this.allSameCategory}}
               @dropHighlightCardId={{this.dropHighlightCardId}}
               @linkHighlightCardId={{this.linkHighlightCardId}}
+              @linkedCardId={{this.linkedCardId}}
               @dragData={{this.dragData}}
               @onDragStart={{this.onDragStart}}
               @onDragEnd={{this.onDragEnd}}

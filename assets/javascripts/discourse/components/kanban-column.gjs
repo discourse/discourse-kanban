@@ -79,8 +79,7 @@ export default class KanbanColumn extends Component {
     const cutoff = Date.now() - RECENCY_WINDOW_MS;
     return cards.filter(
       (card) =>
-        card.id === this.args.linkHighlightCardId ||
-        recencyTimestamp(card) >= cutoff
+        card.id === this.args.linkedCardId || recencyTimestamp(card) >= cutoff
     );
   }
 

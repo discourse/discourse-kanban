@@ -139,18 +139,28 @@ RSpec.describe "Kanban Board Viewer" do
 
   context "when visiting a board with the wrong slug" do
     it "redirects to the correct slug without losing the linked card" do
-      result = create_board(with_columns: [{ title: "To Do", position: 0 }])
-      topic = Fabricate(:topic, title: "Keep highlighted", category:)
-      card = add_topic_card(result.board, result.column("To Do"), topic)
+      result =
+        create_board(with_columns: [{ title: "To Do", position: 0, default_sort: "recency" }])
+      column = result.column("To Do")
+      linked_topic = Fabricate(:topic, title: "Keep linked card", category:)
+      stale_topic = Fabricate(:topic, title: "Hidden by recency", category:)
+      linked_card = add_topic_card(result.board, column, linked_topic)
+      stale_card = add_topic_card(result.board, column, stale_topic)
+
+      # Age both cards out of the recency column's window, so the linked card
+      # only stays rendered because the URL points at it.
+      [linked_topic, stale_topic].each { |t| t.update_columns(bumped_at: 3.weeks.ago) }
+      [linked_card, stale_card].each { |c| c.update_columns(column_changed_at: 3.weeks.ago) }
 
       sign_in(user)
-      page.visit "/kanban/boards/wrong-slug/#{result.board.id}?card=#{card.id}"
+      page.visit "/kanban/boards/wrong-slug/#{result.board.id}?card=#{linked_card.id}"
 
       expect(board_viewer).to have_board_title("Sprint Board")
       expect(page).to have_current_path(
-        "/kanban/boards/sprint-board/#{result.board.id}?card=#{card.id}",
+        "/kanban/boards/sprint-board/#{result.board.id}?card=#{linked_card.id}",
       )
-      expect(page).to have_css(".discourse-kanban-card--link-highlighted", text: "Keep highlighted")
+      expect(board_viewer).to have_card_in_column("To Do", "Keep linked card")
+      expect(board_viewer).to have_no_card_in_column("To Do", "Hidden by recency")
     end
   end
 
