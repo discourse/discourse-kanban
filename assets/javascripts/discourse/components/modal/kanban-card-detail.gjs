@@ -132,7 +132,10 @@ export default class KanbanCardDetail extends Component {
               @disabled={{not this.canWrite}}
               as |field|
             >
-              <field.Control @allowCreate={{true}} />
+              <field.Control
+                @allowCreate={{true}}
+                @prioritizeRecentTags={{true}}
+              />
             </form.Field>
 
             {{#if this.siteSettings.assign_enabled}}

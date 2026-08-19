@@ -223,4 +223,20 @@ RSpec.describe DiscourseKanban::Board do
       end
     end
   end
+
+  describe ".banned_acl" do
+    it "bans the everyone pseudogroup for every permission" do
+      %w[view edit manage].each do |permission|
+        acl = { type: :group, id: Group::AUTO_GROUPS[:everyone], permission: permission }
+
+        expect(described_class.acl_is_banned?(acl)).to eq(true)
+      end
+    end
+
+    it "allows the logged_in_users pseudogroup to view" do
+      acl = { type: :group, id: Group::AUTO_GROUPS[:logged_in_users], permission: "view" }
+
+      expect(described_class.acl_is_banned?(acl)).to eq(false)
+    end
+  end
 end
