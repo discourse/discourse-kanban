@@ -35,6 +35,33 @@ module DiscourseKanban
       )
     end
 
+    def self.publish_topic_added_to_board!(guardian, topic, board, client_id:)
+      opts = {}.merge(topic.secure_audience_publish_messages)
+
+      kanban_memberships =
+        DiscourseKanban::TopicBoardMemberships.call(
+          guardian: guardian,
+          options: {
+            topics: [topic],
+          },
+        ).single_topic_memberships
+
+      MessageBus.publish(
+        "/topic/#{topic.id}",
+        {
+          type: "kanban_topic_added_to_board",
+          client_id:,
+          kanban_memberships:
+            ActiveModel::ArraySerializer.new(
+              kanban_memberships,
+              each_serializer: DiscourseKanban::TopicBoardMembershipSerializer,
+              scope: guardian,
+            ).as_json,
+        },
+        opts,
+      )
+    end
+
     def self.publish_card_event!(board, type, card_payload, client_id:)
       # Strip topic data from broadcast payloads to prevent leaking
       # private topic details to board readers who lack category access.

@@ -17,6 +17,15 @@ module DiscourseKanban
           payload = CardSerializer.new(card, root: false, scope: guardian).as_json
           publish_payload = CardSerializer.new(card, root: false).as_json
           Publisher.publish_card_created!(board, publish_payload, client_id: message_bus_client_id)
+          if card.topic.present?
+            # TODO (martin) Do this on delete too
+            Publisher.publish_topic_added_to_board!(
+              guardian,
+              card.topic,
+              board,
+              client_id: message_bus_client_id,
+            )
+          end
           Jobs.enqueue(Jobs::DiscourseKanban::CardPostProcess, card_id: card.id, title: card.title)
           render json: { card: payload }, status: :created
         end

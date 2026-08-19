@@ -18,6 +18,7 @@ DiscourseKanban::Engine.routes.draw do
   delete "/boards/:id" => "boards#destroy"
   post "/boards/:id/move-column" => "boards#move_column"
   post "/boards/:id/constraint-preview" => "boards#constraint_preview"
+  put "/boards/:id/check-constraint-mismatches" => "boards#check_constraint_mismatches"
 
   post "/boards/:board_id/columns" => "columns#create"
   put "/boards/:board_id/columns/:id" => "columns#update"

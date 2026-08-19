@@ -18,6 +18,14 @@ module DiscourseKanban
           %w[view edit manage]
         end
 
+      # TODO (martin) Also need to limit response to not include every card for every
+      # column when we only need the boards + columns for add from topic menu puproses
+      # we only need to know if the specific topic id is in X boards and Y columns
+      #
+      # Also need way way less info in the serializer...maybe we need a lightweight
+      # version of this endpoint only returning names, icons/colors, and whether the
+      # topic is in columns
+
       boards =
         DiscourseKanban::Board
           .includes(:columns, :created_by)
@@ -178,13 +186,7 @@ module DiscourseKanban
     end
 
     def destroy
-      DiscourseKanban::DestroyBoard.call(
-        guardian:,
-        params: {
-          id: params[:id],
-          client_id: params[:client_id],
-        },
-      ) do
+      DiscourseKanban::DestroyBoard.call(service_params) do
         on_success { head :no_content }
         on_model_not_found(:board) { raise Discourse::NotFound }
         on_failed_policy(:can_destroy) { raise Discourse::InvalidAccess }
@@ -193,6 +195,28 @@ module DiscourseKanban
                  status: :bad_request
         end
         on_failure { render json: failed_json, status: :unprocessable_entity }
+      end
+    end
+
+    def check_constraint_mismatches
+      DiscourseKanban::CheckBoardTopicConstraintMismatches.call(service_params) do
+        on_success do |categories_needed:, tags_needed:|
+          render json: {
+                   categories_needed:,
+                   tags_needed:,
+                   constraints_need_fixing:
+                     categories_needed.length.positive? || tags_needed.length.positive?,
+                 }
+        end
+        on_model_not_found(:board) do
+          raise Discourse::NotFound.new(I18n.t("discourse_kanban.errors.board_not_found"))
+        end
+        on_model_not_found(:topic) { raise Discourse::NotFound }
+        on_model_not_found(:target_column) do
+          raise Discourse::NotFound.new(I18n.t("discourse_kanban.errors.column_not_found"))
+        end
+        on_failed_policy(:can_view_topic) { raise Discourse::InvalidAccess }
+        on_failed_policy(:can_edit_board) { raise Discourse::InvalidAccess }
       end
     end
 

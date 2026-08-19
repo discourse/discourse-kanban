@@ -639,6 +639,7 @@ export default class KanbanBoardViewer extends Component {
     this.#removeHorizontalAutoScrollDocumentListeners();
   }
 
+  // TODO (martin) Change this to use the new constraint check endpoint
   _checkConstraintMismatches(topic, targetColumn) {
     const board = this.board;
     const hasCategories = board.category_ids?.length > 0;

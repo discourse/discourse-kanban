@@ -38,7 +38,7 @@ export default class KanbanAddFromTopicMenu extends Component {
     }
 
     this.#requestedBoards = true;
-    void this.#fetchBoards();
+    this.#fetchBoards();
   }
 
   async #fetchBoards() {
