@@ -35,7 +35,7 @@ module DiscourseKanban
       )
     end
 
-    def self.publish_topic_added_to_board!(guardian, topic, board, client_id:)
+    def self.publish_refresh_topic_board_memberships!(guardian, topic, board, client_id:)
       opts = {}.merge(topic.secure_audience_publish_messages)
 
       kanban_memberships =

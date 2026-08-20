@@ -19,7 +19,7 @@ module DiscourseKanban
           Publisher.publish_card_created!(board, publish_payload, client_id: message_bus_client_id)
           if card.topic.present?
             # TODO (martin) Do this on delete too
-            Publisher.publish_topic_added_to_board!(
+            Publisher.publish_refresh_topic_board_memberships!(
               guardian,
               card.topic,
               board,
