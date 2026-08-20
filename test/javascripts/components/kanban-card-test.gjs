@@ -77,7 +77,53 @@ module("Integration | Component | KanbanCard", function (hooks) {
 
     assert
       .dom(".discourse-kanban-card__title.discourse-kanban-card__title--topic")
-      .hasText("Topic 🚀");
+      .hasText("Topic");
+    assert
+      .dom('.discourse-kanban-card__title--topic img.emoji[title="rocket"]')
+      .exists();
+  });
+
+  test("unescapes emoji shortcodes remaining in a topic card's Unicode title", async function (assert) {
+    this.card = this.fabricators.card({
+      topic: {
+        id: 42,
+        title: "Funny topic :joy:",
+        unicode_title: "Funny topic :joy:",
+      },
+    });
+
+    await render(
+      <template>
+        <KanbanCard @card={{this.card}} @board={{this.board}} />
+      </template>
+    );
+
+    assert
+      .dom('.discourse-kanban-card__title--topic img.emoji[title="joy"]')
+      .exists();
+  });
+
+  test("escapes topic card titles before unescaping emoji", async function (assert) {
+    this.card = this.fabricators.card({
+      topic: {
+        id: 42,
+        title: '<img src=x data-dangerous="true"> :joy:',
+      },
+    });
+
+    await render(
+      <template>
+        <KanbanCard @card={{this.card}} @board={{this.board}} />
+      </template>
+    );
+
+    assert.dom('[data-dangerous="true"]').doesNotExist();
+    assert
+      .dom('.discourse-kanban-card__title--topic img.emoji[title="joy"]')
+      .exists();
+    assert
+      .dom(".discourse-kanban-card__title--topic")
+      .includesText('<img src=x data-dangerous="true">');
   });
 
   test("suppresses column tags on floater cards", async function (assert) {
