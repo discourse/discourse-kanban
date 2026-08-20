@@ -1432,7 +1432,7 @@ export default class KanbanBoardViewer extends Component {
             {{#if this.hasBoardFilters}}
               <div class="discourse-kanban-board-viewer__constraint">
                 {{#each this.boardCategories as |category|}}
-                  {{boundCategoryLink category link=false}}
+                  {{boundCategoryLink category link=true}}
                 {{/each}}
                 {{#if this.boardTagNames.length}}
                   <div class="list-tags">
