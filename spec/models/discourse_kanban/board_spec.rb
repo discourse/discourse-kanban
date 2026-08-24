@@ -60,6 +60,44 @@ RSpec.describe DiscourseKanban::Board do
     end
   end
 
+  describe "#topic_will_match_after_mutation?" do
+    fab!(:board_tag, :tag) { Fabricate(:tag, name: "board-filter") }
+    fab!(:sibling_tag, :tag) { Fabricate(:tag, name: "sibling-column") }
+    fab!(:target_tag, :tag) { Fabricate(:tag, name: "target-column") }
+    fab!(:board) { Fabricate(:kanban_board, tag_ids: [board_tag.id]) }
+    fab!(:sibling_column) { Fabricate(:kanban_column, board:, tag: sibling_tag) }
+    fab!(:target_column) { Fabricate(:kanban_column, board:) }
+
+    context "when the target column is untagged" do
+      fab!(:topic) { Fabricate(:topic, tags: [sibling_tag]) }
+
+      before { board.update!(tag_ids: [sibling_tag.id]) }
+
+      it "predicts that all board column tags will be removed" do
+        expect(board.topic_will_match_after_mutation?(topic, target_column)).to eq(false)
+      end
+    end
+
+    context "when the target column has a tag" do
+      fab!(:topic) { Fabricate(:topic, tags: [sibling_tag]) }
+
+      before do
+        board.update!(tag_ids: [target_tag.id])
+        target_column.update!(tag_id: target_tag.id)
+      end
+
+      it "predicts that the target tag will replace sibling column tags" do
+        expect(board.topic_will_match_after_mutation?(topic, target_column)).to eq(true)
+      end
+
+      it "does not retain the replaced sibling tag" do
+        board.update!(tag_ids: [sibling_tag.id])
+
+        expect(board.topic_will_match_after_mutation?(topic, target_column)).to eq(false)
+      end
+    end
+  end
+
   describe "#tags and #categories" do
     fab!(:category_a) { Fabricate(:category, name: "alpha-cat") }
     fab!(:category_b) { Fabricate(:category, name: "beta-cat") }

@@ -41,7 +41,7 @@ module DiscourseKanban
     end
 
     def fetch_target_column(params:, board:)
-      DiscourseKanban::Column.find_by(id: params.target_column_id, board_id: board.id)
+      board.columns.find_by(id: params.target_column_id)
     end
 
     # If the column's category (or the topic's current category) is outside the board's
@@ -63,13 +63,14 @@ module DiscourseKanban
       board_tag_names = board.tags.map(&:name)
       effective_tag_names = topic.tags.map(&:name)
 
+      # A topic should only have the tag for its new column. Remove tags from the other
+      # columns, including every column tag when the target column is untagged.
+      sibling_tag_names =
+        board.columns.filter_map { |column| column.tag&.name if column.id != target_column.id }
+      effective_tag_names -= sibling_tag_names
+
       if target_column.tag.present?
-        # A topic should only have the tag for its new column. Remove tags from the other
-        # columns and add the new column's tag.
         target_tag_name = target_column.tag.name
-        sibling_tag_names =
-          board.columns.filter_map { |column| column.tag&.name if column.id != target_column.id }
-        effective_tag_names -= sibling_tag_names
         effective_tag_names << target_tag_name if effective_tag_names.exclude?(target_tag_name)
       end
 

@@ -24,14 +24,6 @@ module DiscourseKanban
           end
         )
 
-      # TODO (martin) Also need to limit response to not include every card for every
-      # column when we only need the boards + columns for add from topic menu puproses
-      # we only need to know if the specific topic id is in X boards and Y columns
-      #
-      # Also need way way less info in the serializer...maybe we need a lightweight
-      # version of this endpoint only returning names, icons/colors, and whether the
-      # topic is in columns
-
       boards =
         DiscourseKanban::Board
           .includes(:columns, :created_by)

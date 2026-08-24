@@ -241,6 +241,56 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
     );
   });
 
+  test("checks topic card constraints on the server before moving it", async function (assert) {
+    const sourceCard = this.makeCard({
+      id: 101,
+      columnId: 10,
+      title: "Fix checkout",
+      position: 0,
+    });
+    sourceCard.topic_id = 777;
+    sourceCard.topic = { id: 777, title: "Fix checkout" };
+
+    const modal = getOwner(this).lookup("service:modal");
+    sinon.stub(modal, "show").callsFake((component, opts) => {
+      assert.deepEqual(opts.model.mismatches, {
+        needsTags: false,
+        needsCategory: true,
+        boardTagNames: [],
+        boardCategoryIds: [3],
+      });
+      opts.model.onConfirm({ category_id: 3 });
+    });
+
+    await this.renderBoard([
+      this.makeColumn({ id: 10, title: "Todo", cards: [sourceCard] }),
+      this.makeColumn({ id: 20, title: "Done", cards: [] }),
+    ]);
+
+    pretender.put("/kanban/boards/1/check-constraint-mismatches", (request) => {
+      const requestData = parsePostData(request.requestBody);
+      assert.strictEqual(requestData.topic_id, "777");
+      assert.strictEqual(requestData.target_column_id, "20");
+
+      return response({
+        categories_needed: [3],
+        tags_needed: [],
+        constraints_need_fixing: true,
+      });
+    });
+
+    let moveRequestData;
+    pretender.put("/kanban/boards/1/cards/101", (request) => {
+      moveRequestData = parsePostData(request.requestBody);
+      return response({ card: { id: 101, column_id: 20, position: 0 } });
+    });
+
+    await this.dragCard(101);
+    await this.dropOnColumn(20);
+
+    assert.strictEqual(moveRequestData.constraint_fix.category_id, "3");
+  });
+
   test("renders and highlights an old linked card in a recency column", async function (assert) {
     const linkedCard = this.makeCard({
       id: 101,
@@ -297,8 +347,16 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
       { category_ids: [1], tag_names: [] }
     );
 
-    pretender.get("/t/777.json", () => {
-      return response({ id: 777, category_id: 2, tags: [] });
+    pretender.put("/kanban/boards/1/check-constraint-mismatches", (request) => {
+      const requestData = parsePostData(request.requestBody);
+      assert.strictEqual(requestData.topic_id, "777");
+      assert.strictEqual(requestData.target_column_id, "10");
+
+      return response({
+        categories_needed: [1],
+        tags_needed: [],
+        constraints_need_fixing: true,
+      });
     });
 
     pretender.post("/kanban/boards/1/cards", () => {

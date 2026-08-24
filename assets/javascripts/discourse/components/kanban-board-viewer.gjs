@@ -452,16 +452,19 @@ export default class KanbanBoardViewer extends Component {
     let constraintFix = null;
 
     if (!isSameColumn && card.topic) {
-      const mismatches = this._checkConstraintMismatches(card.topic, toColumn);
-      if (mismatches) {
-        constraintFix = await this._showConstraintFixModal(
-          card,
-          toColumn,
-          mismatches
+      try {
+        constraintFix = await this.#resolveConstraintFix(
+          card.topic_id || card.topic.id,
+          card.topic,
+          toColumn
         );
-        if (!constraintFix) {
-          return;
-        }
+      } catch (error) {
+        popupAjaxError(error);
+        return;
+      }
+
+      if (constraintFix === false) {
+        return;
       }
     }
 
@@ -639,55 +642,11 @@ export default class KanbanBoardViewer extends Component {
     this.#removeHorizontalAutoScrollDocumentListeners();
   }
 
-  // TODO (martin) Change this to use the new constraint check endpoint
-  _checkConstraintMismatches(topic, targetColumn) {
-    const board = this.board;
-    const hasCategories = board.category_ids?.length > 0;
-    const hasTags = board.tag_names?.length > 0;
-
-    if (!hasCategories && !hasTags) {
-      return null;
-    }
-
-    const effectiveCategoryId =
-      targetColumn.move_to_category_id || topic.category_id;
-    const needsCategory =
-      hasCategories && !board.category_ids.includes(effectiveCategoryId);
-
-    const effectiveTagNames = [...(topic.tags || [])];
-    if (targetColumn.tag_name) {
-      const siblingTagNames = this.columns
-        .filter((c) => c.tag_name && c.id !== targetColumn.id)
-        .map((c) => c.tag_name);
-      const filtered = effectiveTagNames.filter(
-        (t) => !siblingTagNames.includes(t)
-      );
-      if (!filtered.includes(targetColumn.tag_name)) {
-        filtered.push(targetColumn.tag_name);
-      }
-      effectiveTagNames.length = 0;
-      effectiveTagNames.push(...filtered);
-    }
-    const needsTags =
-      hasTags && !board.tag_names.some((t) => effectiveTagNames.includes(t));
-
-    if (!needsCategory && !needsTags) {
-      return null;
-    }
-
-    return {
-      needsCategory,
-      needsTags,
-      boardCategoryIds: board.category_ids || [],
-      boardTagNames: board.tag_names || [],
-    };
-  }
-
-  _showConstraintFixModal(card, column, mismatches) {
+  _showConstraintFixModal(topic, column, mismatches) {
     return new Promise((resolve) => {
       this.modal.show(KanbanConstraintFix, {
         model: {
-          topic: card.topic,
+          topic,
           board: this.board,
           column,
           mismatches,
@@ -775,9 +734,13 @@ export default class KanbanBoardViewer extends Component {
   }) {
     if (topicId) {
       try {
-        const constraintFix = await this.#resolveConstraintFixForCreate(
+        const column = this.columns.find(
+          (candidate) => candidate.id === columnId
+        );
+        const constraintFix = await this.#resolveConstraintFix(
           topicId,
-          columnId
+          { id: topicId },
+          column
         );
         if (constraintFix === false) {
           return;
@@ -827,37 +790,35 @@ export default class KanbanBoardViewer extends Component {
     }
   }
 
-  async #resolveConstraintFixForCreate(topicId, columnId) {
-    const board = this.board;
-    const hasConstraints =
-      board.category_ids?.length > 0 || board.tag_names?.length > 0;
-    if (!hasConstraints) {
-      return null;
-    }
-
-    let topicData;
-    try {
-      topicData = await ajax(`/t/${topicId}.json`);
-    } catch {
-      return null;
-    }
-
-    const topic = {
-      category_id: topicData.category_id,
-      tags: topicData.tags || [],
-    };
-    const column = this.columns.find((c) => c.id === columnId);
+  async #resolveConstraintFix(topicId, topic, column) {
     if (!column) {
       return null;
     }
 
-    const mismatches = this._checkConstraintMismatches(topic, column);
-    if (!mismatches) {
+    const response = await ajax(
+      `/kanban/boards/${this.board.id}/check-constraint-mismatches`,
+      {
+        method: "PUT",
+        data: {
+          topic_id: topicId,
+          target_column_id: column.id,
+        },
+      }
+    );
+
+    if (!response.constraints_need_fixing) {
       return null;
     }
 
+    const mismatches = {
+      needsTags: response.tags_needed.length > 0,
+      needsCategory: response.categories_needed.length > 0,
+      boardTagNames: response.tags_needed,
+      boardCategoryIds: response.categories_needed,
+    };
+
     const constraintFix = await this._showConstraintFixModal(
-      { topic: topicData },
+      topic,
       column,
       mismatches
     );
