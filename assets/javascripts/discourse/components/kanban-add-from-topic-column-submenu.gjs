@@ -6,11 +6,13 @@ import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
 import DButton from "discourse/ui-kit/d-button";
 import DDropdownMenu from "discourse/ui-kit/d-dropdown-menu";
+import { i18n } from "discourse-i18n";
 import KanbanConstraintFix from "./modal/kanban-constraint-fix";
 
-export default class KanbanAddFromTopicColumnMenu extends Component {
+export default class KanbanAddFromTopicColumnSubmenu extends Component {
   @service messageBus;
   @service modal;
+  @service toasts;
 
   @action
   async addToColumn(column) {
@@ -21,25 +23,6 @@ export default class KanbanAddFromTopicColumnMenu extends Component {
     }
 
     await this.#completeAddToColumn(column);
-
-    // if MOVING TO OTHER COLUMN
-    // if this.board.require_confirmation (require confirmation on moves)
-    // show move confirm
-    //
-    //
-    // _confirmMove(card, toColumn) {
-    //   return new Promise((resolve) => {
-    //     const cardTitle = card.fancyTitle || "";
-    //     this.dialog.yesNoConfirm({
-    //       message: i18n("discourse_kanban.board.move_confirm", {
-    //         topic_title: cardTitle,
-    //         column_title: toColumn.fancyTitle,
-    //       }),
-    //       didConfirm: () => resolve(true),
-    //       didCancel: () => resolve(false),
-    //     });
-    //   });
-    // }
   }
 
   async #checkConstraints(column) {
@@ -80,11 +63,6 @@ export default class KanbanAddFromTopicColumnMenu extends Component {
   }
 
   async #completeAddToColumn(column, constraintFixResult = null) {
-    // TODO (martin) Not sure if we need this...since we aren't technically
-    // moving.
-    // if (this.args.board.require_confirmation) {
-    // }
-    //
     const data = {
       client_id: this.messageBus.clientId,
       card: {
@@ -98,10 +76,22 @@ export default class KanbanAddFromTopicColumnMenu extends Component {
     }
 
     try {
-      return await ajax(`/kanban/boards/${this.args.data.board.id}/cards`, {
+      await ajax(`/kanban/boards/${this.args.data.board.id}/cards`, {
         type: "POST",
         data,
       });
+
+      this.toasts.success({
+        duration: "short",
+        data: {
+          message: i18n("discourse_kanban.board.added_topic_to_board", {
+            boardName: this.args.data.board.unicode_name,
+            columnName: column.unicode_title,
+          }),
+        },
+      });
+
+      this.args.close();
     } catch (error) {
       popupAjaxError(error);
       return;

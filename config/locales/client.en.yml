@@ -16,6 +16,7 @@ en:
           other: "%{count} boards"
         multiple_title: "This topic is on multiple kanban boards"
       board:
+        added_topic_to_board: "Added topic to '%{boardName}' board in '%{columnName}' column"
         empty_board: "This board has no columns yet"
         empty_board_cta: "Add your first column to get started"
         no_cards: "No cards in this column"

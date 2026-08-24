@@ -11,7 +11,7 @@ import DButton from "discourse/ui-kit/d-button";
 import DDropdownMenu from "discourse/ui-kit/d-dropdown-menu";
 import { i18n } from "discourse-i18n";
 import Board from "discourse/plugins/discourse-kanban/discourse/models/board";
-import KanbanAddFromTopicColumnMenu from "./kanban-add-from-topic-column-menu";
+import KanbanAddFromTopicColumnSubmenu from "./kanban-add-from-topic-column-submenu";
 
 const SKELETON_ROWS = Array.from({ length: 3 });
 
@@ -58,11 +58,14 @@ export default class KanbanAddFromTopicMenu extends Component {
   openBoardSubmenu(board, event) {
     return this.menu.show(event.currentTarget, {
       identifier: "kanban-add-from-topic-column-menu",
-      component: KanbanAddFromTopicColumnMenu,
+      component: KanbanAddFromTopicColumnSubmenu,
       modalForMobile: true,
       placement: "right-start",
       offset: { mainAxis: 10, crossAxis: -5 },
       data: { board, topic: this.args.data?.topic },
+      onClose: () => {
+        this.args.close();
+      },
     });
   }
 
