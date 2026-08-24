@@ -43,7 +43,7 @@ export default class KanbanAddFromTopicMenu extends Component {
 
   async #fetchBoards() {
     try {
-      const result = await ajax("/kanban/boards?edit_only=true");
+      const result = await ajax("/kanban/boards-list");
       this.boards = result.boards
         .filter((board) => board.columns?.length)
         .map((board) => Board.create(board));

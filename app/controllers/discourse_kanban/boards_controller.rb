@@ -2,6 +2,8 @@
 
 module DiscourseKanban
   class BoardsController < BaseController
+    DEFAULT_INDEX_PERMISSIONS = %w[view edit manage].freeze
+
     before_action :ensure_logged_in, only: %i[create update destroy move_column constraint_preview]
     before_action :find_board!, only: %i[show]
     before_action :ensure_board_read!, only: %i[show]
@@ -11,12 +13,16 @@ module DiscourseKanban
     end
 
     def index
-      permissions =
-        if params[:edit_only].present?
-          %w[edit]
-        else
-          %w[view edit manage]
-        end
+      allowed_permissions =
+        (
+          if params[:allowed_permissions].present?
+            params[:allowed_permissions]
+              .split(",")
+              .reject { |permission| !DEFAULT_INDEX_PERMISSIONS.include?(permission) }
+          else
+            DEFAULT_INDEX_PERMISSIONS
+          end
+        )
 
       # TODO (martin) Also need to limit response to not include every card for every
       # column when we only need the boards + columns for add from topic menu puproses
@@ -29,11 +35,43 @@ module DiscourseKanban
       boards =
         DiscourseKanban::Board
           .includes(:columns, :created_by)
-          .with_any_acl_permissions(guardian, permissions)
+          .with_any_acl_permissions(guardian, allowed_permissions)
           .order(:name)
           .to_a
       tag_name_map = build_tag_name_map(*boards)
-      render json: { boards: serialize_boards(boards, tag_name_map:) }
+      render json: {
+               boards:
+                 serialize_data(
+                   boards,
+                   DiscourseKanban::BoardSerializer,
+                   root: false,
+                   tag_name_map:,
+                 ),
+             }
+    end
+
+    def basic_list
+      allowed_permissions =
+        (
+          if params[:allowed_permissions].present?
+            params[:allowed_permissions]
+              .split(",")
+              .reject { |permission| !DEFAULT_INDEX_PERMISSIONS.include?(permission) }
+          else
+            DEFAULT_INDEX_PERMISSIONS
+          end
+        )
+
+      boards =
+        DiscourseKanban::Board
+          .includes(:columns, :created_by)
+          .with_any_acl_permissions(guardian, allowed_permissions)
+          .order(:name)
+          .to_a
+
+      render json: {
+               boards: serialize_data(boards, DiscourseKanban::BasicBoardSerializer, root: false),
+             }
     end
 
     def show
@@ -233,7 +271,6 @@ module DiscourseKanban
     end
 
     def serialize_boards(boards, tag_name_map:)
-      serialize_data(boards, DiscourseKanban::BoardSerializer, root: false, tag_name_map:)
     end
 
     def preload_all_assignments(cards, visible_topic_ids)

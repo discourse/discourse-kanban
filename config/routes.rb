@@ -12,6 +12,7 @@ DiscourseKanban::Engine.routes.draw do
 
   # API routes
   get "/boards" => "boards#index"
+  get "/boards-list" => "boards#basic_list"
   get "/boards/:id" => "boards#show"
   post "/boards" => "boards#create"
   put "/boards/:id" => "boards#update"
