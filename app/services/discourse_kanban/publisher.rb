@@ -44,7 +44,7 @@ module DiscourseKanban
           options: {
             topics: [topic],
           },
-        ).single_topic_memberships
+        ).single_topic_memberships || []
 
       MessageBus.publish(
         "/topic/#{topic.id}",
