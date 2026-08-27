@@ -2,6 +2,14 @@
 
 module DiscourseKanban
   class BasicColumnSerializer < ApplicationSerializer
-    attributes :id, :unicode_title, :icon, :color
+    attributes :id, :unicode_title, :icon, :color, :topic_is_member?
+
+    def include_topic_is_member?
+      @options[:kanban_memberships].present?
+    end
+
+    def topic_is_member?
+      @options[:kanban_memberships].map { |membership| membership.column_id }.include?(object.id)
+    end
   end
 end

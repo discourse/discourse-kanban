@@ -43,7 +43,9 @@ export default class KanbanAddFromTopicMenu extends Component {
 
   async #fetchBoards() {
     try {
-      const result = await ajax("/kanban/boards-list");
+      const result = await ajax(
+        `/kanban/boards-list?topic_id=${this.args.data.topic.id}`
+      );
       this.boards = result.boards
         .filter((board) => board.columns?.length)
         .map((board) => Board.create(board));
@@ -69,6 +71,14 @@ export default class KanbanAddFromTopicMenu extends Component {
     });
   }
 
+  boardIcon(board) {
+    if (board.topic_is_member) {
+      return "circle";
+    }
+
+    return null;
+  }
+
   <template>
     <DDropdownMenu
       class="kanban-add-from-topic-menu"
@@ -91,6 +101,7 @@ export default class KanbanAddFromTopicMenu extends Component {
               @actionParam={{board}}
               @action={{this.openBoardSubmenu}}
               @forwardEvent={{true}}
+              @icon={{this.boardIcon board}}
               @suffixIcon="angle-right"
               @translatedLabel={{board.fancyTitle}}
               class="btn-transparent kanban-add-from-topic-menu__board"

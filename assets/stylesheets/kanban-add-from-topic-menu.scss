@@ -57,11 +57,29 @@
     width: 0.75rem;
     margin-left: auto;
   }
+
+  &__board-item {
+    .btn .svg-icon.d-icon-circle {
+      width: 6px;
+    }
+  }
 }
 
-.kanban-add-from-topic-column-menu__column.btn {
-  width: 100%;
-  justify-content: flex-start;
+.kanban-add-from-topic-column-menu {
+  &__column.btn {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  &__column {
+    .svg-icon.d-icon-circle {
+      width: 6px;
+    }
+
+    > .d-button__suffix-icon > .svg-icon {
+      color: var(--kanban-column-suffix-color);
+    }
+  }
 }
 
 @keyframes kanban-add-from-topic-shimmer {

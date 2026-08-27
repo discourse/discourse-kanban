@@ -4,6 +4,7 @@ import { action } from "@ember/object";
 import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
+import { isValidHex, normalizeHex } from "discourse/lib/color-transformations";
 import DButton from "discourse/ui-kit/d-button";
 import DDropdownMenu from "discourse/ui-kit/d-dropdown-menu";
 import { i18n } from "discourse-i18n";
@@ -98,14 +99,36 @@ export default class KanbanAddFromTopicColumnSubmenu extends Component {
     }
   }
 
+  columnIcon(column) {
+    if (column.topic_is_member) {
+      return "circle";
+    }
+
+    return null;
+  }
+
+  columnStyle(column) {
+    if (!isValidHex(column.color)) {
+      return null;
+    }
+
+    if (column.color) {
+      return `--kanban-column-suffix-color: #${normalizeHex(column.color)};`;
+    }
+
+    return null;
+  }
+
   <template>
     <DDropdownMenu class="kanban-add-from-topic-column-menu" as |dropdown|>
       {{#each @data.board.columns as |column|}}
         <dropdown.item>
           <DButton
             @action={{fn this.addToColumn column}}
-            @icon={{column.icon}}
+            @icon={{this.columnIcon column}}
+            @suffixIcon={{column.icon}}
             @translatedLabel={{column.fancyTitle}}
+            style={{this.columnStyle column}}
             class="btn-transparent kanban-add-from-topic-column-menu__column"
           />
         </dropdown.item>

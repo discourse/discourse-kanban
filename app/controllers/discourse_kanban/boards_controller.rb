@@ -61,8 +61,26 @@ module DiscourseKanban
           .order(:name)
           .to_a
 
+      kanban_memberships = []
+      if params[:topic_id].present?
+        topic = Topic.find(params[:topic_id])
+        kanban_memberships =
+          DiscourseKanban::TopicBoardMemberships.call(
+            guardian: guardian,
+            options: {
+              topics: [topic],
+            },
+          ).single_topic_memberships || []
+      end
+
       render json: {
-               boards: serialize_data(boards, DiscourseKanban::BasicBoardSerializer, root: false),
+               boards:
+                 serialize_data(
+                   boards,
+                   DiscourseKanban::BasicBoardSerializer,
+                   root: false,
+                   kanban_memberships:,
+                 ),
              }
     end
 
