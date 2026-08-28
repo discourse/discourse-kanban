@@ -138,19 +138,32 @@ RSpec.describe DiscourseKanban::CardsController do
     it "creates a topic card" do
       sign_in(writer)
 
-      post "/kanban/boards/#{board.id}/cards.json",
-           params: {
-             card: {
-               column_id: col_todo.id,
-               topic_id: topic.id,
-             },
-           }
+      messages =
+        MessageBus.track_publish("/topic/#{topic.id}") do
+          post "/kanban/boards/#{board.id}/cards.json",
+               params: {
+                 client_id: "test-client",
+                 card: {
+                   column_id: col_todo.id,
+                   topic_id: topic.id,
+                 },
+               }
+        end
 
       expect(response.status).to eq(201)
       card = response.parsed_body["card"]
       expect(card["card_type"]).to eq("topic")
       expect(card["topic_id"]).to eq(topic.id)
       expect(card["topic"]["title"]).to eq(topic.title)
+
+      expect(messages.size).to eq(1)
+      expect(messages.first.data).to include(
+        type: "kanban_topic_added_to_board",
+        client_id: "test-client",
+      )
+      membership = messages.first.data[:kanban_memberships].sole
+      expect(membership[:board_id]).to eq(board.id)
+      expect(membership[:cards].sole[:card_id]).to eq(card["id"])
     end
 
     it "allows topic cards in different columns when another insert races" do
@@ -1683,11 +1696,23 @@ RSpec.describe DiscourseKanban::CardsController do
 
       sign_in(writer)
 
-      expect { delete "/kanban/boards/#{board.id}/cards/#{card.id}.json" }.to change {
-        DiscourseKanban::Card.count
-      }.by(-1)
+      messages =
+        MessageBus.track_publish("/topic/#{topic.id}") do
+          expect do
+            delete "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+                   params: {
+                     client_id: "test-client",
+                   }
+          end.to change { DiscourseKanban::Card.count }.by(-1)
+        end
 
       expect(response.status).to eq(204)
+      expect(messages.size).to eq(1)
+      expect(messages.first.data).to include(
+        type: "kanban_topic_added_to_board",
+        client_id: "test-client",
+        kanban_memberships: [],
+      )
     end
 
     it "returns 404 when deleting a topic card whose topic is hidden" do

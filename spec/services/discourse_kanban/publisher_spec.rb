@@ -59,6 +59,46 @@ RSpec.describe DiscourseKanban::Publisher do
     end
   end
 
+  describe ".publish_refresh_topic_board_memberships!" do
+    fab!(:topic)
+    fab!(:topic_card) { Fabricate(:kanban_topic_card, board:, column:, topic:) }
+
+    before { write_group.add(admin) }
+
+    it "publishes the topic's serialized board memberships" do
+      messages =
+        MessageBus.track_publish("/topic/#{topic.id}") do
+          described_class.publish_refresh_topic_board_memberships!(
+            admin.guardian,
+            topic,
+            board,
+            client_id: test_client_id,
+          )
+        end
+
+      expect(messages.size).to eq(1)
+      message = messages.first
+      expect(message.data).to include(
+        type: "kanban_topic_added_to_board",
+        client_id: test_client_id,
+      )
+
+      membership = message.data[:kanban_memberships].sole
+      expect(membership).to include(
+        board_id: board.id,
+        board_name: board.name,
+        unicode_board_name: board.unicode_name,
+        board_slug: board.slug,
+      )
+      expect(membership[:cards].sole).to include(
+        card_id: topic_card.id,
+        column_id: column.id,
+        column_title: column.title,
+        unicode_column_title: column.unicode_title,
+      )
+    end
+  end
+
   describe ".publish_card_updated!" do
     it "publishes a card_updated message" do
       messages =
