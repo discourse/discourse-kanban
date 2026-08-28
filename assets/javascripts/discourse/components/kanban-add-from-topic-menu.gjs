@@ -71,12 +71,12 @@ export default class KanbanAddFromTopicMenu extends Component {
     });
   }
 
-  boardIcon(board) {
-    if (board.topic_is_member) {
-      return "circle";
-    }
+  get availableBoards() {
+    return this.boards.filter((board) => !board.topic_is_member);
+  }
 
-    return null;
+  get alreadyAddedBoards() {
+    return this.boards.filter((board) => board.topic_is_member);
   }
 
   <template>
@@ -92,26 +92,60 @@ export default class KanbanAddFromTopicMenu extends Component {
           </dropdown.item>
         {{/each}}
       {{else}}
-        {{#each this.boards as |board|}}
-          <dropdown.item
-            class="kanban-add-from-topic-menu__board-item"
-            {{on "mouseenter" (fn this.openBoardSubmenu board) passive=true}}
-          >
-            <DButton
-              @actionParam={{board}}
-              @action={{this.openBoardSubmenu}}
-              @forwardEvent={{true}}
-              @icon={{this.boardIcon board}}
-              @suffixIcon="angle-right"
-              @translatedLabel={{board.fancyTitle}}
-              class="btn-transparent kanban-add-from-topic-menu__board"
-            />
-          </dropdown.item>
+        {{#if this.boards.length}}
+          {{#if this.availableBoards.length}}
+            <dropdown.subheader>
+              {{i18n "discourse_kanban.topic_footer.add_to_board"}}
+            </dropdown.subheader>
+            {{#each this.availableBoards as |board|}}
+              <dropdown.item
+                class="kanban-add-from-topic-menu__board-item"
+                {{on
+                  "mouseenter"
+                  (fn this.openBoardSubmenu board)
+                  passive=true
+                }}
+              >
+                <DButton
+                  @actionParam={{board}}
+                  @action={{this.openBoardSubmenu}}
+                  @forwardEvent={{true}}
+                  @suffixIcon="angle-right"
+                  @translatedLabel={{board.fancyTitle}}
+                  class="btn-transparent kanban-add-from-topic-menu__board"
+                />
+              </dropdown.item>
+            {{/each}}
+          {{/if}}
+          {{#if this.alreadyAddedBoards.length}}
+            <dropdown.subheader>
+              {{i18n "discourse_kanban.topic_footer.already_added"}}
+            </dropdown.subheader>
+            {{#each this.alreadyAddedBoards as |board|}}
+              <dropdown.item
+                class="kanban-add-from-topic-menu__board-item"
+                {{on
+                  "mouseenter"
+                  (fn this.openBoardSubmenu board)
+                  passive=true
+                }}
+              >
+                <DButton
+                  @actionParam={{board}}
+                  @action={{this.openBoardSubmenu}}
+                  @forwardEvent={{true}}
+                  @suffixIcon="angle-right"
+                  @translatedLabel={{board.fancyTitle}}
+                  class="btn-transparent kanban-add-from-topic-menu__board"
+                />
+              </dropdown.item>
+            {{/each}}
+          {{/if}}
         {{else}}
           <dropdown.item class="kanban-add-from-topic-menu__empty">
             {{i18n "discourse_kanban.topic_footer.no_boards"}}
           </dropdown.item>
-        {{/each}}
+        {{/if}}
       {{/if}}
     </DDropdownMenu>
   </template>

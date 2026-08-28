@@ -58,26 +58,24 @@
     margin-left: auto;
   }
 
-  &__board-item {
-    .btn .svg-icon.d-icon-circle {
-      width: 6px;
-    }
+  .dropdown-menu__subheader {
+    text-transform: uppercase;
+    font-size: var(--font-down-2);
   }
 }
 
 .kanban-add-from-topic-column-menu {
+  .dropdown-menu__subheader {
+    text-transform: uppercase;
+    font-size: var(--font-down-2);
+  }
+
   &__column.btn {
     width: 100%;
     justify-content: flex-start;
-  }
 
-  &__column {
-    .svg-icon.d-icon-circle {
-      width: 6px;
-    }
-
-    > .d-button__suffix-icon > .svg-icon {
-      color: var(--kanban-column-suffix-color);
+    > .d-icon {
+      color: var(--kanban-column-icon-color);
     }
   }
 }

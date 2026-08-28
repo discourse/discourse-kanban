@@ -2,6 +2,7 @@ import Component from "@glimmer/component";
 import { fn } from "@ember/helper";
 import { action } from "@ember/object";
 import { service } from "@ember/service";
+import { trustHTML } from "@ember/template";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
 import { isValidHex, normalizeHex } from "discourse/lib/color-transformations";
@@ -99,12 +100,16 @@ export default class KanbanAddFromTopicColumnSubmenu extends Component {
     }
   }
 
-  columnIcon(column) {
-    if (column.topic_is_member) {
-      return "circle";
-    }
+  get availableColumns() {
+    return this.args.data.board.columns.filter(
+      (column) => !column.topic_is_member
+    );
+  }
 
-    return null;
+  get alreadyAddedColumns() {
+    return this.args.data.board.columns.filter(
+      (column) => column.topic_is_member
+    );
   }
 
   columnStyle(column) {
@@ -112,27 +117,45 @@ export default class KanbanAddFromTopicColumnSubmenu extends Component {
       return null;
     }
 
-    if (column.color) {
-      return `--kanban-column-suffix-color: #${normalizeHex(column.color)};`;
-    }
-
-    return null;
+    return trustHTML(
+      `--kanban-column-icon-color: #${normalizeHex(column.color)};`
+    );
   }
 
   <template>
     <DDropdownMenu class="kanban-add-from-topic-column-menu" as |dropdown|>
-      {{#each @data.board.columns as |column|}}
-        <dropdown.item>
-          <DButton
-            @action={{fn this.addToColumn column}}
-            @icon={{this.columnIcon column}}
-            @suffixIcon={{column.icon}}
-            @translatedLabel={{column.fancyTitle}}
-            style={{this.columnStyle column}}
-            class="btn-transparent kanban-add-from-topic-column-menu__column"
-          />
-        </dropdown.item>
-      {{/each}}
+      {{#if this.availableColumns.length}}
+        <dropdown.subheader>
+          {{@data.board.unicode_name}}
+        </dropdown.subheader>
+        {{#each this.availableColumns as |column|}}
+          <dropdown.item>
+            <DButton
+              @action={{fn this.addToColumn column}}
+              @icon={{column.icon}}
+              @translatedLabel={{column.fancyTitle}}
+              style={{this.columnStyle column}}
+              class="btn-transparent kanban-add-from-topic-column-menu__column"
+            />
+          </dropdown.item>
+        {{/each}}
+      {{/if}}
+      {{#if this.alreadyAddedColumns.length}}
+        <dropdown.subheader>
+          {{i18n "discourse_kanban.topic_footer.already_added"}}
+        </dropdown.subheader>
+        {{#each this.alreadyAddedColumns as |column|}}
+          <dropdown.item>
+            <DButton
+              @action={{fn this.addToColumn column}}
+              @icon={{column.icon}}
+              @translatedLabel={{column.fancyTitle}}
+              style={{this.columnStyle column}}
+              class="btn-transparent kanban-add-from-topic-column-menu__column"
+            />
+          </dropdown.item>
+        {{/each}}
+      {{/if}}
     </DDropdownMenu>
   </template>
 }

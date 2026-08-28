@@ -7,7 +7,7 @@ acceptance("Kanban add topic footer button", function (needs) {
   needs.user();
 
   test("renders with the core topic footer buttons and opens its menu", async function (assert) {
-    pretender.get("/kanban/boards", () =>
+    pretender.get("/kanban/boards-list", () =>
       response({
         boards: [
           {

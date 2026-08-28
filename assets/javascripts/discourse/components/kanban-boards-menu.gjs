@@ -2,9 +2,9 @@ import Component from "@glimmer/component";
 import { fn } from "@ember/helper";
 import { action } from "@ember/object";
 import DButton from "discourse/components/d-button";
-import DropdownMenu from "discourse/components/dropdown-menu";
 import icon from "discourse/helpers/d-icon";
 import DiscourseURL from "discourse/lib/url";
+import DDropdownMenu from "discourse/ui-kit/d-dropdown-menu";
 import { columnColorVariable } from "../lib/kanban-column-helpers";
 import { membershipCardUrl } from "../lib/kanban-topic-pill";
 
@@ -27,7 +27,7 @@ export default class KanbanBoardsMenu extends Component {
   }
 
   <template>
-    <DropdownMenu as |dropdown|>
+    <DDropdownMenu as |dropdown|>
       {{#each this.memberships as |membership|}}
         <dropdown.item>
           <DButton
@@ -53,6 +53,6 @@ export default class KanbanBoardsMenu extends Component {
           </DButton>
         </dropdown.item>
       {{/each}}
-    </DropdownMenu>
+    </DDropdownMenu>
   </template>
 }
