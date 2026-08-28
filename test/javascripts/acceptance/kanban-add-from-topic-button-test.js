@@ -4,7 +4,7 @@ import pretender, { response } from "discourse/tests/helpers/create-pretender";
 import { acceptance } from "discourse/tests/helpers/qunit-helpers";
 
 acceptance("Kanban add topic footer button", function (needs) {
-  needs.user();
+  needs.user({ can_edit_any_kanban_boards: true });
 
   test("renders with the core topic footer buttons and opens its menu", async function (assert) {
     pretender.get("/kanban/boards-list", () =>

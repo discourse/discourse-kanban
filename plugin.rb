@@ -51,8 +51,10 @@ after_initialize do
     end
   end
 
-  add_to_serializer(:current_user, :can_manage_kanban_boards) do
-    object.guardian.can_manage_kanban_boards?
+  add_to_serializer(:current_user, :can_manage_kanban_boards) { scope.can_manage_kanban_boards? }
+
+  add_to_serializer(:current_user, :can_edit_any_kanban_boards) do
+    scope.target_ids_with_any_acl_permissions(DiscourseKanban::Board, %w[edit manage]).any?
   end
 
   add_to_class(:topic, :kanban_board_cards_map) { @kanban_board_cards_map }
@@ -63,7 +65,7 @@ after_initialize do
 
     result =
       DiscourseKanban::TopicBoardMemberships.call(
-        guardian: Guardian.new(topic_list.current_user),
+        guardian: topic_list.current_user.guardian,
         options: {
           topics:,
         },

@@ -64,6 +64,7 @@ module DiscourseKanban
       kanban_memberships = []
       if params[:topic_id].present?
         topic = Topic.find(params[:topic_id])
+        guardian.ensure_can_see!(topic)
         kanban_memberships =
           DiscourseKanban::TopicBoardMemberships.call(
             guardian: guardian,
@@ -79,7 +80,7 @@ module DiscourseKanban
                    boards,
                    DiscourseKanban::BasicBoardSerializer,
                    root: false,
-                   kanban_memberships:,
+                   kanban_memberships: kanban_memberships.flatten,
                  ),
              }
     end

@@ -44,7 +44,7 @@ export default class KanbanAddFromTopicMenu extends Component {
   async #fetchBoards() {
     try {
       const result = await ajax(
-        `/kanban/boards-list?topic_id=${this.args.data.topic.id}`
+        `/kanban/boards-list?topic_id=${this.args.data.topic.id}&allowed_permissions=edit,manage`
       );
       this.boards = result.boards
         .filter((board) => board.columns?.length)

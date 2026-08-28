@@ -18,7 +18,7 @@ module DiscourseKanban
     def fetch_single_topic_memberships(options:, cards_map:)
       return if options.topics.size > 1
 
-      cards_map[options.topics.first.id].values.flatten
+      cards_map[options.topics.first.id].values
     end
   end
 end

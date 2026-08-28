@@ -16,6 +16,14 @@ export default {
       title: "discourse_kanban.topic_footer.add_to_board",
       classNames: ["kanban-add-from-topic-button"],
       displayed() {
+        if (!this.currentUser) {
+          return false;
+        }
+
+        if (!this.currentUser.can_edit_any_kanban_boards) {
+          return false;
+        }
+
         return !this.topic?.isPrivateMessage;
       },
       action() {
@@ -40,13 +48,17 @@ export default {
     });
 
     withPluginApi((api) => {
-      api.addTrackedTopicProperties("kanban_memberships");
-      api.registerCustomPostMessageCallback(
-        "kanban_topic_added_to_board",
-        (controller, message) => {
-          controller.model.kanban_memberships = message.kanban_memberships;
-        }
-      );
+      const currentUser = api.getCurrentUser();
+
+      if (currentUser) {
+        api.addTrackedTopicProperties("kanban_memberships");
+        api.registerCustomPostMessageCallback(
+          "kanban_topic_added_to_board",
+          (controller, message) => {
+            controller.model.kanban_memberships = message.kanban_memberships;
+          }
+        );
+      }
     });
   },
 };
