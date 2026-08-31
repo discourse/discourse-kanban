@@ -59,43 +59,51 @@ RSpec.describe DiscourseKanban::Publisher do
     end
   end
 
-  describe ".publish_refresh_topic_board_memberships!" do
+  describe ".publish_topic_memberships_changed!" do
     fab!(:topic)
-    fab!(:topic_card) { Fabricate(:kanban_topic_card, board:, column:, topic:) }
 
-    before { write_group.add(admin) }
-
-    it "publishes the topic's serialized board memberships" do
+    it "publishes a reload without board membership data" do
       messages =
         MessageBus.track_publish("/topic/#{topic.id}") do
-          described_class.publish_refresh_topic_board_memberships!(
-            admin.guardian,
-            topic,
-            board,
-            client_id: test_client_id,
-          )
+          described_class.publish_topic_memberships_changed!(topic, client_id: test_client_id)
         end
 
       expect(messages.size).to eq(1)
       message = messages.first
-      expect(message.data).to include(
-        type: "kanban_topic_added_to_board",
-        client_id: test_client_id,
-      )
+      expect(message.data).to eq(reload_topic: true, client_id: test_client_id)
+      expect(message.data).not_to have_key(:kanban_memberships)
+    end
 
-      membership = message.data[:kanban_memberships].sole
-      expect(membership).to include(
-        board_id: board.id,
-        board_name: board.name,
-        unicode_board_name: board.unicode_name,
-        board_slug: board.slug,
+    it "optionally refreshes the post stream" do
+      messages =
+        MessageBus.track_publish("/topic/#{topic.id}") do
+          described_class.publish_topic_memberships_changed!(
+            topic,
+            client_id: test_client_id,
+            refresh_stream: true,
+          )
+        end
+
+      expect(messages.first.data).to eq(
+        reload_topic: true,
+        client_id: test_client_id,
+        refresh_stream: true,
       )
-      expect(membership[:cards].sole).to include(
-        card_id: topic_card.id,
-        column_id: column.id,
-        column_title: column.title,
-        unicode_column_title: column.unicode_title,
-      )
+    end
+
+    context "when the topic is in a private category" do
+      fab!(:private_group, :group)
+      fab!(:private_category) { Fabricate(:private_category, group: private_group) }
+      fab!(:topic) { Fabricate(:topic, category: private_category) }
+
+      it "restricts the reload to the topic's audience" do
+        messages =
+          MessageBus.track_publish("/topic/#{topic.id}") do
+            described_class.publish_topic_memberships_changed!(topic, client_id: test_client_id)
+          end
+
+        expect(messages.first.group_ids).to contain_exactly(private_group.id)
+      end
     end
   end
 

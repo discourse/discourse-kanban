@@ -48,17 +48,7 @@ export default {
     });
 
     withPluginApi((api) => {
-      const currentUser = api.getCurrentUser();
-
-      if (currentUser) {
-        api.addTrackedTopicProperties("kanban_memberships");
-        api.registerCustomPostMessageCallback(
-          "kanban_topic_added_to_board",
-          (controller, message) => {
-            controller.model.kanban_memberships = message.kanban_memberships;
-          }
-        );
-      }
+      api.addTrackedTopicProperties("kanban_memberships");
     });
   },
 };

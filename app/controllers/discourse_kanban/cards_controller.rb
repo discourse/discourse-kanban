@@ -18,22 +18,13 @@ module DiscourseKanban
           publish_payload = CardSerializer.new(card, root: false).as_json
           Publisher.publish_card_created!(board, publish_payload, client_id: message_bus_client_id)
           if card.topic.present?
-            Publisher.publish_refresh_topic_board_memberships!(
-              guardian,
+            Publisher.publish_topic_memberships_changed!(
               card.topic,
-              board,
               client_id: message_bus_client_id,
+              # Constraint fixes may change the topic's category or tags, so the post
+              # stream must be refreshed along with the topic metadata.
+              refresh_stream: params[:constraint_fix].present?,
             )
-
-            # Need to reload the topic header & post stream as the topic's category/tags
-            # have likely changed.
-            if params[:constraint_fix].present?
-              MessageBus.publish(
-                "/topic/#{card.topic.id}",
-                reload_topic: true,
-                refresh_stream: true,
-              )
-            end
           end
           Jobs.enqueue(Jobs::DiscourseKanban::CardPostProcess, card_id: card.id, title: card.title)
           render json: { card: payload }, status: :created
@@ -90,11 +81,10 @@ module DiscourseKanban
           end
 
           if card.topic.present? && card.column_id != original_column_id
-            Publisher.publish_refresh_topic_board_memberships!(
-              guardian,
+            Publisher.publish_topic_memberships_changed!(
               card.topic,
-              board,
               client_id: message_bus_client_id,
+              refresh_stream: params[:constraint_fix].present?,
             )
           end
 
@@ -159,10 +149,8 @@ module DiscourseKanban
           Publisher.publish_card_deleted!(board, card.id, client_id: message_bus_client_id)
 
           if card.topic.present?
-            Publisher.publish_refresh_topic_board_memberships!(
-              guardian,
+            Publisher.publish_topic_memberships_changed!(
               card.topic,
-              board,
               client_id: message_bus_client_id,
             )
           end

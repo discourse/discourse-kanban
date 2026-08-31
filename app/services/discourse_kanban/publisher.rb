@@ -35,31 +35,11 @@ module DiscourseKanban
       )
     end
 
-    def self.publish_refresh_topic_board_memberships!(guardian, topic, board, client_id:)
-      opts = {}.merge(topic.secure_audience_publish_messages)
+    def self.publish_topic_memberships_changed!(topic, client_id:, refresh_stream: false)
+      data = { reload_topic: true, client_id: }
+      data[:refresh_stream] = true if refresh_stream
 
-      kanban_memberships =
-        DiscourseKanban::TopicBoardMemberships.call(
-          guardian: guardian,
-          options: {
-            topics: [topic],
-          },
-        ).single_topic_memberships || []
-
-      MessageBus.publish(
-        "/topic/#{topic.id}",
-        {
-          type: "kanban_topic_added_to_board",
-          client_id:,
-          kanban_memberships:
-            ActiveModel::ArraySerializer.new(
-              kanban_memberships,
-              each_serializer: DiscourseKanban::TopicBoardMembershipSerializer,
-              scope: guardian,
-            ).as_json,
-        },
-        opts,
-      )
+      MessageBus.publish("/topic/#{topic.id}", data, topic.secure_audience_publish_messages)
     end
 
     def self.publish_card_event!(board, type, card_payload, client_id:)

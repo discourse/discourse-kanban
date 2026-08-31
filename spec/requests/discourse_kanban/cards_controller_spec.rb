@@ -157,13 +157,7 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(card["topic"]["title"]).to eq(topic.title)
 
       expect(messages.size).to eq(1)
-      expect(messages.first.data).to include(
-        type: "kanban_topic_added_to_board",
-        client_id: "test-client",
-      )
-      membership = messages.first.data[:kanban_memberships].sole
-      expect(membership[:board_id]).to eq(board.id)
-      expect(membership[:cards].sole[:card_id]).to eq(card["id"])
+      expect(messages.first.data).to eq(reload_topic: true, client_id: "test-client")
     end
 
     it "allows topic cards in different columns when another insert races" do
@@ -540,13 +534,9 @@ RSpec.describe DiscourseKanban::CardsController do
         end
 
       expect(response.status).to eq(200)
-      membership_message =
-        messages.find { |message| message.data[:type] == "kanban_topic_added_to_board" }
-      expect(membership_message.data[:client_id]).to eq("test-client")
-
-      membership = membership_message.data[:kanban_memberships].sole
-      expect(membership[:board_id]).to eq(board.id)
-      expect(membership[:cards].sole).to include(card_id: card.id, column_id: col_done.id)
+      membership_message = messages.find { |message| message.data[:reload_topic] }
+      expect(membership_message.data).to eq(reload_topic: true, client_id: "test-client")
+      expect(membership_message.data).not_to have_key(:kanban_memberships)
     end
 
     it "updates a floater card title" do
@@ -1741,11 +1731,7 @@ RSpec.describe DiscourseKanban::CardsController do
 
       expect(response.status).to eq(204)
       expect(messages.size).to eq(1)
-      expect(messages.first.data).to include(
-        type: "kanban_topic_added_to_board",
-        client_id: "test-client",
-        kanban_memberships: [],
-      )
+      expect(messages.first.data).to eq(reload_topic: true, client_id: "test-client")
     end
 
     it "returns 404 when deleting a topic card whose topic is hidden" do

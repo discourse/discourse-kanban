@@ -196,9 +196,21 @@ RSpec.describe DiscourseKanban::TopicBoardMembershipSerializer do
       )
     end
 
-    it "omits memberships for users who cannot read the board" do
+    it "returns an empty membership list for users who cannot read the board" do
       other_user = Fabricate(:user)
-      expect(topic_view_json.call(other_user)).not_to have_key(:kanban_memberships)
+      expect(topic_view_json.call(other_user)[:kanban_memberships]).to eq([])
+    end
+
+    it "returns an empty membership list when the last card is removed" do
+      card.destroy!
+
+      expect(topic_view_json.call(reader)[:kanban_memberships]).to eq([])
+    end
+
+    it "omits the attribute when the plugin is disabled" do
+      SiteSetting.discourse_kanban_enabled = false
+
+      expect(topic_view_json.call(reader)).not_to have_key(:kanban_memberships)
     end
   end
 end

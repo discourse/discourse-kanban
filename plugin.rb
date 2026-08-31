@@ -100,7 +100,7 @@ after_initialize do
   add_to_serializer(
     :topic_view,
     :kanban_memberships,
-    include_condition: -> { SiteSetting.discourse_kanban_enabled && kanban_memberships.present? },
+    include_condition: -> { SiteSetting.discourse_kanban_enabled },
   ) do
     @kanban_memberships ||=
       begin
