@@ -11,7 +11,9 @@ module DiscourseKanban
                :bumped_at,
                :closed,
                :image_url,
-               :posts_count
+               :posts_count,
+               :highest_post_number,
+               :last_read_post_number
 
     attribute :last_poster
     attribute :assigned_to_user
@@ -25,6 +27,18 @@ module DiscourseKanban
 
     def tags
       object.tags.map(&:name)
+    end
+
+    def highest_post_number
+      (scope.is_whisperer? && object.highest_staff_post_number) || object.highest_post_number
+    end
+
+    def last_read_post_number
+      topic_user&.last_read_post_number
+    end
+
+    def include_last_read_post_number?
+      topic_user.present?
     end
 
     def last_poster
@@ -74,6 +88,10 @@ module DiscourseKanban
     end
 
     private
+
+    def topic_user
+      @topic_user ||= @options.fetch(:topic_users_by_topic, {})[object.id]
+    end
 
     def topic_assignments
       return [] if !assignment_metadata_visible?

@@ -16,6 +16,7 @@ import renderTags from "discourse/lib/render-tags";
 import { emojiUnescape } from "discourse/lib/text";
 import { escapeExpression } from "discourse/lib/utilities";
 import Category from "discourse/models/category";
+import Topic from "discourse/models/topic";
 import { or } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
 import { columnColorVariable } from "../../lib/kanban-column-helpers";
@@ -37,8 +38,7 @@ export default class KanbanTopicCardDetail extends Component {
   }
 
   get topicUrl() {
-    const t = this.topic;
-    return `/t/${t.slug}/${t.id}`;
+    return Topic.create(this.topic).lastUnreadUrl;
   }
 
   get topicTitle() {
