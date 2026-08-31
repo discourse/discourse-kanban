@@ -63,13 +63,9 @@ after_initialize do
   TopicList.on_preload do |topics, topic_list|
     next unless SiteSetting.discourse_kanban_enabled
 
-    result =
-      DiscourseKanban::TopicBoardMemberships.call(
-        guardian: topic_list.current_user.guardian,
-        options: {
-          topics:,
-        },
-      )
+    guardian = topic_list.current_user.present? ? topic_list.current_user.guardian : Guardian.new
+
+    result = DiscourseKanban::TopicBoardMemberships.call(guardian:, options: { topics: })
     cards_map = result[:cards_map]
     topics.each { |topic| topic.kanban_board_cards_map = cards_map.fetch(topic.id, {}) }
   end
