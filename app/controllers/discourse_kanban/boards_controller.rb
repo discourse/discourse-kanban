@@ -36,6 +36,7 @@ module DiscourseKanban
       visible_topic_ids = visible_topic_ids_for(cards)
 
       assignments_by_topic = preload_all_assignments(cards, visible_topic_ids)
+      topic_users_by_topic = preload_topic_users(cards, visible_topic_ids)
       tags_by_id = preload_floater_card_tags(cards)
 
       tag_name_map = build_tag_name_map(@board)
@@ -52,6 +53,7 @@ module DiscourseKanban
           tag_name_map:,
           cards_by_column:,
           assignments_by_topic:,
+          topic_users_by_topic:,
           tags_by_id:,
         )
 
@@ -215,6 +217,11 @@ module DiscourseKanban
         .where(topic_id: topic_ids, active: true, assigned_to_type: "User")
         .includes(:assigned_to)
         .group_by(&:topic_id)
+    end
+
+    def preload_topic_users(cards, visible_topic_ids)
+      topics = cards.filter_map { |card| card.topic if visible_topic_ids.include?(card.topic_id) }
+      TopicUser.lookup_for(current_user, topics)
     end
 
     def preload_floater_card_tags(cards)

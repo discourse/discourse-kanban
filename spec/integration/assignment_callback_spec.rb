@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe "Kanban sync from the Assignment after_commit callback", if: defined?(Assignment) do
+describe "Kanban sync from the Assignment after_commit callback", if: defined?(Assignment) do
   fab!(:topic)
   fab!(:user)
 

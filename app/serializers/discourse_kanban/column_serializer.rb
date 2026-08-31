@@ -31,6 +31,7 @@ module DiscourseKanban
           root: false,
           scope:,
           assignments_by_topic: @options[:assignments_by_topic],
+          topic_users_by_topic: @options[:topic_users_by_topic],
           tags_by_id: @options[:tags_by_id],
         ).as_json
       end

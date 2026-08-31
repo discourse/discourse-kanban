@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe "Kanban Board Viewer" do
+describe "Kanban Board Viewer" do
   fab!(:user)
   fab!(:admin)
   fab!(:manager, :user)
@@ -512,6 +512,24 @@ RSpec.describe "Kanban Board Viewer" do
   end
 
   context "with topic card detail modal" do
+    it "opens the topic at the latest unread post" do
+      result = create_board(with_columns: [{ title: "To Do", position: 0 }])
+      board = result.board
+
+      topic = Fabricate(:topic, title: "Review unread replies", category: category)
+      4.times { Fabricate(:post, topic:) }
+      TopicUser.change(user.id, topic.id, last_read_post_number: 2)
+
+      add_topic_card(board, result.column("To Do"), topic)
+
+      sign_in(user)
+      board_viewer.visit_board(board)
+      board_viewer.click_topic_card("Review unread replies")
+      board_viewer.click_topic_card_view_topic
+
+      expect(page).to have_current_path("/t/#{topic.slug}/#{topic.id}/3")
+    end
+
     it "opens the topic detail modal when clicking a topic card" do
       result = create_board({ show_tags: true }, with_columns: [{ title: "To Do", position: 0 }])
       board = result.board
