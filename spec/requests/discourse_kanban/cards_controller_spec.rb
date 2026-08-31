@@ -516,6 +516,39 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(response.parsed_body.dig("card", "column_changed_at")).to be_present
     end
 
+    it "publishes refreshed topic memberships after moving a topic card" do
+      card =
+        board.cards.create!(
+          card_type: :topic,
+          topic_id: topic.id,
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+
+      sign_in(admin)
+
+      messages =
+        MessageBus.track_publish("/topic/#{topic.id}") do
+          put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+              params: {
+                client_id: "test-client",
+                card: {
+                  column_id: col_done.id,
+                },
+              }
+        end
+
+      expect(response.status).to eq(200)
+      membership_message =
+        messages.find { |message| message.data[:type] == "kanban_topic_added_to_board" }
+      expect(membership_message.data[:client_id]).to eq("test-client")
+
+      membership = membership_message.data[:kanban_memberships].sole
+      expect(membership[:board_id]).to eq(board.id)
+      expect(membership[:cards].sole).to include(card_id: card.id, column_id: col_done.id)
+    end
+
     it "updates a floater card title" do
       card =
         board.cards.create!(

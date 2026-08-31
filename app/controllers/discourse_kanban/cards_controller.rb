@@ -89,6 +89,15 @@ module DiscourseKanban
             )
           end
 
+          if card.topic.present? && card.column_id != original_column_id
+            Publisher.publish_refresh_topic_board_memberships!(
+              guardian,
+              card.topic,
+              board,
+              client_id: message_bus_client_id,
+            )
+          end
+
           if raw_params.key?("title")
             Jobs.enqueue(
               Jobs::DiscourseKanban::CardPostProcess,
