@@ -13,6 +13,8 @@ import icon from "discourse/helpers/d-icon";
 import formatDate from "discourse/helpers/format-date";
 import { ajax } from "discourse/lib/ajax";
 import renderTags from "discourse/lib/render-tags";
+import { emojiUnescape } from "discourse/lib/text";
+import { escapeExpression } from "discourse/lib/utilities";
 import Category from "discourse/models/category";
 import { or } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
@@ -40,7 +42,9 @@ export default class KanbanTopicCardDetail extends Component {
   }
 
   get topicTitle() {
-    return this.args.model.card.fancyTitle;
+    return trustHTML(
+      emojiUnescape(escapeExpression(this.args.model.card.fancyTitle || ""))
+    );
   }
 
   get category() {

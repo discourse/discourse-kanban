@@ -18,7 +18,9 @@ import formatDate from "discourse/helpers/format-date";
 import { renderAvatar } from "discourse/helpers/user-avatar";
 import discourseLater from "discourse/lib/later";
 import renderTags from "discourse/lib/render-tags";
+import { emojiUnescape } from "discourse/lib/text";
 import DiscourseURL from "discourse/lib/url";
+import { escapeExpression } from "discourse/lib/utilities";
 import Category from "discourse/models/category";
 import { i18n } from "discourse-i18n";
 import { kanbanBoardUrl, kanbanCardUrl } from "../lib/kanban-urls";
@@ -65,6 +67,10 @@ export default class KanbanCard extends Component {
 
   get cardTitle() {
     return this.args.card.fancyTitle;
+  }
+
+  get renderedTopicTitle() {
+    return trustHTML(emojiUnescape(escapeExpression(this.cardTitle || "")));
   }
 
   get inlineOneboxData() {
@@ -533,7 +539,7 @@ export default class KanbanCard extends Component {
             {{#if this.topicStatusModel}}
               <TopicStatus @topic={{this.topicStatusModel}} />
             {{/if}}
-            {{this.cardTitle}}
+            {{this.renderedTopicTitle}}
           </span>
         {{else}}
           <span class="discourse-kanban-card__title">

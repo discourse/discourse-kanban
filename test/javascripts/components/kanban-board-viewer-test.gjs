@@ -125,6 +125,27 @@ module("Integration | Component | KanbanBoardViewer", function (hooks) {
     assert.false(show.called, "the settings modal remains closed");
   });
 
+  test("links board constraints while keeping the info tooltip", async function (assert) {
+    await this.renderBoard([], {
+      category_ids: [5],
+      tag_names: ["priority"],
+    });
+
+    assert
+      .dom(
+        ".discourse-kanban-board-viewer__constraint a.badge-category__wrapper"
+      )
+      .hasAttribute("href", "/c/extensibility/5");
+    assert
+      .dom(
+        '.discourse-kanban-board-viewer__constraint a.discourse-tag[data-tag-name="priority"]'
+      )
+      .hasAttribute("href", "/tag/priority");
+    assert
+      .dom(".discourse-kanban-board-viewer__constraint .fk-d-tooltip__trigger")
+      .exists();
+  });
+
   hooks.afterEach(function () {
     this.messageBus.clientId = this.originalClientId;
     sinon.restore();
