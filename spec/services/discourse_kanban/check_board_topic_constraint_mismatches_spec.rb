@@ -164,6 +164,23 @@ RSpec.describe DiscourseKanban::CheckBoardTopicConstraintMismatches do
         end
       end
 
+      context "when a board tag is not visible to the user" do
+        fab!(:acting_user, :user)
+        fab!(:hidden_board_tag, :tag)
+
+        before do
+          write_group.add(acting_user)
+          Fabricate(:tag_group, permissions: { "staff" => 1 }, tag_names: [hidden_board_tag.name])
+          board.update!(tag_ids: [board_tag.id, hidden_board_tag.id])
+        end
+
+        it { is_expected.to run_successfully }
+
+        it "does not return the restricted tag name" do
+          expect(result[:tags_needed]).to eq([board_tag.name])
+        end
+      end
+
       context "when the target column tag matches" do
         before do
           board.update!(tag_ids: [target_tag.id])

@@ -57,26 +57,24 @@ module DiscourseKanban
 
     # If none of the effective tags belong to the board, return its tags so the user can
     # choose a replacement.
-    def fetch_tags_needed(topic:, target_column:, board:)
+    def fetch_tags_needed(topic:, target_column:, board:, guardian:)
       return [] if board.tag_ids.empty?
 
-      board_tag_names = board.tags.map(&:name)
-      effective_tag_names = topic.tags.map(&:name)
+      effective_tag_ids = topic.tag_ids.dup
 
       # A topic should only have the tag for its new column. Remove tags from the other
       # columns, including every column tag when the target column is untagged.
-      sibling_tag_names =
-        board.columns.filter_map { |column| column.tag&.name if column.id != target_column.id }
-      effective_tag_names -= sibling_tag_names
+      sibling_tag_ids =
+        board.columns.filter_map { |column| column.tag_id if column.id != target_column.id }
+      effective_tag_ids -= sibling_tag_ids
 
-      if target_column.tag.present?
-        target_tag_name = target_column.tag.name
-        effective_tag_names << target_tag_name if effective_tag_names.exclude?(target_tag_name)
+      if target_column.tag_id.present? && effective_tag_ids.exclude?(target_column.tag_id)
+        effective_tag_ids << target_column.tag_id
       end
 
-      return [] if board_tag_names.any? { |tag_name| effective_tag_names.include?(tag_name) }
+      return [] if (board.tag_ids & effective_tag_ids).any?
 
-      board_tag_names
+      Tag.visible(guardian).where(id: board.tag_ids).order(:name).pluck(:name)
     end
   end
 end
