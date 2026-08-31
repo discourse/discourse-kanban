@@ -158,8 +158,11 @@ module("Integration | Component | KanbanAddFromTopicMenu", function (hooks) {
       ),
       ["Roadmap", "Already added"]
     );
+    const [availableColumn, alreadyAddedColumn] = findAll(
+      ".kanban-add-from-topic-column-menu__column"
+    );
     assert.deepEqual(
-      findAll(".kanban-add-from-topic-column-menu__column").map((element) =>
+      [availableColumn, alreadyAddedColumn].map((element) =>
         element.textContent.trim()
       ),
       ["Next", "Done"]
@@ -176,9 +179,8 @@ module("Integration | Component | KanbanAddFromTopicMenu", function (hooks) {
     assert
       .dom(".kanban-add-from-topic-column-menu__column .d-icon-check")
       .hasStyle({ color: "rgb(102, 157, 241)" });
-    assert
-      .dom(".kanban-add-from-topic-column-menu .d-button__suffix-icon")
-      .doesNotExist();
+    assert.dom(".d-button__suffix-icon", availableColumn).doesNotExist();
+    assert.dom(".d-button__suffix-icon", alreadyAddedColumn).exists();
 
     this.set("data", {
       board: Board.create(

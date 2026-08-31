@@ -31,6 +31,7 @@ describe "Add topic to board from topic footer menu" do
   let(:topic_page) { PageObjects::Pages::Topic.new }
   let(:add_from_topic) { PageObjects::Components::KanbanAddFromTopic.new }
   let(:category_badge) { PageObjects::Components::CategoryBadge.new }
+  let(:toasts) { PageObjects::Components::Toasts.new }
   let(:constraint_modal) do
     PageObjects::Modals::Base.new(body_selector: ".discourse-kanban-constraint-fix-modal")
   end
@@ -47,6 +48,26 @@ describe "Add topic to board from topic footer menu" do
 
       expect(add_from_topic).to have_membership(product_board, column)
       expect(product_board.cards.topic.find_by(topic: topic, column: column)).to be_present
+    end
+
+    it "removes the topic from a board column" do
+      column = product_board.columns.first
+      card = Fabricate(:kanban_topic_card, board: product_board, column:, topic:)
+
+      sign_in(admin)
+      topic_page.visit_topic(topic)
+      expect(add_from_topic).to have_membership(product_board, column)
+
+      add_from_topic.remove_from_column(product_board, column)
+
+      expect(toasts).to have_success(
+        I18n.t(
+          "js.discourse_kanban.board.removed_topic_from_board",
+          boardName: product_board.unicode_name,
+          columnName: column.unicode_title,
+        ),
+      )
+      expect(DiscourseKanban::Card).not_to exist(card.id)
     end
 
     it "fixes constraints and updates the topic header through MessageBus" do

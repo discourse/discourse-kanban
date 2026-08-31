@@ -7,6 +7,14 @@ module PageObjects
       MEMBERSHIP_PILL = "#topic-title .kanban-topic-pill"
 
       def add_to_column(board, column)
+        select_column(board, column)
+      end
+
+      def remove_from_column(board, column)
+        select_column(board, column)
+      end
+
+      def select_column(board, column)
         find(ADD_TO_BOARD_BUTTON).click
         within(".kanban-add-from-topic-menu") do
           find("button", exact_text: board.unicode_name).click
