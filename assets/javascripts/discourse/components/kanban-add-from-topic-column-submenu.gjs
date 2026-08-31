@@ -31,6 +31,32 @@ export default class KanbanAddFromTopicColumnSubmenu extends Component {
     await this.#completeAddToColumn(column);
   }
 
+  @action
+  async removeFromColumn(column) {
+    try {
+      await ajax(
+        `/kanban/boards/${this.args.data.board.id}/cards/${column.topic_card_id}`,
+        {
+          type: "DELETE",
+        }
+      );
+
+      this.toasts.success({
+        duration: "short",
+        data: {
+          message: i18n("discourse_kanban.board.removed_topic_from_board", {
+            boardName: this.args.data.board.unicode_name,
+            columnName: column.unicode_title,
+          }),
+        },
+      });
+
+      this.args.close({ data: { cardSaved: true } });
+    } catch (error) {
+      popupAjaxError(error);
+    }
+  }
+
   async #checkConstraints(column) {
     try {
       const response = await ajax(
@@ -152,9 +178,10 @@ export default class KanbanAddFromTopicColumnSubmenu extends Component {
         {{#each this.alreadyAddedColumns as |column|}}
           <dropdown.item>
             <DButton
-              @action={{fn this.addToColumn column}}
+              @action={{fn this.removeFromColumn column}}
               @icon={{column.icon}}
               @translatedLabel={{column.fancyTitle}}
+              @suffixIcon="xmark"
               style={{this.columnStyle column}}
               class="btn-transparent kanban-add-from-topic-column-menu__column"
             />
