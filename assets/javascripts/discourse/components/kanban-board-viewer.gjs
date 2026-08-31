@@ -7,6 +7,7 @@ import didInsert from "@ember/render-modifiers/modifiers/did-insert";
 import { cancel, next, schedule } from "@ember/runloop";
 import { service } from "@ember/service";
 import { modifier } from "ember-modifier";
+import BackButton from "discourse/components/back-button";
 import DButton from "discourse/components/d-button";
 import DropdownMenu from "discourse/components/dropdown-menu";
 import PermanentlyDeleteConfirmModal from "discourse/components/modal/permanently-delete-confirm";
@@ -1424,6 +1425,10 @@ export default class KanbanBoardViewer extends Component {
     >
       <div class="discourse-kanban-board-viewer__header">
         <div class="discourse-kanban-board-viewer__title-wrapper">
+          <BackButton
+            @route="kanbanBoards"
+            @label="discourse_kanban.board.all_boards"
+          />
           <h2
             class="discourse-kanban-board-viewer__title"
           >{{this.board.fancyTitle}}</h2>
@@ -1463,14 +1468,6 @@ export default class KanbanBoardViewer extends Component {
           >
             <:content as |args|>
               <DropdownMenu as |dropdown|>
-                <dropdown.item data-identifier="go-to-all-boards">
-                  <DButton
-                    @action={{fn this.goToAllBoards args.close}}
-                    @icon="house"
-                    @label="discourse_kanban.board.all_boards"
-                    class="btn-transparent"
-                  />
-                </dropdown.item>
                 {{#if this.canManage}}
                   <dropdown.item data-identifier="add-column">
                     <DButton
