@@ -185,6 +185,8 @@ describe "Manage Kanban Boards" do
     end
 
     describe "for an existing board" do
+      let(:trust_level_4_group) { Group.find(Group::AUTO_GROUPS[:trust_level_4]) }
+
       fab!(:board) do
         Fabricate(
           :kanban_board,
@@ -256,6 +258,20 @@ describe "Manage Kanban Boards" do
         access_control.confirm_loss_warning
         expect(boards_page.board_settings_modal).to be_closed
         expect(page).to have_content(I18n.t("js.errors.reasons.forbidden"))
+      end
+
+      it "lets the user add a group with Manage permission from board settings on mobile",
+         mobile: true do
+        visit board.url
+        board_component = PageObjects::Components::Board.new
+        board_component.open_board_menu
+        board_component.click_board_settings_menu_item
+
+        access_control.add_group(trust_level_4_group)
+        access_control.row(type: "group", id: trust_level_4_group.id).select_permission("manage")
+        boards_page.save_board_modal
+
+        expect(toasts).to have_success(I18n.t("js.saved"))
       end
     end
   end
