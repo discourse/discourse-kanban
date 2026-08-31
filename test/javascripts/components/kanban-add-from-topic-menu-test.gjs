@@ -1,4 +1,10 @@
-import { findAll, render, settled, waitUntil } from "@ember/test-helpers";
+import {
+  click,
+  findAll,
+  render,
+  settled,
+  waitUntil,
+} from "@ember/test-helpers";
 import { module, test } from "qunit";
 import { setupRenderingTest } from "discourse/tests/helpers/component-test";
 import pretender, { response } from "discourse/tests/helpers/create-pretender";
@@ -189,5 +195,33 @@ module("Integration | Component | KanbanAddFromTopicMenu", function (hooks) {
       ["Roadmap"],
       "does not render an empty Already added section"
     );
+  });
+
+  test("does not add the topic when the constraint check fails", async function (assert) {
+    let addRequests = 0;
+
+    pretender.put("/kanban/boards/1/check-constraint-mismatches", () =>
+      response(500, { errors: ["Constraint check failed"] })
+    );
+    pretender.post("/kanban/boards/1/cards", () => {
+      addRequests++;
+      return response({});
+    });
+
+    this.set("data", {
+      board: Board.create(
+        board(1, "Roadmap", [{ id: 11, title: "Next", icon: "clock" }])
+      ),
+      topic: { id: 1 },
+    });
+
+    await render(
+      <template>
+        <KanbanAddFromTopicColumnSubmenu @data={{this.data}} />
+      </template>
+    );
+    await click(".kanban-add-from-topic-column-menu__column");
+
+    assert.strictEqual(addRequests, 0);
   });
 });

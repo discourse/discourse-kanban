@@ -20,7 +20,11 @@ export default class KanbanAddFromTopicColumnSubmenu extends Component {
   async addToColumn(column) {
     const response = await this.#checkConstraints(column);
 
-    if (response?.constraints_need_fixing) {
+    if (!response) {
+      return;
+    }
+
+    if (response.constraints_need_fixing) {
       return this.#onConstraintMismatch(column, response);
     }
 
@@ -42,6 +46,7 @@ export default class KanbanAddFromTopicColumnSubmenu extends Component {
       return response;
     } catch (error) {
       popupAjaxError(error);
+      return null;
     }
   }
 
