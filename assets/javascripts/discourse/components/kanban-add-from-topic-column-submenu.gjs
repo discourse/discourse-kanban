@@ -98,7 +98,7 @@ export default class KanbanAddFromTopicColumnSubmenu extends Component {
         },
       });
 
-      this.args.close();
+      this.args.close({ data: { cardSaved: true } });
     } catch (error) {
       popupAjaxError(error);
       return;

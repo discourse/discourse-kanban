@@ -65,8 +65,10 @@ export default class KanbanAddFromTopicMenu extends Component {
       placement: "right-start",
       offset: { mainAxis: 10, crossAxis: -5 },
       data: { board, topic: this.args.data?.topic },
-      onClose: () => {
-        this.args.close();
+      onClose: (data) => {
+        if (data?.cardSaved) {
+          this.args.close();
+        }
       },
     });
   }
