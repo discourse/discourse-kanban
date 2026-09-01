@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
 module DiscourseKanban
+  # Takes a DiscourseKanban::Card based on a topic, used for displaying
+  # each board and column (which is serialized in TopicBoardMembershipCardSerializer)
+  # that a topic card belongs to, which is used to link directly
+  # to the card with `?card=105` at the board URL.
   class TopicBoardMembershipSerializer < ApplicationSerializer
     attributes :board_id, :board_name, :unicode_board_name, :board_slug, :cards
 

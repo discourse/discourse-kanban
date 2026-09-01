@@ -17,6 +17,15 @@ module DiscourseKanban
           payload = CardSerializer.new(card, root: false, scope: guardian).as_json
           publish_payload = CardSerializer.new(card, root: false).as_json
           Publisher.publish_card_created!(board, publish_payload, client_id: message_bus_client_id)
+          if card.topic.present?
+            Publisher.publish_topic_memberships_changed!(
+              card.topic,
+              client_id: message_bus_client_id,
+              # Constraint fixes may change the topic's category or tags, so the post
+              # stream must be refreshed along with the topic metadata.
+              refresh_stream: params[:constraint_fix].present?,
+            )
+          end
           Jobs.enqueue(Jobs::DiscourseKanban::CardPostProcess, card_id: card.id, title: card.title)
           render json: { card: payload }, status: :created
         end
@@ -68,6 +77,14 @@ module DiscourseKanban
               board,
               publish_response,
               client_id: message_bus_client_id,
+            )
+          end
+
+          if card.topic.present? && card.column_id != original_column_id
+            Publisher.publish_topic_memberships_changed!(
+              card.topic,
+              client_id: message_bus_client_id,
+              refresh_stream: params[:constraint_fix].present?,
             )
           end
 
@@ -130,6 +147,14 @@ module DiscourseKanban
       ) do
         on_success do |card:, board:|
           Publisher.publish_card_deleted!(board, card.id, client_id: message_bus_client_id)
+
+          if card.topic.present?
+            Publisher.publish_topic_memberships_changed!(
+              card.topic,
+              client_id: message_bus_client_id,
+            )
+          end
+
           head :no_content
         end
         on_model_not_found(:board) { raise Discourse::NotFound }

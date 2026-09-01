@@ -65,6 +65,79 @@ RSpec.describe DiscourseKanban::BoardsController do
       expect(response.status).to eq(200)
       expect(response.parsed_body["boards"].length).to eq(1)
     end
+
+    it "limits boards to the requested permissions" do
+      board_editable =
+        Fabricate(:kanban_board, name: "Editable", slug: "editable", created_by: admin)
+      Fabricate(
+        :access_control_list_with_groups,
+        target: board_editable,
+        permission: "edit",
+        groups: [write_group],
+      )
+      board_view_only =
+        Fabricate(:kanban_board, name: "View Only", slug: "view-only", created_by: admin)
+      Fabricate(
+        :access_control_list_with_groups,
+        target: board_view_only,
+        permission: "view",
+        groups: [write_group],
+      )
+
+      sign_in(writer)
+      get "/kanban/boards.json", params: { allowed_permissions: "edit" }
+
+      expect(response.status).to eq(200)
+      slugs = response.parsed_body["boards"].map { |b| b["slug"] }
+      expect(slugs).to contain_exactly("editable")
+    end
+  end
+
+  describe "GET /kanban/boards-list" do
+    fab!(:topic)
+    fab!(:board) { Fabricate(:kanban_board, name: "Product", created_by: admin) }
+    fab!(:backlog_column) { Fabricate(:kanban_column, board:, title: "Backlog", position: 0) }
+    fab!(:done_column) { Fabricate(:kanban_column, board:, title: "Done", position: 1) }
+    fab!(:topic_card) { Fabricate(:kanban_topic_card, board:, column: backlog_column, topic:) }
+    fab!(:other_board) { Fabricate(:kanban_board, name: "Roadmap", created_by: admin) }
+    fab!(:other_column) { Fabricate(:kanban_column, board: other_board, title: "Next") }
+
+    before do
+      [board, other_board].each do |visible_board|
+        Fabricate(
+          :access_control_list_with_groups,
+          target: visible_board,
+          permission: "view",
+          groups: [read_group],
+        )
+      end
+    end
+
+    it "returns the topic's board and column memberships" do
+      sign_in(reader)
+
+      get "/kanban/boards-list.json", params: { topic_id: topic.id }
+
+      expect(response.status).to eq(200)
+      boards = response.parsed_body["boards"].index_by { |item| item["id"] }
+
+      expect(boards[board.id]["topic_is_member"]).to eq(true)
+      expect(
+        boards[board.id]["columns"].to_h { |column| [column["id"], column["topic_is_member"]] },
+      ).to eq(backlog_column.id => true, done_column.id => false)
+      expect(boards[other_board.id]["topic_is_member"]).to eq(false)
+      expect(boards[other_board.id]["columns"].sole["topic_is_member"]).to eq(false)
+    end
+
+    it "denies access when the user cannot see the topic" do
+      private_category = Fabricate(:private_category, group: write_group)
+      private_topic = Fabricate(:topic, category: private_category)
+      sign_in(reader)
+
+      get "/kanban/boards-list.json", params: { topic_id: private_topic.id }
+
+      expect(response.status).to eq(403)
+    end
   end
 
   describe "GET /kanban/boards/:id" do

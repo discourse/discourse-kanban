@@ -3,6 +3,10 @@ en:
     discourse_kanban:
       filter_boards: "Filter boards"
       filter_boards_no_results: "No boards match your search"
+      topic_footer:
+        add_to_board: "Add to board"
+        already_added: "Already added"
+        no_boards: "No boards available"
       topic_pill:
         title: "This topic is in the %{column} column of the %{board} board"
         title_multiple_columns:
@@ -13,6 +17,8 @@ en:
           other: "%{count} boards"
         multiple_title: "This topic is on multiple kanban boards"
       board:
+        added_topic_to_board: "Added topic to '%{boardName}' board in '%{columnName}' column"
+        removed_topic_from_board: "Removed topic from '%{boardName}' board and '%{columnName}' column"
         empty_board: "This board has no columns yet"
         empty_board_cta: "Add your first column to get started"
         no_cards: "No cards in this column"

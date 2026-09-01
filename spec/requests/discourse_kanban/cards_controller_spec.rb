@@ -138,19 +138,26 @@ RSpec.describe DiscourseKanban::CardsController do
     it "creates a topic card" do
       sign_in(writer)
 
-      post "/kanban/boards/#{board.id}/cards.json",
-           params: {
-             card: {
-               column_id: col_todo.id,
-               topic_id: topic.id,
-             },
-           }
+      messages =
+        MessageBus.track_publish("/topic/#{topic.id}") do
+          post "/kanban/boards/#{board.id}/cards.json",
+               params: {
+                 client_id: "test-client",
+                 card: {
+                   column_id: col_todo.id,
+                   topic_id: topic.id,
+                 },
+               }
+        end
 
       expect(response.status).to eq(201)
       card = response.parsed_body["card"]
       expect(card["card_type"]).to eq("topic")
       expect(card["topic_id"]).to eq(topic.id)
       expect(card["topic"]["title"]).to eq(topic.title)
+
+      expect(messages.size).to eq(1)
+      expect(messages.first.data).to eq(reload_topic: true, client_id: "test-client")
     end
 
     it "allows topic cards in different columns when another insert races" do
@@ -501,6 +508,35 @@ RSpec.describe DiscourseKanban::CardsController do
       expect(card.reload.column_id).to eq(col_done.id)
       expect(card.column_changed_at).to be > 1.day.ago
       expect(response.parsed_body.dig("card", "column_changed_at")).to be_present
+    end
+
+    it "publishes refreshed topic memberships after moving a topic card" do
+      card =
+        board.cards.create!(
+          card_type: :topic,
+          topic_id: topic.id,
+          column_id: col_todo.id,
+          position: 0,
+          created_by_id: admin.id,
+        )
+
+      sign_in(admin)
+
+      messages =
+        MessageBus.track_publish("/topic/#{topic.id}") do
+          put "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+              params: {
+                client_id: "test-client",
+                card: {
+                  column_id: col_done.id,
+                },
+              }
+        end
+
+      expect(response.status).to eq(200)
+      membership_message = messages.find { |message| message.data[:reload_topic] }
+      expect(membership_message.data).to eq(reload_topic: true, client_id: "test-client")
+      expect(membership_message.data).not_to have_key(:kanban_memberships)
     end
 
     it "updates a floater card title" do
@@ -1683,11 +1719,19 @@ RSpec.describe DiscourseKanban::CardsController do
 
       sign_in(writer)
 
-      expect { delete "/kanban/boards/#{board.id}/cards/#{card.id}.json" }.to change {
-        DiscourseKanban::Card.count
-      }.by(-1)
+      messages =
+        MessageBus.track_publish("/topic/#{topic.id}") do
+          expect do
+            delete "/kanban/boards/#{board.id}/cards/#{card.id}.json",
+                   params: {
+                     client_id: "test-client",
+                   }
+          end.to change { DiscourseKanban::Card.count }.by(-1)
+        end
 
       expect(response.status).to eq(204)
+      expect(messages.size).to eq(1)
+      expect(messages.first.data).to eq(reload_topic: true, client_id: "test-client")
     end
 
     it "returns 404 when deleting a topic card whose topic is hidden" do

@@ -32,6 +32,18 @@ RSpec.describe DiscourseKanban::TopicBoardMemberships do
     expect(result[:cards_map]).to eq(topic.id => { board.id => [card] })
   end
 
+  context "when the topic has no board memberships" do
+    fab!(:topic_without_memberships, :topic)
+
+    let(:topics) { [topic_without_memberships] }
+
+    it { is_expected.to run_successfully }
+
+    it "returns an empty membership list" do
+      expect(result[:single_topic_memberships]).to eq([])
+    end
+  end
+
   context "when the board is not readable" do
     let(:guardian) { outsider.guardian }
 

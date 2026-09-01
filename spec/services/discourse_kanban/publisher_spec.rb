@@ -59,6 +59,54 @@ RSpec.describe DiscourseKanban::Publisher do
     end
   end
 
+  describe ".publish_topic_memberships_changed!" do
+    fab!(:topic)
+
+    it "publishes a reload without board membership data" do
+      messages =
+        MessageBus.track_publish("/topic/#{topic.id}") do
+          described_class.publish_topic_memberships_changed!(topic, client_id: test_client_id)
+        end
+
+      expect(messages.size).to eq(1)
+      message = messages.first
+      expect(message.data).to eq(reload_topic: true, client_id: test_client_id)
+      expect(message.data).not_to have_key(:kanban_memberships)
+    end
+
+    it "optionally refreshes the post stream" do
+      messages =
+        MessageBus.track_publish("/topic/#{topic.id}") do
+          described_class.publish_topic_memberships_changed!(
+            topic,
+            client_id: test_client_id,
+            refresh_stream: true,
+          )
+        end
+
+      expect(messages.first.data).to eq(
+        reload_topic: true,
+        client_id: test_client_id,
+        refresh_stream: true,
+      )
+    end
+
+    context "when the topic is in a private category" do
+      fab!(:private_group, :group)
+      fab!(:private_category) { Fabricate(:private_category, group: private_group) }
+      fab!(:topic) { Fabricate(:topic, category: private_category) }
+
+      it "restricts the reload to the topic's audience" do
+        messages =
+          MessageBus.track_publish("/topic/#{topic.id}") do
+            described_class.publish_topic_memberships_changed!(topic, client_id: test_client_id)
+          end
+
+        expect(messages.first.group_ids).to contain_exactly(private_group.id)
+      end
+    end
+  end
+
   describe ".publish_card_updated!" do
     it "publishes a card_updated message" do
       messages =

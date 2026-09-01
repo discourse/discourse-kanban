@@ -2,6 +2,8 @@
 
 module DiscourseKanban
   class BoardsController < BaseController
+    DEFAULT_INDEX_PERMISSIONS = %w[view edit manage].freeze
+
     before_action :ensure_logged_in, only: %i[create update destroy move_column constraint_preview]
     before_action :find_board!, only: %i[show]
     before_action :ensure_board_read!, only: %i[show]
@@ -11,14 +13,76 @@ module DiscourseKanban
     end
 
     def index
+      allowed_permissions =
+        (
+          if params[:allowed_permissions].present?
+            params[:allowed_permissions]
+              .split(",")
+              .reject { |permission| !DEFAULT_INDEX_PERMISSIONS.include?(permission) }
+          else
+            DEFAULT_INDEX_PERMISSIONS
+          end
+        )
+
       boards =
         DiscourseKanban::Board
           .includes(:columns, :created_by)
-          .with_any_acl_permissions(guardian, %w[view edit manage])
+          .with_any_acl_permissions(guardian, allowed_permissions)
           .order(:name)
           .to_a
       tag_name_map = build_tag_name_map(*boards)
-      render json: { boards: serialize_boards(boards, tag_name_map:) }
+      render json: {
+               boards:
+                 serialize_data(
+                   boards,
+                   DiscourseKanban::BoardSerializer,
+                   root: false,
+                   tag_name_map:,
+                 ),
+             }
+    end
+
+    def basic_list
+      allowed_permissions =
+        (
+          if params[:allowed_permissions].present?
+            params[:allowed_permissions]
+              .split(",")
+              .reject { |permission| !DEFAULT_INDEX_PERMISSIONS.include?(permission) }
+          else
+            DEFAULT_INDEX_PERMISSIONS
+          end
+        )
+
+      boards =
+        DiscourseKanban::Board
+          .includes(:columns, :created_by)
+          .with_any_acl_permissions(guardian, allowed_permissions)
+          .order(:name)
+          .to_a
+
+      kanban_memberships = []
+      if params[:topic_id].present?
+        topic = Topic.find(params[:topic_id])
+        guardian.ensure_can_see!(topic)
+        kanban_memberships =
+          DiscourseKanban::TopicBoardMemberships.call(
+            guardian: guardian,
+            options: {
+              topics: [topic],
+            },
+          ).single_topic_memberships || []
+      end
+
+      render json: {
+               boards:
+                 serialize_data(
+                   boards,
+                   DiscourseKanban::BasicBoardSerializer,
+                   root: false,
+                   kanban_memberships: kanban_memberships.flatten,
+                 ),
+             }
     end
 
     def show
@@ -173,13 +237,7 @@ module DiscourseKanban
     end
 
     def destroy
-      DiscourseKanban::DestroyBoard.call(
-        guardian:,
-        params: {
-          id: params[:id],
-          client_id: params[:client_id],
-        },
-      ) do
+      DiscourseKanban::DestroyBoard.call(service_params) do
         on_success { head :no_content }
         on_model_not_found(:board) { raise Discourse::NotFound }
         on_failed_policy(:can_destroy) { raise Discourse::InvalidAccess }
@@ -188,6 +246,28 @@ module DiscourseKanban
                  status: :bad_request
         end
         on_failure { render json: failed_json, status: :unprocessable_entity }
+      end
+    end
+
+    def check_constraint_mismatches
+      DiscourseKanban::CheckBoardTopicConstraintMismatches.call(service_params) do
+        on_success do |categories_needed:, tags_needed:|
+          render json: {
+                   categories_needed:,
+                   tags_needed:,
+                   constraints_need_fixing:
+                     categories_needed.length.positive? || tags_needed.length.positive?,
+                 }
+        end
+        on_model_not_found(:board) do
+          raise Discourse::NotFound.new(I18n.t("discourse_kanban.errors.board_not_found"))
+        end
+        on_model_not_found(:topic) { raise Discourse::NotFound }
+        on_model_not_found(:target_column) do
+          raise Discourse::NotFound.new(I18n.t("discourse_kanban.errors.column_not_found"))
+        end
+        on_failed_policy(:can_view_topic) { raise Discourse::InvalidAccess }
+        on_failed_policy(:can_edit_board) { raise Discourse::InvalidAccess }
       end
     end
 
@@ -204,7 +284,6 @@ module DiscourseKanban
     end
 
     def serialize_boards(boards, tag_name_map:)
-      serialize_data(boards, DiscourseKanban::BoardSerializer, root: false, tag_name_map:)
     end
 
     def preload_all_assignments(cards, visible_topic_ids)

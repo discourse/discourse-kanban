@@ -6,6 +6,16 @@ module DiscourseKanban
       option :topics
       option :guardian
 
+      # Returns a hash in the format:
+      #
+      # {
+      #   topic_id => {
+      #     board_id => [cards]
+      #   }
+      # }
+      #
+      # With the board & column details preloaded for
+      # each card.
       def call
         cards = cards_query(readable_board_ids).to_a
 

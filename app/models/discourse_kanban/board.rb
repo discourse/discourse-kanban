@@ -158,9 +158,12 @@ module DiscourseKanban
       cat_match = category_ids.blank? || category_ids.include?(effective_category_id)
 
       effective_tag_ids = topic.tag_ids.dup
-      if column&.tag_id.present?
-        sibling_tag_ids = columns.filter_map { |c| c.tag_id.presence }.uniq - [column.tag_id]
-        effective_tag_ids = (effective_tag_ids - sibling_tag_ids + [column.tag_id]).uniq
+      if column
+        column_tag_ids = columns.filter_map { |candidate| candidate.tag_id.presence }.uniq
+        sibling_tag_ids = column_tag_ids - [column.tag_id].compact
+        effective_tag_ids -= sibling_tag_ids
+        effective_tag_ids << column.tag_id if column.tag_id.present?
+        effective_tag_ids.uniq!
       end
       tag_match = tag_ids.blank? || (effective_tag_ids & tag_ids).any?
 

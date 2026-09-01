@@ -35,6 +35,13 @@ module DiscourseKanban
       )
     end
 
+    def self.publish_topic_memberships_changed!(topic, client_id:, refresh_stream: false)
+      data = { reload_topic: true, client_id: }
+      data[:refresh_stream] = true if refresh_stream
+
+      MessageBus.publish("/topic/#{topic.id}", data, topic.secure_audience_publish_messages)
+    end
+
     def self.publish_card_event!(board, type, card_payload, client_id:)
       # Strip topic data from broadcast payloads to prevent leaking
       # private topic details to board readers who lack category access.

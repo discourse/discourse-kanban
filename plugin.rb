@@ -14,7 +14,9 @@ register_asset "stylesheets/kanban-manage.scss"
 register_asset "stylesheets/kanban-board.scss"
 register_asset "stylesheets/kanban-oneboxes.scss"
 register_asset "stylesheets/kanban-topic-pill.scss"
+register_asset "stylesheets/kanban-add-from-topic-menu.scss"
 register_svg_icon "table-columns"
+register_svg_icon "discourse-kanban"
 
 module ::DiscourseKanban
   PLUGIN_NAME = "discourse-kanban"
@@ -49,8 +51,10 @@ after_initialize do
     end
   end
 
-  add_to_serializer(:current_user, :can_manage_kanban_boards) do
-    object.guardian.can_manage_kanban_boards?
+  add_to_serializer(:current_user, :can_manage_kanban_boards) { scope.can_manage_kanban_boards? }
+
+  add_to_serializer(:current_user, :can_edit_any_kanban_boards) do
+    scope.target_ids_with_any_acl_permissions(DiscourseKanban::Board, %w[edit manage]).any?
   end
 
   add_to_class(:topic, :kanban_board_cards_map) { @kanban_board_cards_map }
@@ -59,13 +63,9 @@ after_initialize do
   TopicList.on_preload do |topics, topic_list|
     next unless SiteSetting.discourse_kanban_enabled
 
-    result =
-      DiscourseKanban::TopicBoardMemberships.call(
-        guardian: Guardian.new(topic_list.current_user),
-        options: {
-          topics:,
-        },
-      )
+    guardian = topic_list.current_user.present? ? topic_list.current_user.guardian : Guardian.new
+
+    result = DiscourseKanban::TopicBoardMemberships.call(guardian:, options: { topics: })
     cards_map = result[:cards_map]
     topics.each { |topic| topic.kanban_board_cards_map = cards_map.fetch(topic.id, {}) }
   end
@@ -100,7 +100,7 @@ after_initialize do
   add_to_serializer(
     :topic_view,
     :kanban_memberships,
-    include_condition: -> { SiteSetting.discourse_kanban_enabled && kanban_memberships.present? },
+    include_condition: -> { SiteSetting.discourse_kanban_enabled },
   ) do
     @kanban_memberships ||=
       begin
