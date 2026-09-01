@@ -54,11 +54,16 @@ body.discourse-kanban-board {
     display: flex;
     flex-direction: column;
     gap: var(--space-1);
+
+    .back-button {
+      justify-content: left;
+      margin: 0;
+    }
   }
 
   &__header {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     margin-bottom: var(--space-4);
     z-index: 1;
